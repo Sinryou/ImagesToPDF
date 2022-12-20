@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImgsToPDF", "ImgsToPDF\ImgsToPDF.csproj", "{E76D7A69-7527-4079-B649-BD0A899239B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImgsToPDFCore", "ImgsToPDFCore\ImgsToPDFCore.csproj", "{F8DFA59F-F04B-4BDE-93DA-3BDE68C1AE0E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E76D7A69-7527-4079-B649-BD0A899239B1}.Debug|x64.ActiveCfg = Debug|x64
+		{E76D7A69-7527-4079-B649-BD0A899239B1}.Release|x64.ActiveCfg = Release|x64
+		{E76D7A69-7527-4079-B649-BD0A899239B1}.Release|x64.Build.0 = Release|x64
+		{F8DFA59F-F04B-4BDE-93DA-3BDE68C1AE0E}.Debug|x64.ActiveCfg = Debug|x64
+		{F8DFA59F-F04B-4BDE-93DA-3BDE68C1AE0E}.Debug|x64.Build.0 = Debug|x64
+		{F8DFA59F-F04B-4BDE-93DA-3BDE68C1AE0E}.Release|x64.ActiveCfg = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7F4802C3-1FC0-44C6-AC39-682A4E1D571C}
+	EndGlobalSection
+EndGlobal
