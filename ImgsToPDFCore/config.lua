@@ -1,4 +1,5 @@
--- add your local funs below
+-- add your local funcs below
+-- 建议在这个部分添加你自己要用到的函数
 local function givePathToSave()
     -- 在传入程序的文件夹路径下创建output.pdf为默认pdf输出
     return CS.ImgsToPDFCore.CSGlobal.srcDirPath .. [[\output.pdf]]
@@ -7,17 +8,22 @@ end
 -------------------------------------------------------------------
 ----***************************************************************
 ----Config for how to generate your images to pdf file
+----图片转PDF的配置
 ----***************************************************************
 -------------------------------------------------------------------
 
+local Config = {}
+
 -- the path to save your output pdf file
+-- 输出PDF档的保存路径
 -- @type string
-PathToSave = givePathToSave()
+Config.PathToSave = givePathToSave()
 
 -- func that you can order your input files
+-- 图片文件排序的方法，默认会去找文件名中的数字部分来进行排序
 -- @param path1, path2: string; Full file path of the files to compare.
 -- @return: int; If negative, file in path1 will be added to your pdf first.
-function FilePathComparer(filePath1, filePath2)
+function Config:FilePathComparer(filePath1, filePath2)
     -- 从完整路径中截取文件名
     local pattern = [[.+[/\](.+)]]
     local fileName1, fileName2 = filePath1:match(pattern) or "", filePath2:match(pattern) or ""
@@ -32,8 +38,15 @@ function FilePathComparer(filePath1, filePath2)
     end
 end
 
+-- this func will be processed before pdf generation start
+-- 定义开始前要进行的动作
+function Config:PreProcess()
+    
+end
+
 -- this func will be processed after your pdf generated
-function PostProcess()
+-- 定义结束后要进行的动作
+function Config:PostProcess()
     -- local filesInSrcDir = CS.System.IO.Directory.GetFiles(CS.ImgsToPDFCore.CSGlobal.srcDirPath)
 
     -- for i = 0, filesInSrcDir.Length-1 do
@@ -42,3 +55,5 @@ function PostProcess()
     --     end
     -- end
 end
+
+return Config
