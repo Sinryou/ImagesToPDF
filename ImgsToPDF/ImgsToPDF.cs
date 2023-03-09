@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Deployment.Application;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,11 +44,13 @@ namespace ImgsToPDF {
                 MsgLabel.Text = "Invalid directory path";
                 return;
             }
-
-            foreach (var imagepath in Directory.GetFiles(directoryPath)) {
+            List<string> imageExtensions = new List<string> { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
+            IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
+                .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
+            foreach (var imagepath in imagepaths) {
                 try {
                     using (var srcImage = new Bitmap(imagepath)) {
-                        PicInFolder.Image = Image.FromFile(imagepath);
+                        PicInFolder.Image = Bitmap.FromFile(imagepath) as Bitmap;
                         break;
                     }
                 }
@@ -66,7 +70,6 @@ namespace ImgsToPDF {
         private async void StartButton_Click(object sender, EventArgs e) {
             //Thread ButtonClickThread = new Thread(ButtonClickAction);
             //ButtonClickThread.Start();
-            //MsgLabel.ForeColor = Color.Blue;
             MsgLabel.Text = "PDF is Generating......";
             progressBar.Visible = true;
             progressBar.Maximum = 100;
@@ -79,15 +82,10 @@ namespace ImgsToPDF {
             MsgLabel.Text = "PDF file has been output to your folder!";
         }
         private void ButtonClickAction() {
-            string fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
-            string args;
-            if (FastMode.Checked) {
-                args = @"""" + PathLabel.Text + @""" " + generateModeBox.SelectedIndex.ToString() + " 1";
-            }
-            else {
-                args = @"""" + PathLabel.Text + @""" " + generateModeBox.SelectedIndex.ToString() + " 0";
-            }
-            var (stdout, stderr) = RunProcess(fileName, args);
+            var fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
+            var fastCheckedStatus = FastMode.Checked ? " 1" : " 0";
+            var args = @"""" + PathLabel.Text + @""" " + generateModeBox.SelectedIndex.ToString() + fastCheckedStatus;
+            var (_, stderr) = RunProcess(fileName, args);
             if (stderr.Length > 0) {
                 MessageBox.Show(stderr);
             }
@@ -134,8 +132,9 @@ namespace ImgsToPDF {
             );
         }
         private void toolStripMenuOpenFolder_Click(object sender, EventArgs e) {
-            FolderBrowserDialog dialog = new FolderBrowserDialog();
-            dialog.Description = "请选择需要合并为PDF的图片文件所在的文件夹";
+            FolderBrowserDialog dialog = new FolderBrowserDialog {
+                Description = "请选择需要合并为PDF的图片文件所在的文件夹"
+            };
             if (dialog.ShowDialog() == DialogResult.Cancel) {
                 return;
             }
@@ -143,6 +142,7 @@ namespace ImgsToPDF {
             ChooseFileAction(directoryPath);
         }
         private void toolStripMenuClearChosen_Click(object sender, EventArgs e) {
+            PicInFolder.Image?.Dispose();
             PicInFolder.Image = Properties.Resources.folder;
             FolderImg.Image = null;
             PathLabel.Text = null;

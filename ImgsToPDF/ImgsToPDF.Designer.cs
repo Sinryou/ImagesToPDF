@@ -106,14 +106,14 @@
             // 
             this.generateModeBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.generateModeBox.FormattingEnabled = true;
-            this.generateModeBox.Location = new System.Drawing.Point(190, 505);
+            this.generateModeBox.Location = new System.Drawing.Point(170, 505);
             this.generateModeBox.Name = "generateModeBox";
-            this.generateModeBox.Size = new System.Drawing.Size(135, 26);
+            this.generateModeBox.Size = new System.Drawing.Size(170, 26);
             this.generateModeBox.TabIndex = 12;
             // 
             // label1
             // 
-            this.label1.Location = new System.Drawing.Point(5, 495);
+            this.label1.Location = new System.Drawing.Point(-3, 495);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(192, 48);
             this.label1.TabIndex = 13;
@@ -140,7 +140,7 @@
             this.toolStripMenuAbout});
             this.menuStripMain.Location = new System.Drawing.Point(0, 0);
             this.menuStripMain.Name = "menuStripMain";
-            this.menuStripMain.Size = new System.Drawing.Size(803, 32);
+            this.menuStripMain.Size = new System.Drawing.Size(803, 36);
             this.menuStripMain.TabIndex = 15;
             this.menuStripMain.Text = "menuStripMain";
             // 
@@ -152,7 +152,7 @@
             this.toolStripSeparator1,
             this.toolStripMenuExit});
             this.toolStripMenuFile.Name = "toolStripMenuFile";
-            this.toolStripMenuFile.Size = new System.Drawing.Size(84, 28);
+            this.toolStripMenuFile.Size = new System.Drawing.Size(84, 32);
             this.toolStripMenuFile.Text = "文件(&F)";
             // 
             // toolStripMenuOpenFolder
@@ -184,14 +184,14 @@
             // toolStripMenuConfigFile
             // 
             this.toolStripMenuConfigFile.Name = "toolStripMenuConfigFile";
-            this.toolStripMenuConfigFile.Size = new System.Drawing.Size(122, 28);
+            this.toolStripMenuConfigFile.Size = new System.Drawing.Size(122, 32);
             this.toolStripMenuConfigFile.Text = "配置文件(&C)";
             this.toolStripMenuConfigFile.Click += new System.EventHandler(this.toolStripMenuConfigFile_Click);
             // 
             // toolStripMenuAbout
             // 
             this.toolStripMenuAbout.Name = "toolStripMenuAbout";
-            this.toolStripMenuAbout.Size = new System.Drawing.Size(87, 28);
+            this.toolStripMenuAbout.Size = new System.Drawing.Size(87, 32);
             this.toolStripMenuAbout.Text = "关于(&A)";
             this.toolStripMenuAbout.Click += new System.EventHandler(this.toolStripMenuAbout_Click);
             // 
