@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ImgsToPDF {
@@ -29,9 +30,19 @@ namespace ImgsToPDF {
             }
         }
         private void ChooseFileAction(string directoryPath) {
+            // 及时释放Bitmap对象
+            PicInFolder.Image?.Dispose();
+
             PicInFolder.Image = Properties.Resources.no_photo;
             FolderImg.Image = Properties.Resources.folder;
             PathLabel.Text = directoryPath;
+
+            // 检查路径是否有效
+            if (!Directory.Exists(directoryPath)) {
+                MsgLabel.Text = "Invalid directory path";
+                return;
+            }
+
             foreach (var imagepath in Directory.GetFiles(directoryPath)) {
                 try {
                     using (var srcImage = new Bitmap(imagepath)) {
@@ -40,9 +51,11 @@ namespace ImgsToPDF {
                     }
                 }
                 catch (Exception) {
-                    //throw;
+                    // 如果文件不是一张合法的图片，则直接跳过
+                    continue;
                 }
             }
+
             StartButton.Enabled = true;
             MsgLabel.Text = "Click Start Button to Generate PDF file";
         }
@@ -50,15 +63,20 @@ namespace ImgsToPDF {
             string directoryPath = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
             ChooseFileAction(directoryPath);
         }
-        private void StartButton_Click(object sender, EventArgs e) {
-            Thread ButtonClickThread = new Thread(ButtonClickAction);
-            ButtonClickThread.Start();
+        private async void StartButton_Click(object sender, EventArgs e) {
+            //Thread ButtonClickThread = new Thread(ButtonClickAction);
+            //ButtonClickThread.Start();
             //MsgLabel.ForeColor = Color.Blue;
             MsgLabel.Text = "PDF is Generating......";
             progressBar.Visible = true;
             progressBar.Maximum = 100;
             progressBar.Value = 50;
             StartButton.Enabled = false;
+            await Task.Run(() => ButtonClickAction());  // 这里的“await”语句会在后台线程运行LoadData方法
+            // LoadData方法完成后，回到主线程更新UI
+            progressBar.Value = 100;
+            StartButton.Enabled = true;
+            MsgLabel.Text = "PDF file has been output to your folder!";
         }
         private void ButtonClickAction() {
             string fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
@@ -73,10 +91,6 @@ namespace ImgsToPDF {
             if (stderr.Length > 0) {
                 MessageBox.Show(stderr);
             }
-            Thread.Sleep(100);
-            progressBar.Value = 100;
-            StartButton.Enabled = true;
-            MsgLabel.Text = "PDF file has been output to your folder!";
         }
         /// <summary>
         /// 运行给定的命令，返回得到的标准输出及标准错误
