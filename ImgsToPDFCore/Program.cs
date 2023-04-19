@@ -7,23 +7,30 @@ using iTextSharp.text;
 using WebPWrapper;
 using XLua;
 
+public struct CSGlobal {
+    public static readonly LuaEnv luaEnv = new LuaEnv();
+    [LuaCallCSharp]
+    [ReflectionUse]
+    public static List<Type> lua_call_cs_list = new List<Type>() {
+        typeof(iTextSharp.text.PageSize),
+        typeof(iTextSharp.text.Rectangle),
+    };
+    public static string srcDirPath = "";
+}
+
 namespace ImgsToPDFCore {
     [CSharpCallLua]
     public interface IConfig {
         string PathToSave { get; set; }
+        iTextSharp.text.Rectangle PageSizeToSave { get; set; }
         int FilePathComparer(string a, string b);
         void PreProcess();
         void PostProcess();
     }
-    internal struct CSGlobal {
-        public static readonly LuaEnv luaEnv = new LuaEnv();
-        public static string srcDirPath = "";
-    }
     internal class Program {
-        static public LuaEnv luaEnv = CSGlobal.luaEnv;
-        static public IConfig luaConfig;
-
-        private static iTextSharp.text.Image GetImageInstance(Bitmap bitmap, int fastFlag) {
+        static readonly LuaEnv luaEnv = CSGlobal.luaEnv;
+        static IConfig luaConfig;
+        static iTextSharp.text.Image GetImageInstance(Bitmap bitmap, int fastFlag) {
             iTextSharp.text.Image resultImage;
             if (fastFlag == 1) {
                 resultImage = iTextSharp.text.Image.GetInstance(bitmap, System.Drawing.Imaging.ImageFormat.Jpeg);
@@ -37,16 +44,29 @@ namespace ImgsToPDFCore {
             }
             return resultImage;
         }
-        private static void AddPage(Document document, Bitmap bitmap, int fastFlag) {
-            var pageSize = new iTextSharp.text.Rectangle(0, 0, bitmap.Width, bitmap.Height);
+        static void AddPage(Document document, Bitmap bitmap, int fastFlag) {
+            iTextSharp.text.Rectangle pageSize;
+            //Console.WriteLine(luaConfig.PageSizeToSave.Width);
+            if (luaConfig.PageSizeToSave!=null) {
+                pageSize = luaConfig.PageSizeToSave;
+            }
+            else {
+                pageSize = new iTextSharp.text.Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            }
             document.SetPageSize(pageSize);
-            document.NewPage();
             var image = GetImageInstance(bitmap, fastFlag);
+            if (luaConfig.PageSizeToSave != null) {
+                image.ScaleToFit(pageSize.Width, pageSize.Height);
+                var wMargins = (pageSize.Width - image.ScaledWidth) / 2;
+                var hMargins = (pageSize.Height - image.ScaledHeight) / 2;
+                document.SetMargins(wMargins, wMargins, hMargins, hMargins);
+            }
+            document.NewPage();
             document.PageCount = document.PageNumber + 1;
             document.Add(image);
             bitmap.Dispose();   // 释放位图占用资源
         }
-        private static Bitmap CombineBitmap(Bitmap bm1, Bitmap bm2, int margin) {
+        static Bitmap CombineBitmap(Bitmap bm1, Bitmap bm2, int margin) {
             var width = bm1.Width + bm2.Width + margin;
             var height = Math.Max(bm1.Height, bm2.Height);
             // 初始化画布(最终的拼图画布)并设置宽高
@@ -63,9 +83,9 @@ namespace ImgsToPDFCore {
             bm2.Dispose();
             return bitMap;
         }
-        static public void ImagesToPdf(List<Bitmap> imageList, int generateFlag, int fastFlag) {
+        static void ImagesToPdf(List<Bitmap> imageList, int generateFlag, int fastFlag) {
             using (var ms = new MemoryStream()) {
-                var document = new iTextSharp.text.Document(PageSize.A4, 0, 0, 0, 0);
+                var document = new iTextSharp.text.Document(iTextSharp.text.PageSize.A4, 0, 0, 0, 0);
                 iTextSharp.text.pdf.PdfWriter.GetInstance(document, ms).SetFullCompression();
                 document.Open();
                 if (generateFlag == 0) {
@@ -111,7 +131,9 @@ namespace ImgsToPDFCore {
             int generateFlag = Convert.ToInt32(args[1]); // 0 1 2
             int fastFlag = Convert.ToInt32(args[2]); // 0 1
             CSGlobal.srcDirPath = directoryPath; // 给lua调用的
-            luaEnv.DoString(@"config = require 'config'"); // 获取lua内的方法
+            luaEnv.DoString(@"iPageSize = CS.iTextSharp.text.PageSize;
+iRectangle = CS.iTextSharp.text.Rectangle;
+config = require 'config';"); // 获取lua内的方法
             luaConfig = luaEnv.Global.Get<IConfig>("config");
             luaConfig.PreProcess();
 

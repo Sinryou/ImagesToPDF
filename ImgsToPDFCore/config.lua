@@ -1,8 +1,10 @@
+local common = require("Modules.Common")
+
 -- add your local funcs below
 -- 建议在这个部分添加你自己要用到的函数
 local function givePathToSave()
     -- 在传入程序的文件夹路径下创建output.pdf为默认pdf输出
-    return CS.ImgsToPDFCore.CSGlobal.srcDirPath .. [[\output.pdf]]
+    return CS.CSGlobal.srcDirPath .. [[\output.pdf]]
 end
 
 -------------------------------------------------------------------
@@ -18,6 +20,13 @@ local Config = {}
 -- 输出PDF档的保存路径
 -- @type string
 Config.PathToSave = givePathToSave()
+
+-- page size of the output pdf file
+-- 输出PDF档的页大小
+-- @type iTextSharp.text.Rectangle
+-- e.g. Config.PageSizeToSave = iPageSize.A4 (支持NoResize, A0~A10, B0~B10等)
+-- 或 Config.PageSizeToSave = iRectangle(0, 0, width, height)
+Config.PageSizeToSave = iPageSize.NoResize
 
 -- func that you can order your input files
 -- 图片文件排序的方法，默认会去找文件名中的数字部分来进行排序
