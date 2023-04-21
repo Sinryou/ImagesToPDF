@@ -106,18 +106,18 @@
             // 
             this.generateModeBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.generateModeBox.FormattingEnabled = true;
-            this.generateModeBox.Location = new System.Drawing.Point(170, 505);
+            this.generateModeBox.Location = new System.Drawing.Point(155, 505);
             this.generateModeBox.Name = "generateModeBox";
-            this.generateModeBox.Size = new System.Drawing.Size(170, 26);
+            this.generateModeBox.Size = new System.Drawing.Size(185, 26);
             this.generateModeBox.TabIndex = 12;
             // 
             // label1
             // 
-            this.label1.Location = new System.Drawing.Point(-3, 495);
+            this.label1.Location = new System.Drawing.Point(-10, 495);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(192, 48);
             this.label1.TabIndex = 13;
-            this.label1.Text = "PDF生成模式 Mode：";
+            this.label1.Text = "PDF版式Layout：";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // FastMode

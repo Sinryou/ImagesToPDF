@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Deployment.Application;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -19,7 +16,7 @@ namespace ImgsToPDF {
             FolderImg.SizeMode = PictureBoxSizeMode.Zoom;
             PicInFolder.SizeMode = PictureBoxSizeMode.Zoom;
             MsgLabel.ForeColor = Color.Blue;
-            generateModeBox.Items.AddRange(new string[] { "Single单页", "Dual双页", "DualR2L逆排双页" });
+            generateModeBox.Items.AddRange(new string[] { "Single单页", "Duplex双页", "DuplexR2L逆排双页" });
             generateModeBox.SelectedIndex = 0;
         }
         private void ImgsToPDF_DragEnter(object sender, DragEventArgs e) {
@@ -83,8 +80,13 @@ namespace ImgsToPDF {
         }
         private void ButtonClickAction() {
             var fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
-            var fastCheckedStatus = FastMode.Checked ? " 1" : " 0";
-            var args = @"""" + PathLabel.Text + @""" " + generateModeBox.SelectedIndex.ToString() + fastCheckedStatus;
+            List<string> args = new List<string> {
+                "-d", PathLabel.Text,
+                "-l", generateModeBox.SelectedIndex.ToString()
+            };
+            if (FastMode.Checked) {
+                args.Add("--fast");
+            }
             var (_, stderr) = RunProcess(fileName, args);
             if (stderr.Length > 0) {
                 MessageBox.Show(stderr);
@@ -95,17 +97,18 @@ namespace ImgsToPDF {
         /// </summary>
         /// <param name="command">需要运行的指令</param>
         /// <returns>元组：(stdout:标准输出, stderr:标准错误)</returns>
-        private static (string stdout, string stderr) RunProcess(string fileName, string args) {
-            #region 打印给定command
-            //string[] splitedStrings = command.Split(new char[] { ' ' }, 2);
-            //foreach (string s in splitedStrings) {
-            //    Console.WriteLine("splitedStrings.Item: " + s);
-            //}
-            #endregion
+        private static (string stdout, string stderr) RunProcess(string fileName, List<string> args) {
+            for (int i = 0; i < args.Count; i++) {
+                if (args[i].EndsWith(@"\")) {
+                    //处理最后若为“\\”，会被转义成“\”，然后变成转义符。
+                    args[i] += @"\";
+                }
+                args[i] = string.Format("\"{0}\"", args[i]);
+            }
             // 例Process
             Process p = new Process();
             p.StartInfo.FileName = fileName;
-            p.StartInfo.Arguments = args;
+            p.StartInfo.Arguments = string.Join(" ", args);
             p.StartInfo.UseShellExecute = false;        // Shell的使用
             p.StartInfo.RedirectStandardInput = true;   // 重定向输入
             p.StartInfo.RedirectStandardOutput = true;  // 重定向输出
@@ -122,7 +125,7 @@ namespace ImgsToPDF {
         }
         private void toolStripMenuAbout_Click(object sender, EventArgs e) {
             MessageBox.Show(
-                "ImagesToPDF v"+ System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "\nCopyright (c) 2022-2023 Sinryou. At MIT License.",
+                "ImagesToPDF v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "\nCopyright (c) 2022-2023 Sinryou. At MIT License.",
                 "About",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information,
