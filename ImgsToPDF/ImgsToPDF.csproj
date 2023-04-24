@@ -42,7 +42,7 @@
     <OutputPath>bin\x64\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
+    <DebugType>none</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <LangVersion>7.3</LangVersion>
     <ErrorReport>prompt</ErrorReport>
@@ -71,12 +71,18 @@
     <Compile Include="ImgsToPDF.Designer.cs">
       <DependentUpon>ImgsToPDF.cs</DependentUpon>
     </Compile>
+    <Compile Include="Lang\Extra.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="ImgsToPDF.resx">
       <DependentUpon>ImgsToPDF.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="ImgsToPDF.zh.resx">
+      <DependentUpon>ImgsToPDF.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Lang\Extra.resx" />
+    <EmbeddedResource Include="Lang\Extra.zh.resx" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

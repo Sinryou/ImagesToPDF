@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ImgsToPDF.Lang;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -10,13 +11,32 @@ using System.Windows.Forms;
 namespace ImgsToPDF {
     public partial class ImgsToPDF : Form {
         public ImgsToPDF() {
+            string language = Properties.Settings.Default.DefaultLanguage != "" ? Properties.Settings.Default.DefaultLanguage : System.Globalization.CultureInfo.CurrentCulture.Name;
+            System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(language);
+
+            this.StartPosition = FormStartPosition.CenterScreen; // 窗口居中
+            CheckForIllegalCrossThreadCalls = false; // UI不需要限制线程间操作
+
             InitializeComponent();
         }
+
         private void ImgsToPDF_Load(object sender, EventArgs e) {
-            FolderImg.SizeMode = PictureBoxSizeMode.Zoom;
-            PicInFolder.SizeMode = PictureBoxSizeMode.Zoom;
+            if (System.Threading.Thread.CurrentThread.CurrentUICulture.Name.StartsWith("zh")) {
+                chineseToolStripMenuItem.Checked = true;
+                chineseToolStripMenuItem.Enabled = false;
+            }
+            else {
+                englishToolStripMenuItem.Checked = true;
+                englishToolStripMenuItem.Enabled = false;
+            }
+            //FolderImg.SizeMode = PictureBoxSizeMode.Zoom;
+            //PicInFolder.SizeMode = PictureBoxSizeMode.Zoom;
             MsgLabel.ForeColor = Color.Blue;
-            generateModeBox.Items.AddRange(new string[] { "Single单页", "Duplex双页", "DuplexR2L逆排双页" });
+            generateModeBox.Items.AddRange(new string[] {
+                Extra.ApplyResource(typeof(Extra), "strSingle"),
+                Extra.ApplyResource(typeof(Extra), "strDuplex"),
+                Extra.ApplyResource(typeof(Extra), "strDuplexRightToLeft")
+            });
             generateModeBox.SelectedIndex = 0;
         }
         private void ImgsToPDF_DragEnter(object sender, DragEventArgs e) {
@@ -41,7 +61,7 @@ namespace ImgsToPDF {
                 MsgLabel.Text = "Invalid directory path";
                 return;
             }
-            List<string> imageExtensions = new List<string> { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
+            List<string> imageExtensions = new List<string> { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
             IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                 .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
             foreach (var imagepath in imagepaths) {
@@ -58,7 +78,7 @@ namespace ImgsToPDF {
             }
 
             StartButton.Enabled = true;
-            MsgLabel.Text = "Click Start Button to Generate PDF file";
+            MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
         }
         private void ImgsToPDF_DragDrop(object sender, DragEventArgs e) {
             string directoryPath = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
@@ -67,7 +87,7 @@ namespace ImgsToPDF {
         private async void StartButton_Click(object sender, EventArgs e) {
             //Thread ButtonClickThread = new Thread(ButtonClickAction);
             //ButtonClickThread.Start();
-            MsgLabel.Text = "PDF is Generating......";
+            MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strPDFIsGenerating");
             progressBar.Visible = true;
             progressBar.Maximum = 100;
             progressBar.Value = 50;
@@ -76,10 +96,19 @@ namespace ImgsToPDF {
             // LoadData方法完成后，回到主线程更新UI
             progressBar.Value = 100;
             StartButton.Enabled = true;
-            MsgLabel.Text = "PDF file has been output to your folder!";
+            MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strPDFGenerationSuccess");
+        }
+        static List<string> RecursiveFolder(string path, List<string> dirs) {
+            dirs.Add(path);
+            var TheFolder = new DirectoryInfo(path);
+            foreach (var childFolder in TheFolder.GetDirectories()) {
+                RecursiveFolder(childFolder.FullName, dirs);
+            }
+            return dirs;
         }
         private void ButtonClickAction() {
             var fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
+
             List<string> args = new List<string> {
                 "-d", PathLabel.Text,
                 "-l", generateModeBox.SelectedIndex.ToString()
@@ -87,18 +116,32 @@ namespace ImgsToPDF {
             if (FastMode.Checked) {
                 args.Add("--fast");
             }
-            var (_, stderr) = RunProcess(fileName, args);
-            if (stderr.Length > 0) {
-                MessageBox.Show(stderr);
+
+            if (Recursive.Checked) {
+                foreach (var dirPath in RecursiveFolder(PathLabel.Text, new List<string> { }))
+                {
+                    args[1] = dirPath;
+                    var (_, stderr) = RunProcess(fileName, args.ToArray());
+                    if (stderr.Length > 0) {
+                        MessageBox.Show(stderr);
+                    }
+                }
             }
+            else {
+                var (_, stderr) = RunProcess(fileName, args.ToArray());
+                if (stderr.Length > 0) {
+                    MessageBox.Show(stderr);
+                }
+            }
+            
         }
         /// <summary>
         /// 运行给定的命令，返回得到的标准输出及标准错误
         /// </summary>
         /// <param name="command">需要运行的指令</param>
         /// <returns>元组：(stdout:标准输出, stderr:标准错误)</returns>
-        private static (string stdout, string stderr) RunProcess(string fileName, List<string> args) {
-            for (int i = 0; i < args.Count; i++) {
+        private static (string stdout, string stderr) RunProcess(string fileName, string[] args) {
+            for (int i = 0; i < args.Length; i++) {
                 if (args[i].EndsWith(@"\")) {
                     //处理最后若为“\\”，会被转义成“\”，然后变成转义符。
                     args[i] += @"\";
@@ -136,7 +179,7 @@ namespace ImgsToPDF {
         }
         private void toolStripMenuOpenFolder_Click(object sender, EventArgs e) {
             FolderBrowserDialog dialog = new FolderBrowserDialog {
-                Description = "请选择需要合并为PDF的图片文件所在的文件夹"
+                Description = Extra.ApplyResource(typeof(Extra), "strSelectIMGFolder")
             };
             if (dialog.ShowDialog() == DialogResult.Cancel) {
                 return;
@@ -150,7 +193,33 @@ namespace ImgsToPDF {
             FolderImg.Image = null;
             PathLabel.Text = null;
             StartButton.Enabled = false;
-            MsgLabel.Text = "拖入包含图片的文件夹 Drop your folder here";
+            MsgLabel.Text = Extra.ApplyResource(this.GetType(), "MsgLabel.Text");
+        }
+
+        private void englishToolStripMenuItem_Click(object sender, EventArgs e) {
+            Properties.Settings.Default.DefaultLanguage = "en-US";
+            Properties.Settings.Default.Save();
+            MessageBox.Show(
+                "Application will restart immediately to take effect your language setting.",
+                "Notice",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+            this.Close();
+            Application.Restart();
+        }
+
+        private void chineseToolStripMenuItem_Click(object sender, EventArgs e) {
+            Properties.Settings.Default.DefaultLanguage = "zh-CN";
+            Properties.Settings.Default.Save();
+            MessageBox.Show(
+                "程序将立即重启以生效你的语言设置。",
+                "注意",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+            this.Close();
+            Application.Restart();
         }
     }
 }
