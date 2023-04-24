@@ -6,3 +6,5 @@
    * 支持绝大多数常见图片格式，支持webp图片。
    * 排序方法会根据文件名中的数字排序，若无数字的文件名会按照string默认排序方式排序。可在Config.lua文件中自定义排序方式。
    * 默认情况下输出的PDF文件页尺寸即为给定的图像的尺寸。可在Config.lua文件中自定义输出PDF文件的页尺寸（NoResize, A0-A10, B0-B10等），图像始终居中且适应页尺寸。
+   * 支持多语言切换。
+<img src="https://github.com/Sinryou/ImagesToPDF/blob/master/Pics/GIF%2023-4-24%20-19-27.gif" width="500"  alt="演示图片"/><br/>
