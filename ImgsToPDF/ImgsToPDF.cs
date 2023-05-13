@@ -109,26 +109,44 @@ namespace ImgsToPDF {
         private void ButtonClickAction() {
             var fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
 
-            List<string> args = new List<string> {
-                "-d", PathLabel.Text,
-                "-l", generateModeBox.SelectedIndex.ToString()
-            };
-            if (FastMode.Checked) {
-                args.Add("--fast");
-            }
-
             if (Recursive.Checked) {
-                foreach (var dirPath in RecursiveFolder(PathLabel.Text, new List<string> { }))
-                {
-                    args[1] = dirPath;
-                    var (_, stderr) = RunProcess(fileName, args.ToArray());
+                //foreach (var dirPath in RecursiveFolder(PathLabel.Text, new List<string> { }))
+                //{
+                //    string[] args = FastMode.Checked ? new string[] {
+                //        "-d", dirPath,
+                //        "-l", generateModeBox.SelectedIndex.ToString()
+                //    } : new string[] {
+                //        "-d", dirPath,
+                //        "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
+                //    };
+                //    var (_, stderr) = RunProcess(fileName, args);
+                //    if (stderr.Length > 0) {
+                //        MessageBox.Show(stderr);
+                //    }
+                //}
+                RecursiveFolder(PathLabel.Text, new List<string> { }).AsParallel().WithDegreeOfParallelism(4).ForAll(dirPath => {
+                    string[] args = FastMode.Checked ? new string[] {
+                        "-d", dirPath,
+                        "-l", generateModeBox.SelectedIndex.ToString()
+                    } : new string[] {
+                        "-d", dirPath,
+                        "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
+                    };
+                    var (_, stderr) = RunProcess(fileName, args);
                     if (stderr.Length > 0) {
                         MessageBox.Show(stderr);
                     }
-                }
+                });
             }
             else {
-                var (_, stderr) = RunProcess(fileName, args.ToArray());
+                string[] args = FastMode.Checked ? new string[] {
+                    "-d", PathLabel.Text,
+                    "-l", generateModeBox.SelectedIndex.ToString()
+                } : new string[] {
+                    "-d", PathLabel.Text,
+                    "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
+                };
+                var (_, stderr) = RunProcess(fileName, args);
                 if (stderr.Length > 0) {
                     MessageBox.Show(stderr);
                 }
