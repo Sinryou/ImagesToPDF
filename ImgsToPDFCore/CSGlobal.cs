@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using ImgsToPDFCore;
+using Microsoft.VisualBasic;
 using XLua;
 
 /// <summary>
@@ -14,6 +15,7 @@ public struct CSGlobal {
     public static readonly List<Type> lua_call_cs_list = new List<Type>() {
         typeof(iTextSharp.text.PageSize),
         typeof(iTextSharp.text.Rectangle),
+        typeof(Interaction),
     };
     #endregion
     public static IConfig luaConfig;

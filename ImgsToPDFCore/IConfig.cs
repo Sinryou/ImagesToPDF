@@ -6,7 +6,7 @@ namespace ImgsToPDFCore {
     /// </summary>
     [CSharpCallLua]
     public interface IConfig {
-        string PathToSave { get; set; }
+        string PathToSave();
         iTextSharp.text.Rectangle PageSizeToSave { get; set; }
         int FilePathComparer(string a, string b);
         void PreProcess();

@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using System;
 
 namespace ImgsToPDFCore {
     internal class Program {
@@ -30,14 +31,15 @@ namespace ImgsToPDFCore {
             CSGlobal.srcDirPath = option.DirectoryPath; // 给lua调用的
             CSGlobal.luaEnv.DoString(@"iPageSize = CS.iTextSharp.text.PageSize;
 iRectangle = CS.iTextSharp.text.Rectangle;
-config = require 'config';"); // 获取lua内的方法
+config = require 'config';
+commonUtils = CS.ImgsToPDFCore.CommonUtils"); // 获取lua内的方法
 
             CSGlobal.luaConfig = CSGlobal.luaEnv.Global.Get<IConfig>("config");
             CSGlobal.luaConfig.PreProcess();
 
             //Console.WriteLine((Layout)option.Layout);
 
-            PDFWrapper.ImagesToPDF(option.DirectoryPath, (Layout)option.Layout, option.FastFlag);
+            PDFWrapper.ImagesToPDF(CSGlobal.srcDirPath, (Layout)option.Layout, option.FastFlag);
 
             CSGlobal.luaConfig.PostProcess();
 

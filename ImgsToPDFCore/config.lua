@@ -1,11 +1,8 @@
 local common = require("Modules.Common")
+local IO = CS.System.IO
 
 -- add your local funcs below
 -- 建议在这个部分添加你自己要用到的函数
-local function givePathToSave()
-    -- 在传入程序的文件夹路径下创建output.pdf为默认pdf输出
-    return CS.CSGlobal.srcDirPath .. [[\output.pdf]]
-end
 
 -------------------------------------------------------------------
 ----***************************************************************
@@ -19,7 +16,11 @@ local Config = {}
 -- the path to save your output pdf file
 -- 输出PDF档的保存路径
 -- @type string
-Config.PathToSave = givePathToSave()
+local pdfFileName
+local outputDir
+function Config.PathToSave()
+    return outputDir .. [[\]] .. pdfFileName .. ".pdf"
+end
 
 -- page size of the output pdf file
 -- 输出PDF档的页大小
@@ -42,27 +43,53 @@ function Config:FilePathComparer(filePath1, filePath2)
 
     if not numInPath1 and not numInPath2 then -- 如果二者都没有找到数字部分，采用默认排序决策
         return fileName1 == fileName2 and 0 or fileName1 < fileName2 and -1 or 1
-    else -- 若其中之一无数字，无数字者在前；否则数字小者在前
+    else                                      -- 若其中之一无数字，无数字者在前；否则数字小者在前
         return (numInPath1 or -1) - (numInPath2 or -1)
     end
 end
 
+local tempExtraPath
 -- this func will be processed before pdf generation start
 -- 定义开始前要进行的动作
 function Config:PreProcess()
-    
+    local path = CS.CSGlobal.srcDirPath
+    local compressSuffix = { ".zip", ".rar", ".7z" }
+    if IO.Directory.Exists(path) then
+        pdfFileName = IO.DirectoryInfo(path).Name
+        outputDir = path
+        return --如果是文件夹或不以压缩格式结尾 不做动作
+    elseif not common.hasVal(compressSuffix, IO.Path.GetExtension(path):lower()) then
+        return
+    end
+
+    pdfFileName = IO.Path.GetFileNameWithoutExtension(path)
+    outputDir = IO.Path.GetDirectoryName(path)
+    tempExtraPath = path:gsub("%" .. IO.Path.GetExtension(path) .. "$", "") .. os.date("%Y%m%d%H%M%S")
+    if not commonUtils.Decompress(path, tempExtraPath) then
+        local password = CS.Microsoft.VisualBasic.Interaction.InputBox("该压缩包包含密码，请输入密码：",
+            "Password for Your Compress File")
+        if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
+            IO.Directory.Delete(tempExtraPath, true)
+            return
+        end
+    end
+
+    if not commonUtils.GetAllImgsPathInDirectory(tempExtraPath)[0] then
+        local childDirs = IO.Directory.GetDirectories(tempExtraPath)
+        if childDirs.Length > 0 then
+            CS.CSGlobal.srcDirPath = childDirs[0]
+            return
+        end
+    end
+    CS.CSGlobal.srcDirPath = tempExtraPath
 end
 
 -- this func will be processed after your pdf generated
 -- 定义结束后要进行的动作
 function Config:PostProcess()
-    -- local filesInSrcDir = CS.System.IO.Directory.GetFiles(CS.ImgsToPDFCore.CSGlobal.srcDirPath)
-
-    -- for i = 0, filesInSrcDir.Length-1 do
-    --     if filesInSrcDir[i]:match("%.tmp$") then
-    --         CS.System.IO.File.Delete(filesInSrcDir[i]);
-    --     end
-    -- end
+    if tempExtraPath then
+        IO.Directory.Delete(tempExtraPath, true)
+    end
 end
 
 return Config

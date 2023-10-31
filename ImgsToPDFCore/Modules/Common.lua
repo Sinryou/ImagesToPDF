@@ -102,4 +102,21 @@ function Common.dump(o)
     end
 end
 
+function Common.map(func, t)
+    local ret = {}
+    for i=1, #t, 1 do
+        ret[i] = func(t[i])
+    end
+    return ret
+end
+
+function Common.hasVal(valueArr,valueStr)
+    for _,value in ipairs(valueArr) do
+        if value == valueStr then
+            return true
+        end
+    end
+    return false
+end
+
 return Common

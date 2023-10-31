@@ -101,7 +101,7 @@ namespace ImgsToPDFCore {
                     document.Add(iTextSharp.text.Chunk.NEWLINE);
                 }
                 document.Close();
-                string pathToSave = CSGlobal.luaConfig.PathToSave; // 从lua里读设置的保存路径
+                string pathToSave = CSGlobal.luaConfig.PathToSave(); // 从lua里读设置的保存路径
                 File.WriteAllBytes(pathToSave, ms.ToArray());
             }
         }
@@ -112,7 +112,7 @@ namespace ImgsToPDFCore {
         /// <param name="layout">合并方式</param>
         /// <param name="fastFlag">是否以图片质量换取生成速度</param>
         public static void ImagesToPDF(string directoryPath, Layout layout = Layout.Single, bool fastFlag = false) {
-
+            if (!Directory.Exists(directoryPath)) { return; }   // 不存在文件夹则直接结束执行
             List<string> imageExtensions = new List<string> { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
             IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                 .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e))

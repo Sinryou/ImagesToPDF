@@ -34,6 +34,9 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\Microsoft.VisualBasic.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -54,6 +57,7 @@
     <Compile Include="PDFWrapper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="CommonUtils.cs" />
     <Compile Include="WebPWrapper.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -89,6 +93,9 @@
     </PackageReference>
     <PackageReference Include="iTextSharp">
       <Version>5.5.13.3</Version>
+    </PackageReference>
+    <PackageReference Include="SharpCompress">
+      <Version>0.34.1</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
