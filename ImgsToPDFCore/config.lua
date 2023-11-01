@@ -1,5 +1,8 @@
 local common = require("Modules.Common")
 local IO = CS.System.IO
+local iPageSize = CS.iTextSharp.text.PageSize;
+local iRectangle = CS.iTextSharp.text.Rectangle;
+local commonUtils = CS.ImgsToPDFCore.CommonUtils
 
 -- add your local funcs below
 -- 建议在这个部分添加你自己要用到的函数

@@ -29,10 +29,7 @@ namespace ImgsToPDFCore {
         static void Run(Options option) {
 
             CSGlobal.srcDirPath = option.DirectoryPath; // 给lua调用的
-            CSGlobal.luaEnv.DoString(@"iPageSize = CS.iTextSharp.text.PageSize;
-iRectangle = CS.iTextSharp.text.Rectangle;
-config = require 'config';
-commonUtils = CS.ImgsToPDFCore.CommonUtils"); // 获取lua内的方法
+            CSGlobal.luaEnv.DoString(@"config = require 'config';"); // 获取lua内的方法
 
             CSGlobal.luaConfig = CSGlobal.luaEnv.Global.Get<IConfig>("config");
             CSGlobal.luaConfig.PreProcess();
