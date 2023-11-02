@@ -125,6 +125,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>start xcopy /S /I /Q /F /E /Y /R "$(ProjectDir)Core" "$(TargetDir)Core"</PostBuildEvent>
+    <PostBuildEvent>xcopy /S /I /Q /F /E /Y /R "$(ProjectDir)Core" "$(TargetDir)Core"</PostBuildEvent>
   </PropertyGroup>
 </Project>

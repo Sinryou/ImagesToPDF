@@ -63,10 +63,10 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="config.lua">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Modules\Common.lua">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Modules\unicode.lua">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -104,7 +104,7 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>mkdir "$(SolutionDir)ImgsToPDF\Core" 1&gt;nul 2&gt;&amp;1
+xcopy /S /I /Q /F /E /Y /R "$(TargetDir)" "$(SolutionDir)ImgsToPDF\Core"</PostBuildEvent>
   </PropertyGroup>
 </Project>

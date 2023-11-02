@@ -119,4 +119,16 @@ function Common.hasVal(valueArr,valueStr)
     return false
 end
 
+function Common.toLuaTable(enumerableObjs)
+    local tmpTable = {}
+    for key, value in pairs(enumerableObjs) do
+        if type(key) == "number" then
+            tmpTable[key+1] = value
+        else
+            tmpTable[key] = value
+        end
+    end
+    return tmpTable
+end
+
 return Common

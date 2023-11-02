@@ -7,7 +7,7 @@ using System.Linq;
 using WebPWrapper;
 
 namespace ImgsToPDFCore {
-    internal enum Layout {
+    public enum Layout {
         Single,
         DuplexLeftToRight,
         DuplexRightToLeft

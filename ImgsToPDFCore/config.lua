@@ -54,13 +54,14 @@ end
 local tempExtraPath
 -- this func will be processed before pdf generation start
 -- 定义开始前要进行的动作
-function Config:PreProcess()
-    local path = CS.CSGlobal.srcDirPath
+function Config:PreProcess(option)
+    local path = option.DirectoryPath
     local compressSuffix = { ".zip", ".rar", ".7z" }
-    if IO.Directory.Exists(path) then
+    if IO.Directory.Exists(path) then   -- 如果是文件夹
         pdfFileName = IO.DirectoryInfo(path).Name
         outputDir = path
-        return --如果是文件夹或不以压缩格式结尾 不做动作
+        CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(path, option.Layout, option.FastFlag)
+        return  -- 不以压缩格式结尾 不做动作
     elseif not common.hasVal(compressSuffix, IO.Path.GetExtension(path):lower()) then
         return
     end
@@ -77,14 +78,16 @@ function Config:PreProcess()
         end
     end
 
-    if not commonUtils.GetAllImgsPathInDirectory(tempExtraPath)[0] then
+    local imgsInTempDir = common.toLuaTable(commonUtils.GetAllImgsPathInDirectory(tempExtraPath))
+    if not next(imgsInTempDir) then
         local childDirs = IO.Directory.GetDirectories(tempExtraPath)
         if childDirs.Length > 0 then
-            CS.CSGlobal.srcDirPath = childDirs[0]
+            tempExtraPath = childDirs[0]
+        else
             return
         end
     end
-    CS.CSGlobal.srcDirPath = tempExtraPath
+    CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(tempExtraPath, option.Layout, option.FastFlag)
 end
 
 -- this func will be processed after your pdf generated
