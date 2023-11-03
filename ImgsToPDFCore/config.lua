@@ -1,11 +1,31 @@
 local common = require("Modules.Common")
 local IO = CS.System.IO
-local iPageSize = CS.iTextSharp.text.PageSize;
-local iRectangle = CS.iTextSharp.text.Rectangle;
+local iPageSize = CS.iTextSharp.text.PageSize
+local iRectangle = CS.iTextSharp.text.Rectangle
 local commonUtils = CS.ImgsToPDFCore.CommonUtils
+local lfs = require("lfs")
+local unicode = require("Modules.unicode")
 
 -- add your local funcs below
 -- 建议在这个部分添加你自己要用到的函数
+local function getChildImgsAndDirs(dirPath)
+    local imageExtensions = { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" }
+    local imgPaths = {}
+    local dirPaths = {}
+    for entry in lfs.dir(dirPath) do
+        if entry ~= '.' and entry ~= '..' then
+            local path = dirPath .. '/' .. entry
+            local attr = lfs.attributes(path)
+            assert(type(attr) == 'table')
+            if attr.mode == 'directory' then
+                table.insert(dirPaths, path)
+            elseif common.hasVal(imageExtensions, path:match("(%.%w-)$")) then
+                table.insert(imgPaths, path)
+            end
+        end
+    end
+    return imgPaths, dirPaths
+end
 
 -------------------------------------------------------------------
 ----***************************************************************
@@ -78,11 +98,10 @@ function Config:PreProcess(option)
         end
     end
 
-    local imgsInTempDir = common.toLuaTable(commonUtils.GetAllImgsPathInDirectory(tempExtraPath))
-    if not next(imgsInTempDir) then
-        local childDirs = IO.Directory.GetDirectories(tempExtraPath)
-        if childDirs.Length > 0 then
-            tempExtraPath = childDirs[0]
+    local childImgs, childDirs = getChildImgsAndDirs(unicode.u2a(tempExtraPath))
+    if not next(childImgs) then
+        if next(childDirs) then
+            tempExtraPath = unicode.a2u(childDirs[1])
         else
             return
         end

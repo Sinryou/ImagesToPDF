@@ -51,11 +51,5 @@ namespace ImgsToPDFCore
                 return ExtraArchive(archive, outFileDirectory);
             }
         }
-        public static IEnumerable<string> GetAllImgsPathInDirectory(string directoryPath) {
-            List<string> imageExtensions = new List<string> { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
-            IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
-                .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
-            return imagepaths;
-        }
     }
 }
