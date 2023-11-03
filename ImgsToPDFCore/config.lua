@@ -101,10 +101,9 @@ function Config:PreProcess(option)
     local childImgs, childDirs = getChildImgsAndDirs(unicode.u2a(tempExtraPath))
     if not next(childImgs) then
         if next(childDirs) then
-            tempExtraPath = unicode.a2u(childDirs[1])
-        else
-            return
+            CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(unicode.a2u(childDirs[1]), option.Layout, option.FastFlag)
         end
+        return
     end
     CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(tempExtraPath, option.Layout, option.FastFlag)
 end
