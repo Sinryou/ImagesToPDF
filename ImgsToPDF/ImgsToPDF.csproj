@@ -108,6 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="pimejaSike.ico" />
+    <None Include="Resources\compressedFile.png" />
     <None Include="Resources\no_photo.png" />
     <None Include="Resources\folder.png" />
   </ItemGroup>

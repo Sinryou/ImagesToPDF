@@ -90,8 +90,8 @@ function Config:PreProcess(...)
     outputDir = IO.Path.GetDirectoryName(path)
     tempExtraPath = path:gsub("%" .. IO.Path.GetExtension(path) .. "$", "") .. os.date("%Y%m%d%H%M%S")
     if not commonUtils.Decompress(path, tempExtraPath) then
-        local password = CS.Microsoft.VisualBasic.Interaction.InputBox("该压缩包包含密码，请输入密码：",
-            "Password for Your Compress File")
+        local password = CS.Microsoft.VisualBasic.Interaction.InputBox("Input password:",
+            "Encrypted Compress File")
         if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
             IO.Directory.Delete(tempExtraPath, true)
             return

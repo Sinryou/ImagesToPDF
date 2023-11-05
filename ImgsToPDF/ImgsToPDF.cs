@@ -8,8 +8,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace ImgsToPDF {
-    public partial class ImgsToPDF : Form {
+namespace ImgsToPDF
+{
+    public partial class ImgsToPDF : Form
+    {
         public ImgsToPDF() {
             string language = Properties.Settings.Default.DefaultLanguage != "" ? Properties.Settings.Default.DefaultLanguage : System.Globalization.CultureInfo.CurrentCulture.Name;
             System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(language);
@@ -39,9 +41,12 @@ namespace ImgsToPDF {
             });
             generateModeBox.SelectedIndex = 0;
         }
+        readonly string[] compressExtensions = { ".zip", ".rar", ".7z" };
         private void ImgsToPDF_DragEnter(object sender, DragEventArgs e) {
             string filePath = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();
-            if (e.Data.GetDataPresent(DataFormats.FileDrop) && Directory.Exists(filePath)) {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) &&
+                (Directory.Exists(filePath) || compressExtensions.Contains(Path.GetExtension(filePath)?.ToLower()))
+                ) {
                 e.Effect = DragDropEffects.All;
             }
             else {
@@ -52,29 +57,37 @@ namespace ImgsToPDF {
             // 及时释放Bitmap对象
             PicInFolder.Image?.Dispose();
 
-            PicInFolder.Image = Properties.Resources.no_photo;
-            FolderImg.Image = Properties.Resources.folder;
             PathLabel.Text = directoryPath;
 
             // 检查路径是否有效
-            if (!Directory.Exists(directoryPath)) {
-                MsgLabel.Text = "Invalid directory path";
-                return;
-            }
-            List<string> imageExtensions = new List<string> { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
-            IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
-                .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
-            foreach (var imagepath in imagepaths) {
-                try {
-                    using (var srcImage = new Bitmap(imagepath)) {
-                        PicInFolder.Image = Bitmap.FromFile(imagepath) as Bitmap;
-                        break;
+            if (Directory.Exists(directoryPath)) {
+                PicInFolder.Image = Properties.Resources.no_photo;
+                FolderImg.Image = Properties.Resources.folder;
+                List<string> imageExtensions = new List<string> { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
+                IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
+                    .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
+                foreach (var imagepath in imagepaths) {
+                    try {
+                        using (var srcImage = new Bitmap(imagepath)) {
+                            PicInFolder.Image = Bitmap.FromFile(imagepath) as Bitmap;
+                            break;
+                        }
+                    }
+                    catch (Exception) {
+                        // 如果文件不是一张合法的图片，则直接跳过
+                        continue;
                     }
                 }
-                catch (Exception) {
-                    // 如果文件不是一张合法的图片，则直接跳过
-                    continue;
-                }
+            }
+            else if (compressExtensions.Contains(Path.GetExtension(directoryPath)?.ToLower())) {
+                PicInFolder.Image = Properties.Resources.compressedFile;
+                FolderImg.Image = null;
+            }
+            else {
+                PicInFolder.Image = Properties.Resources.no_photo;
+                FolderImg.Image = null;
+                MsgLabel.Text = "Invalid directory path";
+                return;
             }
 
             StartButton.Enabled = true;
@@ -127,10 +140,10 @@ namespace ImgsToPDF {
                 RecursiveFolder(PathLabel.Text, new List<string> { }).AsParallel().WithDegreeOfParallelism(4).ForAll(dirPath => {
                     string[] args = FastMode.Checked ? new string[] {
                         "-d", dirPath,
-                        "-l", generateModeBox.SelectedIndex.ToString()
+                        "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
                     } : new string[] {
                         "-d", dirPath,
-                        "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
+                        "-l", generateModeBox.SelectedIndex.ToString()
                     };
                     var (_, stderr) = RunProcess(fileName, args);
                     if (stderr.Length > 0) {
@@ -141,17 +154,17 @@ namespace ImgsToPDF {
             else {
                 string[] args = FastMode.Checked ? new string[] {
                     "-d", PathLabel.Text,
-                    "-l", generateModeBox.SelectedIndex.ToString()
+                    "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
                 } : new string[] {
                     "-d", PathLabel.Text,
-                    "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
+                    "-l", generateModeBox.SelectedIndex.ToString()
                 };
                 var (_, stderr) = RunProcess(fileName, args);
                 if (stderr.Length > 0) {
                     MessageBox.Show(stderr);
                 }
             }
-            
+
         }
         /// <summary>
         /// 运行给定的命令，返回得到的标准输出及标准错误
