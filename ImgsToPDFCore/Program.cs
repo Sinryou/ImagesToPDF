@@ -1,11 +1,11 @@
 ﻿using CommandLine;
 
 namespace ImgsToPDFCore {
-    public class Program {
+    internal class Program {
         /// <summary>
         /// 程序的所有命令行参数类型
         /// </summary>
-        public class Options {
+        class Options {
             [Option('d', "dir-path", Required = true, HelpText = "图片所在的文件夹路径。")]
             public string DirectoryPath { get; set; }
 
@@ -30,7 +30,7 @@ namespace ImgsToPDFCore {
             CSGlobal.luaEnv.DoString(@"config = require 'config';"); // 获取lua内的方法
 
             CSGlobal.luaConfig = CSGlobal.luaEnv.Global.Get<IConfig>("config");
-            CSGlobal.luaConfig.PreProcess(option);
+            CSGlobal.luaConfig.PreProcess(option.DirectoryPath, option.Layout, option.FastFlag);
 
             CSGlobal.luaConfig.PostProcess();
 
