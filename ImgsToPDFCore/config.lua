@@ -1,15 +1,25 @@
+local lfs = require("lfs")
+
 local common = require("Modules.Common")
-local IO = CS.System.IO
+local pathUtil = require("Modules.PathUtil")
+local unicode = require("Modules.unicode")
+local env = require("Modules.env")
+local u2a = env.IS_WINDOWS and unicode.u2a or function(input)
+    return input
+end
+local a2u = env.IS_WINDOWS and unicode.a2u or function(input)
+    return input
+end
+
 local iPageSize = CS.iTextSharp.text.PageSize
 local iRectangle = CS.iTextSharp.text.Rectangle
 local commonUtils = CS.ImgsToPDFCore.CommonUtils
-local lfs = require("lfs")
-local unicode = require("Modules.unicode")
 
 -- add your local funcs below
 -- 建议在这个部分添加你自己要用到的函数
 local function getChildImgsAndDirs(dirPath)
-    local imageExtensions = { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" }
+    local imageExtensions = { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff",
+        ".gif", ".webp" }
     local imgPaths = {}
     local dirPaths = {}
     for entry in lfs.dir(dirPath) do
@@ -19,7 +29,7 @@ local function getChildImgsAndDirs(dirPath)
             assert(type(attr) == 'table')
             if attr.mode == 'directory' then
                 table.insert(dirPaths, path)
-            elseif common.hasVal(imageExtensions, path:match("(%.%w-)$")) then
+            elseif common.hasVal(imageExtensions, pathUtil.getExtension(path)) then
                 table.insert(imgPaths, path)
             end
         end
@@ -42,7 +52,7 @@ local Config = {}
 local pdfFileName
 local outputDir
 function Config.PathToSave()
-    return outputDir .. [[\]] .. pdfFileName .. ".pdf"
+    return table.concat({ outputDir, "/", pdfFileName, ".pdf" })
 end
 
 -- page size of the output pdf file
@@ -58,14 +68,14 @@ Config.PageSizeToSave = iPageSize.NoResize
 -- @return: int; If negative, file in path1 will be added to your pdf first.
 function Config:FilePathComparer(filePath1, filePath2)
     -- 从完整路径中截取文件名
-    local pattern = [[.+[/\](.+)]]
-    local fileName1, fileName2 = filePath1:match(pattern) or "", filePath2:match(pattern) or ""
+    local fileName1 = pathUtil.fileNameWithoutExtension(filePath1) or ""
+    local fileName2 = pathUtil.fileNameWithoutExtension(filePath2) or ""
     -- 获取文件名中的数字部分
-    pattern = "(%d+).-%."
+    local pattern = "(%d+)[^%d]-$"
     local numInPath1, numInPath2 = tonumber(fileName1:match(pattern)), tonumber(fileName2:match(pattern))
 
     if not numInPath1 and not numInPath2 then -- 如果二者都没有找到数字部分，采用默认排序决策
-        return fileName1 == fileName2 and 0 or fileName1 < fileName2 and -1 or 1
+        return filePath1 == filePath2 and 0 or filePath1 < filePath2 and -1 or 1
     else                                      -- 若其中之一无数字，无数字者在前；否则数字小者在前
         return (numInPath1 or -1) - (numInPath2 or -1)
     end
@@ -75,33 +85,33 @@ local tempExtraPath
 -- this func will be processed before pdf generation start
 -- 定义开始前要进行的动作
 function Config:PreProcess(...)
-    local path, layout, fastFlag = table.unpack({...})
+    local path, layout, fastFlag = table.unpack({ ... })
     local compressSuffix = { ".zip", ".rar", ".7z" }
-    if IO.Directory.Exists(path) then   -- 如果是文件夹
-        pdfFileName = IO.DirectoryInfo(path).Name
+    if pathUtil.dirExist(u2a(path)) then -- 如果是文件夹
+        pdfFileName = pathUtil.dirName(path)
         outputDir = path
         CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(path, layout, fastFlag)
-        return  -- 不以压缩格式结尾 不做动作
-    elseif not common.hasVal(compressSuffix, IO.Path.GetExtension(path):lower()) then
         return
+    elseif not common.hasVal(compressSuffix, pathUtil.getExtension(path):lower()) then
+        return -- 不以压缩格式结尾 不做动作
     end
 
-    pdfFileName = IO.Path.GetFileNameWithoutExtension(path)
-    outputDir = IO.Path.GetDirectoryName(path)
-    tempExtraPath = path:gsub("%" .. IO.Path.GetExtension(path) .. "$", "") .. os.date("%Y%m%d%H%M%S")
+    pdfFileName = pathUtil.fileNameWithoutExtension(path)
+    outputDir = pathUtil.dirPath(path)
+    tempExtraPath = path:sub(1, -(1 + #pathUtil.getExtension(path))) .. os.date("%Y%m%d%H%M%S")
     if not commonUtils.Decompress(path, tempExtraPath) then
         local password = CS.Microsoft.VisualBasic.Interaction.InputBox("Input password:",
             "Encrypted Compress File")
         if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
-            IO.Directory.Delete(tempExtraPath, true)
+            pathUtil.deleteDir(u2a(tempExtraPath))
             return
         end
     end
 
-    local childImgs, childDirs = getChildImgsAndDirs(unicode.u2a(tempExtraPath))
+    local childImgs, childDirs = getChildImgsAndDirs(u2a(tempExtraPath))
     if not next(childImgs) then
         if next(childDirs) then
-            CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(unicode.a2u(childDirs[1]), layout, fastFlag)
+            CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(a2u(childDirs[1]), layout, fastFlag)
         end
         return
     end
@@ -112,7 +122,7 @@ end
 -- 定义结束后要进行的动作
 function Config:PostProcess()
     if tempExtraPath then
-        IO.Directory.Delete(tempExtraPath, true)
+        pathUtil.deleteDir(u2a(tempExtraPath))
     end
 end
 

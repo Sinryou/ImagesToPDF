@@ -25,21 +25,11 @@ function Common.len(t)
     if type(t) ~= "table" then
         return #t
     end
-    local len=0
+    local len = 0
     for _, _ in pairs(t) do
         len = len + 1
     end
     return len
-end
-
-function Common.fileExist(path)
-    if not path then return nil end
-    local file = io.open(path, "rb")
-    if file then
-        file:close()
-        return true
-    end
-    return false
 end
 
 function Common.fileRead(path)
@@ -104,14 +94,14 @@ end
 
 function Common.map(func, t)
     local ret = {}
-    for i=1, #t, 1 do
+    for i = 1, #t, 1 do
         ret[i] = func(t[i])
     end
     return ret
 end
 
-function Common.hasVal(valueArr,valueStr)
-    for _,value in ipairs(valueArr) do
+function Common.hasVal(valueArr, valueStr)
+    for _, value in ipairs(valueArr) do
         if value == valueStr then
             return true
         end
@@ -123,7 +113,7 @@ function Common.toLuaTable(enumerableObjs)
     local tmpTable = {}
     for key, value in pairs(enumerableObjs) do
         if type(key) == "number" then
-            tmpTable[key+1] = value
+            tmpTable[key + 1] = value
         else
             tmpTable[key] = value
         end

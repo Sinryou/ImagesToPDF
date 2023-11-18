@@ -36,10 +36,10 @@ local function w2a(wstr, wlen)
 end
 
 return {
-    u2w = u2w,
-    a2w = a2w,
-    w2u = w2u,
-    w2a = w2a,
+    -- u2w = u2w,
+    -- a2w = a2w,
+    -- w2u = w2u,
+    -- w2a = w2a,
     u2a = function (input)
         return w2a(u2w(input))
     end,
