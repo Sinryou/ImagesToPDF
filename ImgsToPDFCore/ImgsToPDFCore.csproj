@@ -68,7 +68,7 @@
     <None Include="Modules\Common.lua">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Modules\env.lua">
+    <None Include="Modules\OSUtil.lua">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Modules\PathUtil.lua">

@@ -3,17 +3,19 @@ local lfs = require("lfs")
 local common = require("Modules.Common")
 local pathUtil = require("Modules.PathUtil")
 local unicode = require("Modules.unicode")
-local env = require("Modules.env")
-local u2a = env.IS_WINDOWS and unicode.u2a or function(input)
+local osUtil = require("Modules.OSUtil")
+local u2a = osUtil.IS_WINDOWS and unicode.u2a or function(input)
     return input
 end
-local a2u = env.IS_WINDOWS and unicode.a2u or function(input)
+local a2u = osUtil.IS_WINDOWS and unicode.a2u or function(input)
     return input
 end
 
 local iPageSize = CS.iTextSharp.text.PageSize
 local iRectangle = CS.iTextSharp.text.Rectangle
 local commonUtils = CS.ImgsToPDFCore.CommonUtils
+local PDFWrapper = CS.ImgsToPDFCore.PDFWrapper
+local interaction = CS.Microsoft.VisualBasic.Interaction
 
 -- add your local funcs below
 -- 建议在这个部分添加你自己要用到的函数
@@ -90,7 +92,7 @@ function Config:PreProcess(...)
     if pathUtil.dirExist(u2a(path)) then -- 如果是文件夹
         pdfFileName = pathUtil.dirName(path)
         outputDir = path
-        CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(path, layout, fastFlag)
+        PDFWrapper.ImagesToPDF(path, layout, fastFlag)
         return
     elseif not common.hasVal(compressSuffix, pathUtil.getExtension(path):lower()) then
         return -- 不以压缩格式结尾 不做动作
@@ -100,8 +102,7 @@ function Config:PreProcess(...)
     outputDir = pathUtil.dirPath(path)
     tempExtraPath = path:sub(1, -(1 + #pathUtil.getExtension(path))) .. os.date("%Y%m%d%H%M%S")
     if not commonUtils.Decompress(path, tempExtraPath) then
-        local password = CS.Microsoft.VisualBasic.Interaction.InputBox("Input password:",
-            "Encrypted Compress File")
+        local password = interaction.InputBox("Input password:", "Encrypted Compress File")
         if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
             pathUtil.deleteDir(u2a(tempExtraPath))
             return
@@ -111,11 +112,11 @@ function Config:PreProcess(...)
     local childImgs, childDirs = getChildImgsAndDirs(u2a(tempExtraPath))
     if not next(childImgs) then
         if next(childDirs) then
-            CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(a2u(childDirs[1]), layout, fastFlag)
+            PDFWrapper.ImagesToPDF(a2u(childDirs[1]), layout, fastFlag)
         end
         return
     end
-    CS.ImgsToPDFCore.PDFWrapper.ImagesToPDF(tempExtraPath, layout, fastFlag)
+    PDFWrapper.ImagesToPDF(tempExtraPath, layout, fastFlag)
 end
 
 -- this func will be processed after your pdf generated
