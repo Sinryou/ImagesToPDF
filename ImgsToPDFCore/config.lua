@@ -104,7 +104,6 @@ function Config:PreProcess(...)
     if not commonUtils.Decompress(path, tempExtraPath) then
         local password = interaction.InputBox("Input password:", "Encrypted Compress File")
         if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
-            pathUtil.deleteDir(u2a(tempExtraPath))
             return
         end
     end
@@ -122,7 +121,7 @@ end
 -- this func will be processed after your pdf generated
 -- 定义结束后要进行的动作
 function Config:PostProcess()
-    if tempExtraPath then
+    if tempExtraPath and pathUtil.dirExist(tempExtraPath) then
         pathUtil.deleteDir(u2a(tempExtraPath))
     end
 end
