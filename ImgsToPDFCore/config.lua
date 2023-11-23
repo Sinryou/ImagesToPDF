@@ -121,7 +121,7 @@ end
 -- this func will be processed after your pdf generated
 -- 定义结束后要进行的动作
 function Config:PostProcess()
-    if tempExtraPath and pathUtil.dirExist(tempExtraPath) then
+    if tempExtraPath and pathUtil.dirExist(u2a(tempExtraPath)) then
         pathUtil.deleteDir(u2a(tempExtraPath))
     end
 end
