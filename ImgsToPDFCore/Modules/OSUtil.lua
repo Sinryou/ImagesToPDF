@@ -7,6 +7,7 @@ OSUtil.IS_WINDOWS = ffi.os == "Windows"
 OSUtil.IS_UNIX_LIKE = not OSUtil.IS_WINDOWS
 OSUtil.HOME = OSUtil.IS_WINDOWS and os.getenv("userprofile") or os.getenv("home")
 OSUtil.DESKTOP = OSUtil.HOME .. "/Desktop"
+OSUtil.TMPDIR = OSUtil.IS_WINDOWS and os.getenv("temp") or os.getenv("tmpdir")
 
 ffi.cdef [[
     void Sleep(int ms);

@@ -65,6 +65,30 @@ function Common.fileAppend(path, cont)
     return false
 end
 
+function Common.quote_arg(argument)
+    if type(argument) == "table" then
+        local r = {}
+        for i, arg in ipairs(argument) do
+            r[i] = Common.quote_arg(arg)
+        end
+
+        return table.concat(r, " ")
+    end
+
+    if package.config:sub(1,1) == '\\' then
+        if argument == "" or argument:find('[ \f\t\v]') then
+            argument = '"' .. argument:gsub([[(\*)"]], [[%1%1\"]]):gsub([[\+$]], "%0%0") .. '"'
+        end
+        return (argument:gsub('["^<>!|&%%]', "^%0"))
+    else
+        if argument == "" or argument:find('[^a-zA-Z0-9_@%+=:,./-]') then
+            argument = "'" .. argument:gsub("'", [['\'']]) .. "'"
+        end
+
+        return argument
+    end
+end
+
 function Common.sendPopen(cmd)
     local rsp = io.popen(cmd)
     if rsp then
@@ -76,7 +100,17 @@ function Common.sendPopen(cmd)
 end
 
 function Common.sendTerminal(cmd)
-    return ""
+    local outfile = os.tmpname()
+    local errfile = os.tmpname()
+
+    cmd = cmd .. " > " .. Common.quote_arg(outfile) .. " 2> " .. Common.quote_arg(errfile)
+
+    local status = os.execute(cmd)
+    local outcontent = Common.fileRead(outfile)
+    local errcontent = Common.fileRead(errfile)
+    os.remove(outfile)
+    os.remove(errfile)
+    return status, (outcontent or ""), (errcontent or "")
 end
 
 function Common.dump(o)

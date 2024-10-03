@@ -122,7 +122,7 @@ namespace ImgsToPDF
         private void ButtonClickAction() {
             var fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
 
-            if (Recursive.Checked) {
+            if (Recursive.Checked && Directory.Exists(PathLabel.Text)) {
                 //foreach (var dirPath in RecursiveFolder(PathLabel.Text, new List<string> { }))
                 //{
                 //    string[] args = FastMode.Checked ? new string[] {
@@ -199,7 +199,7 @@ namespace ImgsToPDF
         }
         private void toolStripMenuAbout_Click(object sender, EventArgs e) {
             MessageBox.Show(
-                "ImagesToPDF v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "\nCopyright (c) 2022-2023 Sinryou. At MIT License.",
+                "ImagesToPDF v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "\nCopyright (c) 2022-2024 Sinryou. At MIT License.",
                 "About",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information,

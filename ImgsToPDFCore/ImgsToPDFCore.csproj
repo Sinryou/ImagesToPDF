@@ -98,10 +98,10 @@
       <Version>2.9.1</Version>
     </PackageReference>
     <PackageReference Include="iTextSharp">
-      <Version>5.5.13.3</Version>
+      <Version>5.5.13.4</Version>
     </PackageReference>
     <PackageReference Include="SharpCompress">
-      <Version>0.35.0</Version>
+      <Version>0.38.0</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
