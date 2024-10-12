@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using XLua;
 
 namespace ImgsToPDFCore {
     internal class Program {
@@ -26,6 +27,8 @@ namespace ImgsToPDFCore {
         /// </summary>
         /// <param name="option">解析后的参数</param>
         static void Run(Options option) {
+            CSGlobal.luaEnv.AddBuildin("ffi", XLua.LuaDLL.Lua.LoadFFI);
+            CSGlobal.luaEnv.AddBuildin("lfs", XLua.LuaDLL.Lua.LoadLFS);
 
             CSGlobal.luaEnv.DoString(@"config = require 'config';"); // 获取lua内的方法
 
