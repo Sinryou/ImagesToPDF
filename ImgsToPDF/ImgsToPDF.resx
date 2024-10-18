@@ -118,112 +118,151 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
-  <data name="chineseToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>177, 34</value>
+  <data name="progressBar.Location" type="System.Drawing.Point, System.Drawing">
+    <value>545, 505</value>
   </data>
-  <data name="&gt;&gt;menuStripMain.Type" xml:space="preserve">
-    <value>System.Windows.Forms.MenuStrip, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="PathLabel.Text" xml:space="preserve">
-    <value> </value>
-  </data>
-  <data name="StartButton.Text" xml:space="preserve">
-    <value>Start</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="MsgLabel.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
-    <value>MiddleCenter</value>
+  <data name="progressBar.Size" type="System.Drawing.Size, System.Drawing">
+    <value>239, 28</value>
   </data>
   <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="MsgLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
-  </data>
-  <data name="&gt;&gt;generateModeBox.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="PicInFolder.SizeMode" type="System.Windows.Forms.PictureBoxSizeMode, System.Windows.Forms">
-    <value>Zoom</value>
-  </data>
-  <data name="&gt;&gt;StartButton.Name" xml:space="preserve">
-    <value>StartButton</value>
-  </data>
-  <data name="labelLayout.Size" type="System.Drawing.Size, System.Drawing">
-    <value>139, 30</value>
-  </data>
-  <data name="chineseToolStripMenuItem.Text" xml:space="preserve">
-    <value>Chinese</value>
-  </data>
-  <data name="&gt;&gt;FolderImg.Name" xml:space="preserve">
-    <value>FolderImg</value>
-  </data>
-  <data name="&gt;&gt;FolderImg.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuClearChosen.Name" xml:space="preserve">
-    <value>toolStripMenuClearChosen</value>
-  </data>
-  <data name="PicInFolder.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="PicInFolder.Size" type="System.Drawing.Size, System.Drawing">
-    <value>200, 300</value>
-  </data>
-  <data name="toolStripSeparator1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>182, 6</value>
-  </data>
-  <data name="&gt;&gt;StartButton.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;languageToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;Recursive.Name" xml:space="preserve">
-    <value>Recursive</value>
-  </data>
-  <data name="&gt;&gt;Recursive.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="labelLayout.Text" xml:space="preserve">
-    <value>PDF Layout:</value>
-  </data>
-  <data name="&gt;&gt;Recursive.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="MsgLabel.Text" xml:space="preserve">
-    <value>Drop your folder here</value>
-  </data>
   <data name="progressBar.TabIndex" type="System.Int32, mscorlib">
     <value>11</value>
   </data>
-  <data name="toolStripMenuFile.Size" type="System.Drawing.Size, System.Drawing">
-    <value>78, 32</value>
+  <data name="progressBar.Visible" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
+  <data name="&gt;&gt;progressBar.Name" xml:space="preserve">
+    <value>progressBar</value>
+  </data>
+  <data name="&gt;&gt;progressBar.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ProgressBar, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;progressBar.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;progressBar.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="StartButton.Enabled" type="System.Boolean, mscorlib">
+    <value>False</value>
   </data>
   <data name="StartButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>355, 503</value>
   </data>
-  <data name="&gt;&gt;FolderImg.Parent" xml:space="preserve">
+  <data name="StartButton.Size" type="System.Drawing.Size, System.Drawing">
+    <value>97, 32</value>
+  </data>
+  <data name="StartButton.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="StartButton.Text" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="&gt;&gt;StartButton.Name" xml:space="preserve">
+    <value>StartButton</value>
+  </data>
+  <data name="&gt;&gt;StartButton.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;StartButton.Parent" xml:space="preserve">
     <value>$this</value>
+  </data>
+  <data name="&gt;&gt;StartButton.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="MsgLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>155, 420</value>
+  </data>
+  <data name="MsgLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>483, 36</value>
+  </data>
+  <data name="MsgLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>9</value>
+  </data>
+  <data name="MsgLabel.Text" xml:space="preserve">
+    <value>Drop your folder here</value>
+  </data>
+  <data name="MsgLabel.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleCenter</value>
+  </data>
+  <data name="&gt;&gt;MsgLabel.Name" xml:space="preserve">
+    <value>MsgLabel</value>
   </data>
   <data name="&gt;&gt;MsgLabel.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;labelLayout.Parent" xml:space="preserve">
+  <data name="&gt;&gt;MsgLabel.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
   <data name="&gt;&gt;MsgLabel.ZOrder" xml:space="preserve">
     <value>5</value>
   </data>
-  <data name="&gt;&gt;menuStripMain.Name" xml:space="preserve">
-    <value>menuStripMain</value>
+  <data name="PathLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>10, 385</value>
   </data>
-  <data name="&gt;&gt;FastMode.ZOrder" xml:space="preserve">
-    <value>1</value>
+  <data name="PathLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>776, 35</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuConfigFile.Name" xml:space="preserve">
-    <value>toolStripMenuConfigFile</value>
+  <data name="PathLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>8</value>
+  </data>
+  <data name="PathLabel.Text" xml:space="preserve">
+    <value> </value>
+  </data>
+  <data name="PathLabel.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleCenter</value>
+  </data>
+  <data name="&gt;&gt;PathLabel.Name" xml:space="preserve">
+    <value>PathLabel</value>
+  </data>
+  <data name="&gt;&gt;PathLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;PathLabel.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;PathLabel.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="FolderImg.Location" type="System.Drawing.Point, System.Drawing">
+    <value>245, 290</value>
+  </data>
+  <data name="FolderImg.Size" type="System.Drawing.Size, System.Drawing">
+    <value>90, 90</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="FolderImg.SizeMode" type="System.Windows.Forms.PictureBoxSizeMode, System.Windows.Forms">
+    <value>Zoom</value>
+  </data>
+  <data name="FolderImg.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
+  <data name="&gt;&gt;FolderImg.Name" xml:space="preserve">
+    <value>FolderImg</value>
+  </data>
+  <data name="&gt;&gt;FolderImg.Type" xml:space="preserve">
+    <value>System.Windows.Forms.PictureBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;FolderImg.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;FolderImg.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="PicInFolder.Location" type="System.Drawing.Point, System.Drawing">
+    <value>295, 60</value>
+  </data>
+  <data name="PicInFolder.Size" type="System.Drawing.Size, System.Drawing">
+    <value>200, 300</value>
+  </data>
+  <data name="PicInFolder.SizeMode" type="System.Windows.Forms.PictureBoxSizeMode, System.Windows.Forms">
+    <value>Zoom</value>
+  </data>
+  <data name="PicInFolder.TabIndex" type="System.Int32, mscorlib">
+    <value>6</value>
+  </data>
+  <data name="&gt;&gt;PicInFolder.Name" xml:space="preserve">
+    <value>PicInFolder</value>
   </data>
   <data name="&gt;&gt;PicInFolder.Type" xml:space="preserve">
     <value>System.Windows.Forms.PictureBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -231,119 +270,203 @@
   <data name="&gt;&gt;PicInFolder.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
-  <data name="&gt;&gt;FastMode.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="MsgLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>483, 36</value>
-  </data>
-  <data name="FastMode.Location" type="System.Drawing.Point, System.Drawing">
-    <value>20, 470</value>
-  </data>
-  <data name="toolStripMenuExit.Size" type="System.Drawing.Size, System.Drawing">
-    <value>185, 34</value>
-  </data>
-  <data name="toolStripMenuFile.Text" xml:space="preserve">
-    <value>File(&amp;F)</value>
-  </data>
-  <data name="&gt;&gt;PathLabel.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="toolStripMenuConfigFile.Text" xml:space="preserve">
-    <value>Config File(&amp;C)</value>
-  </data>
-  <data name="&gt;&gt;PicInFolder.Name" xml:space="preserve">
-    <value>PicInFolder</value>
-  </data>
-  <data name="englishToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>177, 34</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuConfigFile.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="progressBar.Visible" type="System.Boolean, mscorlib">
-    <value>False</value>
-  </data>
-  <data name="Recursive.Text" xml:space="preserve">
-    <value>Recursive</value>
-  </data>
-  <data name="&gt;&gt;labelLayout.ZOrder" xml:space="preserve">
-    <value>9</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuFile.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="PathLabel.TabIndex" type="System.Int32, mscorlib">
+  <data name="&gt;&gt;PicInFolder.ZOrder" xml:space="preserve">
     <value>8</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuExit.Name" xml:space="preserve">
-    <value>toolStripMenuExit</value>
-  </data>
-  <data name="$this.Text" xml:space="preserve">
-    <value>ImgsToPDF</value>
-  </data>
-  <data name="FolderImg.Location" type="System.Drawing.Point, System.Drawing">
-    <value>245, 290</value>
-  </data>
-  <data name="&gt;&gt;MsgLabel.Name" xml:space="preserve">
-    <value>MsgLabel</value>
-  </data>
-  <data name="MsgLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>155, 420</value>
-  </data>
-  <data name="toolStripMenuOpenFolder.Size" type="System.Drawing.Size, System.Drawing">
-    <value>185, 34</value>
-  </data>
-  <data name="&gt;&gt;progressBar.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;languageToolStripMenuItem.Name" xml:space="preserve">
-    <value>languageToolStripMenuItem</value>
-  </data>
-  <data name="StartButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>97, 32</value>
-  </data>
-  <data name="FastMode.TabIndex" type="System.Int32, mscorlib">
-    <value>14</value>
-  </data>
-  <data name="&gt;&gt;FastMode.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;MsgLabel.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;FastMode.Name" xml:space="preserve">
-    <value>FastMode</value>
-  </data>
-  <data name="StartButton.Enabled" type="System.Boolean, mscorlib">
-    <value>False</value>
-  </data>
-  <data name="menuStripMain.TabIndex" type="System.Int32, mscorlib">
-    <value>15</value>
-  </data>
-  <data name="&gt;&gt;labelLayout.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="toolStripMenuClearChosen.Text" xml:space="preserve">
-    <value>Clear(&amp;S)</value>
+  <data name="generateModeBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>155, 505</value>
   </data>
   <data name="generateModeBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>185, 26</value>
   </data>
-  <data name="PathLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>10, 385</value>
+  <data name="generateModeBox.TabIndex" type="System.Int32, mscorlib">
+    <value>12</value>
+  </data>
+  <data name="&gt;&gt;generateModeBox.Name" xml:space="preserve">
+    <value>generateModeBox</value>
+  </data>
+  <data name="&gt;&gt;generateModeBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;generateModeBox.Parent" xml:space="preserve">
+    <value>$this</value>
   </data>
   <data name="&gt;&gt;generateModeBox.ZOrder" xml:space="preserve">
     <value>2</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuFile.Name" xml:space="preserve">
-    <value>toolStripMenuFile</value>
+  <data name="labelLayout.Location" type="System.Drawing.Point, System.Drawing">
+    <value>12, 502</value>
   </data>
-  <data name="PathLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>776, 35</value>
+  <data name="labelLayout.Size" type="System.Drawing.Size, System.Drawing">
+    <value>139, 30</value>
+  </data>
+  <data name="labelLayout.TabIndex" type="System.Int32, mscorlib">
+    <value>13</value>
+  </data>
+  <data name="labelLayout.Text" xml:space="preserve">
+    <value>PDF Layout:</value>
+  </data>
+  <data name="labelLayout.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleCenter</value>
+  </data>
+  <data name="&gt;&gt;labelLayout.Name" xml:space="preserve">
+    <value>labelLayout</value>
+  </data>
+  <data name="&gt;&gt;labelLayout.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;labelLayout.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;labelLayout.ZOrder" xml:space="preserve">
+    <value>9</value>
+  </data>
+  <data name="FastMode.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="FastMode.Location" type="System.Drawing.Point, System.Drawing">
+    <value>20, 470</value>
+  </data>
+  <data name="FastMode.Size" type="System.Drawing.Size, System.Drawing">
+    <value>304, 22</value>
+  </data>
+  <data name="FastMode.TabIndex" type="System.Int32, mscorlib">
+    <value>14</value>
+  </data>
+  <data name="FastMode.Text" xml:space="preserve">
+    <value>Lossy(smaller size and faster)</value>
+  </data>
+  <data name="&gt;&gt;FastMode.Name" xml:space="preserve">
+    <value>FastMode</value>
+  </data>
+  <data name="&gt;&gt;FastMode.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;FastMode.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;FastMode.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <metadata name="menuStripMain.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
+  <data name="toolStripMenuOpenFolder.Size" type="System.Drawing.Size, System.Drawing">
+    <value>185, 34</value>
+  </data>
+  <data name="toolStripMenuOpenFolder.Text" xml:space="preserve">
+    <value>Open(&amp;O)</value>
+  </data>
+  <data name="toolStripMenuClearChosen.Size" type="System.Drawing.Size, System.Drawing">
+    <value>185, 34</value>
+  </data>
+  <data name="toolStripMenuClearChosen.Text" xml:space="preserve">
+    <value>Clear(&amp;S)</value>
+  </data>
+  <data name="toolStripSeparator1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>182, 6</value>
+  </data>
+  <data name="toolStripMenuExit.Size" type="System.Drawing.Size, System.Drawing">
+    <value>185, 34</value>
+  </data>
+  <data name="toolStripMenuExit.Text" xml:space="preserve">
+    <value>Exit(&amp;E)</value>
+  </data>
+  <data name="toolStripMenuFile.Size" type="System.Drawing.Size, System.Drawing">
+    <value>78, 28</value>
+  </data>
+  <data name="toolStripMenuFile.Text" xml:space="preserve">
+    <value>File(&amp;F)</value>
+  </data>
+  <data name="toolStripMenuConfigFile.Size" type="System.Drawing.Size, System.Drawing">
+    <value>142, 28</value>
+  </data>
+  <data name="toolStripMenuConfigFile.Text" xml:space="preserve">
+    <value>Config File(&amp;C)</value>
+  </data>
+  <data name="englishToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>177, 34</value>
+  </data>
+  <data name="englishToolStripMenuItem.Text" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="chineseToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>177, 34</value>
+  </data>
+  <data name="chineseToolStripMenuItem.Text" xml:space="preserve">
+    <value>Chinese</value>
   </data>
   <data name="languageToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>132, 32</value>
+    <value>132, 28</value>
+  </data>
+  <data name="languageToolStripMenuItem.Text" xml:space="preserve">
+    <value>Language(&amp;L)</value>
+  </data>
+  <data name="toolStripMenuAbout.Size" type="System.Drawing.Size, System.Drawing">
+    <value>105, 28</value>
+  </data>
+  <data name="toolStripMenuAbout.Text" xml:space="preserve">
+    <value>About(&amp;A)</value>
+  </data>
+  <data name="menuStripMain.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 0</value>
+  </data>
+  <data name="menuStripMain.Size" type="System.Drawing.Size, System.Drawing">
+    <value>803, 32</value>
+  </data>
+  <data name="menuStripMain.TabIndex" type="System.Int32, mscorlib">
+    <value>15</value>
+  </data>
+  <data name="menuStripMain.Text" xml:space="preserve">
+    <value>menuStripMain</value>
+  </data>
+  <data name="&gt;&gt;menuStripMain.Name" xml:space="preserve">
+    <value>menuStripMain</value>
+  </data>
+  <data name="&gt;&gt;menuStripMain.Type" xml:space="preserve">
+    <value>System.Windows.Forms.MenuStrip, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;menuStripMain.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;menuStripMain.ZOrder" xml:space="preserve">
+    <value>10</value>
+  </data>
+  <data name="Recursive.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="Recursive.Location" type="System.Drawing.Point, System.Drawing">
+    <value>330, 470</value>
+  </data>
+  <data name="Recursive.Size" type="System.Drawing.Size, System.Drawing">
+    <value>115, 22</value>
+  </data>
+  <data name="Recursive.TabIndex" type="System.Int32, mscorlib">
+    <value>16</value>
+  </data>
+  <data name="Recursive.Text" xml:space="preserve">
+    <value>Recursive</value>
+  </data>
+  <data name="&gt;&gt;Recursive.Name" xml:space="preserve">
+    <value>Recursive</value>
+  </data>
+  <data name="&gt;&gt;Recursive.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;Recursive.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;Recursive.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
+    <value>9, 18</value>
+  </data>
+  <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
+    <value>803, 554</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -789,196 +912,73 @@
         llBJWCOG+QNsHE9kP3P2iAAAAABJRU5ErkJggg==
 </value>
   </data>
-  <data name="&gt;&gt;toolStripMenuClearChosen.Type" xml:space="preserve">
+  <data name="$this.Text" xml:space="preserve">
+    <value>ImgsToPDF</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuFile.Name" xml:space="preserve">
+    <value>toolStripMenuFile</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuFile.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuExit.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;Recursive.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;PathLabel.Name" xml:space="preserve">
-    <value>PathLabel</value>
-  </data>
-  <data name="generateModeBox.TabIndex" type="System.Int32, mscorlib">
-    <value>12</value>
-  </data>
-  <data name="menuStripMain.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 0</value>
-  </data>
-  <data name="&gt;&gt;progressBar.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="Recursive.Location" type="System.Drawing.Point, System.Drawing">
-    <value>330, 470</value>
-  </data>
-  <data name="FastMode.Size" type="System.Drawing.Size, System.Drawing">
-    <value>304, 22</value>
-  </data>
-  <data name="&gt;&gt;chineseToolStripMenuItem.Name" xml:space="preserve">
-    <value>chineseToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuAbout.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;PathLabel.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="labelLayout.TabIndex" type="System.Int32, mscorlib">
-    <value>13</value>
-  </data>
-  <data name="FolderImg.SizeMode" type="System.Windows.Forms.PictureBoxSizeMode, System.Windows.Forms">
-    <value>Zoom</value>
-  </data>
-  <data name="PathLabel.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
-    <value>MiddleCenter</value>
-  </data>
-  <data name="FolderImg.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;PicInFolder.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="StartButton.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="PicInFolder.Location" type="System.Drawing.Point, System.Drawing">
-    <value>295, 60</value>
-  </data>
-  <data name="Recursive.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="&gt;&gt;englishToolStripMenuItem.Name" xml:space="preserve">
-    <value>englishToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;PathLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;menuStripMain.Parent" xml:space="preserve">
-    <value>$this</value>
   </data>
   <data name="&gt;&gt;toolStripMenuOpenFolder.Name" xml:space="preserve">
     <value>toolStripMenuOpenFolder</value>
   </data>
-  <data name="&gt;&gt;generateModeBox.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="englishToolStripMenuItem.Text" xml:space="preserve">
-    <value>English</value>
-  </data>
-  <data name="toolStripMenuExit.Text" xml:space="preserve">
-    <value>Exit(&amp;E)</value>
-  </data>
-  <data name="labelLayout.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
-    <value>MiddleCenter</value>
-  </data>
-  <data name="toolStripMenuAbout.Size" type="System.Drawing.Size, System.Drawing">
-    <value>105, 32</value>
-  </data>
-  <data name="&gt;&gt;$this.Name" xml:space="preserve">
-    <value>ImgsToPDF</value>
-  </data>
-  <data name="menuStripMain.Text" xml:space="preserve">
-    <value>menuStripMain</value>
-  </data>
-  <data name="&gt;&gt;generateModeBox.Name" xml:space="preserve">
-    <value>generateModeBox</value>
-  </data>
   <data name="&gt;&gt;toolStripMenuOpenFolder.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuClearChosen.Name" xml:space="preserve">
+    <value>toolStripMenuClearChosen</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuClearChosen.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;toolStripSeparator1.Name" xml:space="preserve">
     <value>toolStripSeparator1</value>
   </data>
-  <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>803, 554</value>
+  <data name="&gt;&gt;toolStripSeparator1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="progressBar.Location" type="System.Drawing.Point, System.Drawing">
-    <value>545, 505</value>
+  <data name="&gt;&gt;toolStripMenuExit.Name" xml:space="preserve">
+    <value>toolStripMenuExit</value>
   </data>
-  <data name="toolStripMenuAbout.Text" xml:space="preserve">
-    <value>About(&amp;A)</value>
-  </data>
-  <data name="&gt;&gt;labelLayout.Name" xml:space="preserve">
-    <value>labelLayout</value>
-  </data>
-  <data name="&gt;&gt;progressBar.Name" xml:space="preserve">
-    <value>progressBar</value>
-  </data>
-  <data name="toolStripMenuOpenFolder.Text" xml:space="preserve">
-    <value>Open(&amp;O)</value>
-  </data>
-  <data name="&gt;&gt;StartButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="labelLayout.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 502</value>
-  </data>
-  <data name="generateModeBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>155, 505</value>
-  </data>
-  <data name="&gt;&gt;menuStripMain.ZOrder" xml:space="preserve">
-    <value>10</value>
-  </data>
-  <data name="toolStripMenuClearChosen.Size" type="System.Drawing.Size, System.Drawing">
-    <value>185, 34</value>
-  </data>
-  <data name="FastMode.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="languageToolStripMenuItem.Text" xml:space="preserve">
-    <value>Language(&amp;L)</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuAbout.Name" xml:space="preserve">
-    <value>toolStripMenuAbout</value>
-  </data>
-  <data name="toolStripMenuConfigFile.Size" type="System.Drawing.Size, System.Drawing">
-    <value>142, 32</value>
-  </data>
-  <data name="FastMode.Text" xml:space="preserve">
-    <value>Lossy(smaller size and faster)</value>
-  </data>
-  <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="progressBar.Size" type="System.Drawing.Size, System.Drawing">
-    <value>239, 28</value>
-  </data>
-  <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
-    <value>9, 18</value>
-  </data>
-  <data name="Recursive.Size" type="System.Drawing.Size, System.Drawing">
-    <value>115, 22</value>
-  </data>
-  <data name="&gt;&gt;chineseToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;toolStripMenuExit.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="Recursive.TabIndex" type="System.Int32, mscorlib">
-    <value>16</value>
+  <data name="&gt;&gt;toolStripMenuConfigFile.Name" xml:space="preserve">
+    <value>toolStripMenuConfigFile</value>
   </data>
-  <data name="&gt;&gt;FolderImg.Type" xml:space="preserve">
-    <value>System.Windows.Forms.PictureBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;toolStripMenuConfigFile.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;progressBar.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ProgressBar, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;languageToolStripMenuItem.Name" xml:space="preserve">
+    <value>languageToolStripMenuItem</value>
   </data>
-  <data name="FolderImg.Size" type="System.Drawing.Size, System.Drawing">
-    <value>90, 90</value>
+  <data name="&gt;&gt;languageToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;StartButton.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="menuStripMain.Size" type="System.Drawing.Size, System.Drawing">
-    <value>803, 36</value>
+  <data name="&gt;&gt;englishToolStripMenuItem.Name" xml:space="preserve">
+    <value>englishToolStripMenuItem</value>
   </data>
   <data name="&gt;&gt;englishToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <metadata name="menuStripMain.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>17, 17</value>
-  </metadata>
-  <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
+  <data name="&gt;&gt;chineseToolStripMenuItem.Name" xml:space="preserve">
+    <value>chineseToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;chineseToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuAbout.Name" xml:space="preserve">
+    <value>toolStripMenuAbout</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuAbout.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;$this.Name" xml:space="preserve">
+    <value>ImgsToPDF</value>
+  </data>
+  <data name="&gt;&gt;$this.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>
