@@ -4,12 +4,8 @@ local common = require("Modules.Common")
 local pathUtil = require("Modules.PathUtil")
 local unicode = require("Modules.unicode")
 local osUtil = require("Modules.OSUtil")
-local u2a = osUtil.IS_WINDOWS and unicode.u2a or function(input)
-    return input
-end
-local a2u = osUtil.IS_WINDOWS and unicode.a2u or function(input)
-    return input
-end
+local u2a = unicode.u2a
+local a2u = unicode.a2u
 
 local iPageSize = CS.iTextSharp.text.PageSize
 local iRectangle = CS.iTextSharp.text.Rectangle
