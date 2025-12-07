@@ -133,15 +133,6 @@
   <data name="FastMode.Text" xml:space="preserve">
     <value>有损(更小文件更快生成速度)</value>
   </data>
-  <data name="menuStripMain.Size" type="System.Drawing.Size, System.Drawing">
-    <value>803, 32</value>
-  </data>
-  <data name="toolStripMenuFile.Size" type="System.Drawing.Size, System.Drawing">
-    <value>84, 32</value>
-  </data>
-  <data name="toolStripMenuFile.Text" xml:space="preserve">
-    <value>文件(&amp;F)</value>
-  </data>
   <data name="toolStripMenuOpenFolder.Size" type="System.Drawing.Size, System.Drawing">
     <value>227, 34</value>
   </data>
@@ -163,32 +154,38 @@
   <data name="toolStripMenuExit.Text" xml:space="preserve">
     <value>退出程序(&amp;E)</value>
   </data>
+  <data name="toolStripMenuFile.Size" type="System.Drawing.Size, System.Drawing">
+    <value>84, 28</value>
+  </data>
+  <data name="toolStripMenuFile.Text" xml:space="preserve">
+    <value>文件(&amp;F)</value>
+  </data>
   <data name="toolStripMenuConfigFile.Size" type="System.Drawing.Size, System.Drawing">
-    <value>122, 32</value>
+    <value>122, 28</value>
   </data>
   <data name="toolStripMenuConfigFile.Text" xml:space="preserve">
     <value>配置文件(&amp;C)</value>
-  </data>
-  <data name="languageToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>83, 32</value>
-  </data>
-  <data name="languageToolStripMenuItem.Text" xml:space="preserve">
-    <value>语言(&amp;L)</value>
   </data>
   <data name="englishToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>185, 34</value>
   </data>
   <data name="englishToolStripMenuItem.Text" xml:space="preserve">
-    <value>英文(CN)</value>
+    <value>英文(EN)</value>
   </data>
   <data name="chineseToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>185, 34</value>
   </data>
   <data name="chineseToolStripMenuItem.Text" xml:space="preserve">
-    <value>中文(EN)</value>
+    <value>中文(CN)</value>
+  </data>
+  <data name="languageToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>83, 28</value>
+  </data>
+  <data name="languageToolStripMenuItem.Text" xml:space="preserve">
+    <value>语言(&amp;L)</value>
   </data>
   <data name="toolStripMenuAbout.Size" type="System.Drawing.Size, System.Drawing">
-    <value>87, 32</value>
+    <value>87, 28</value>
   </data>
   <data name="toolStripMenuAbout.Text" xml:space="preserve">
     <value>关于(&amp;A)</value>
