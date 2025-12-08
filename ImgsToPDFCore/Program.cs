@@ -29,6 +29,7 @@ namespace ImgsToPDFCore {
         static void Run(Options option) {
             CSGlobal.luaEnv.AddBuildin("ffi", XLua.LuaDLL.Lua.LoadFFI);
             CSGlobal.luaEnv.AddBuildin("lfs", XLua.LuaDLL.Lua.LoadLFS);
+            CSGlobal.luaEnv.AddBuildin("rapidjson", XLua.LuaDLL.Lua.LoadRapidJson);
 
             CSGlobal.luaEnv.DoString(@"config = require 'config';"); // 获取lua内的方法
 
