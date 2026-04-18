@@ -190,6 +190,9 @@
   <data name="toolStripMenuAbout.Text" xml:space="preserve">
     <value>关于(&amp;A)</value>
   </data>
+  <data name="menuStripMain.Size" type="System.Drawing.Size, System.Drawing">
+    <value>803, 32</value>
+  </data>
   <data name="Recursive.Location" type="System.Drawing.Point, System.Drawing">
     <value>294, 470</value>
   </data>
@@ -198,6 +201,12 @@
   </data>
   <data name="Recursive.Text" xml:space="preserve">
     <value>递归子文件夹</value>
+  </data>
+  <data name="Merge.Size" type="System.Drawing.Size, System.Drawing">
+    <value>115, 22</value>
+  </data>
+  <data name="Merge.Text" xml:space="preserve">
+    <value>合并子PDF</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>

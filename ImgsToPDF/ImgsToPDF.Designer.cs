@@ -46,6 +46,7 @@
             this.chineseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuAbout = new System.Windows.Forms.ToolStripMenuItem();
             this.Recursive = new System.Windows.Forms.CheckBox();
+            this.Merge = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.FolderImg)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.PicInFolder)).BeginInit();
             this.menuStripMain.SuspendLayout();
@@ -187,12 +188,20 @@
             resources.ApplyResources(this.Recursive, "Recursive");
             this.Recursive.Name = "Recursive";
             this.Recursive.UseVisualStyleBackColor = true;
+            this.Recursive.CheckedChanged += new System.EventHandler(this.Recursive_CheckedChanged);
+            // 
+            // Merge
+            // 
+            resources.ApplyResources(this.Merge, "Merge");
+            this.Merge.Name = "Merge";
+            this.Merge.UseVisualStyleBackColor = true;
             // 
             // ImgsToPDF
             // 
             resources.ApplyResources(this, "$this");
             this.AllowDrop = true;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.Merge);
             this.Controls.Add(this.Recursive);
             this.Controls.Add(this.FastMode);
             this.Controls.Add(this.generateModeBox);
@@ -243,6 +252,7 @@
         private System.Windows.Forms.ToolStripMenuItem englishToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem chineseToolStripMenuItem;
         private System.Windows.Forms.CheckBox Recursive;
+        private System.Windows.Forms.CheckBox Merge;
     }
 }
 

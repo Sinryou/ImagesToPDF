@@ -1,4 +1,5 @@
 ﻿using iTextSharp.text;
+using iTextSharp.text.pdf;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -142,6 +143,35 @@ namespace ImgsToPDFCore {
             ImagesToPdf(imageBitmapList, layout, fastFlag);
             foreach (Bitmap bitmap in imageBitmapList) {
                 bitmap?.Dispose();
+            }
+        }
+        /// <summary>
+        /// 合并PDF文件
+        /// </summary>
+        /// <param name="inFiles">待合并文件列表</param>
+        /// <param name="outFile">合并生成的文件名称</param>
+        public static void PdfMerge(List<String> inFiles, String outFile) {
+            // 1. 实例化比较器
+            var comparer = new StringLenComparer();
+            // 2. 调用 Sort 方法并传入比较器
+            inFiles.Sort(comparer);
+            using (var stream = new FileStream(outFile, FileMode.Create)) {
+                using (var doc = new Document()) {
+                    using (var pdf = new PdfCopy(doc, stream)) {
+                        doc.Open();
+                        inFiles.ForEach(file => {
+                            if (File.Exists(file)) {
+                                var reader = new PdfReader(file);
+                                for (int i = 0; i < reader.NumberOfPages; i++) {
+                                    var page = pdf.GetImportedPage(reader, i + 1);
+                                    pdf.AddPage(page);
+                                }
+                                pdf.FreeReader(reader);
+                                reader.Close();
+                            }
+                        });
+                    }
+                }
             }
         }
         /// <summary>

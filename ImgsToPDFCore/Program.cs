@@ -15,6 +15,9 @@ namespace ImgsToPDFCore {
 
             [Option('f', "fast", Required = false, HelpText = "是否以牺牲图片质量换取生成速度。")]
             public bool FastFlag { get; set; }
+
+            [Option('m', "merge-pdfs", Required = false, HelpText = "用于合并pdf的单独功能")]
+            public bool Merge { get; set; }
         }
         static void Main(string[] args) {
             //for (int i = 0; i < args.Length; i++) {
@@ -34,7 +37,7 @@ namespace ImgsToPDFCore {
             CSGlobal.luaEnv.DoString(@"config = require 'config';"); // 获取lua内的方法
 
             CSGlobal.luaConfig = CSGlobal.luaEnv.Global.Get<IConfig>("config");
-            CSGlobal.luaConfig.PreProcess(option.DirectoryPath, option.Layout, option.FastFlag);
+            CSGlobal.luaConfig.PreProcess(option.DirectoryPath, option.Layout, option.FastFlag, option.Merge);
 
             CSGlobal.luaConfig.PostProcess();
 

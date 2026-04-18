@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -40,6 +41,7 @@ namespace ImgsToPDF
                 Extra.ApplyResource(typeof(Extra), "strDuplexRightToLeft")
             });
             generateModeBox.SelectedIndex = 0;
+            Merge.Enabled = false;
         }
         readonly string[] compressExtensions = { ".zip", ".rar", ".7z" };
         private void ImgsToPDF_DragEnter(object sender, DragEventArgs e) {
@@ -150,6 +152,16 @@ namespace ImgsToPDF
                         MessageBox.Show(stderr);
                     }
                 });
+                if (Merge.Checked) {
+                    string[] args = new string[] {
+                        "-d", PathLabel.Text,
+                        "--merge-pdfs"
+                    };
+                    var (_, stderr) = RunProcess(fileName, args);
+                    if (stderr.Length > 0) {
+                        MessageBox.Show(stderr);
+                    }
+                }
             }
             else {
                 string[] args = FastMode.Checked ? new string[] {
@@ -199,7 +211,8 @@ namespace ImgsToPDF
         }
         private void toolStripMenuAbout_Click(object sender, EventArgs e) {
             MessageBox.Show(
-                "ImagesToPDF v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "\nCopyright (c) 2022-2024 Sinryou. At MIT License.",
+                "ImagesToPDF v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "\n"
+                + ((AssemblyCopyrightAttribute)System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false)[0]).Copyright + " At MIT License.",
                 "About",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information,
@@ -251,6 +264,16 @@ namespace ImgsToPDF
             );
             this.Close();
             Application.Restart();
+        }
+
+        private void Recursive_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Recursive.Checked) {
+                Merge.Enabled = true;
+            }
+            else {
+                Merge.Enabled = false; Merge.Checked = false;
+            }
         }
     }
 }

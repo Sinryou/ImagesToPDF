@@ -33,7 +33,7 @@ namespace ImgsToPDFCore
         /// <param name="fromFilePath">待解压文件全路径</param>
         /// <param name="outFileDirectory">解压文件后目录</param>
         public static bool Decompress(string fromFilePath, string outFileDirectory) {
-            using (var archive = ArchiveFactory.Open(fromFilePath)) {
+            using (var archive = ArchiveFactory.OpenArchive(fromFilePath)) {
                 if (archive.Entries.Where(p => !p.IsDirectory).First().IsEncrypted) {
                     return false;
                 }
@@ -47,7 +47,7 @@ namespace ImgsToPDFCore
         /// <param name="outFileDirectory">解压文件后目录</param>
         /// <param name="password">密码</param>
         public static bool Decompress(string fromFilePath, string outFileDirectory, string password) {
-            using (var archive = ArchiveFactory.Open(fromFilePath, new ReaderOptions { Password = password })) {
+            using (var archive = ArchiveFactory.OpenArchive(fromFilePath, new ReaderOptions { Password = password })) {
                 return ExtraArchive(archive, outFileDirectory);
             }
         }

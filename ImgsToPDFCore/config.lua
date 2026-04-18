@@ -35,6 +35,16 @@ local function getChildImgsAndDirs(dirPath)
     return imgPaths, dirPaths
 end
 
+-- 合并pdf
+local function mergePdfs(path)
+    local pdf2MergeList = {}
+    if path and pathUtil.dirExist(u2a(path)) then
+        pdf2MergeList = pathUtil.listSubfolders(u2a(path),function(p) return a2u(p.."/"..pathUtil.dirName(p) .. ".pdf") end)
+    end
+    table.insert(pdf2MergeList, path.."/"..pathUtil.dirName(path) ..".pdf")
+    PDFWrapper.PdfMerge(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf")
+end
+
 -------------------------------------------------------------------
 ----***************************************************************
 ----Config for how to generate your images to pdf file
@@ -83,9 +93,12 @@ local tempExtraPath
 -- this func will be processed before pdf generation start
 -- 定义开始前要进行的动作
 function Config:PreProcess(...)
-    local path, layout, fastFlag = table.unpack({ ... })
+    local path, layout, fastFlag, merge = table.unpack({ ... })
     local compressSuffix = { ".zip", ".rar", ".7z" }
     if pathUtil.dirExist(u2a(path)) then -- 如果是文件夹
+        if merge then
+            return mergePdfs(path)
+        end
         pdfFileName = pathUtil.dirName(path)
         outputDir = path
         PDFWrapper.ImagesToPDF(path, layout, fastFlag)
