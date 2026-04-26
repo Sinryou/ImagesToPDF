@@ -42,7 +42,9 @@ local function mergePdfs(path)
         pdf2MergeList = pathUtil.listSubfolders(u2a(path),function(p) return a2u(p.."/"..pathUtil.dirName(p) .. ".pdf") end)
     end
     table.insert(pdf2MergeList, path.."/"..pathUtil.dirName(path) ..".pdf")
-    PDFWrapper.PdfMerge(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf")
+    -- PDFWrapper.PdfMerge(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf")
+    -- PDFWrapper.PdfMergeWithHierarchicalOutlines(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf")
+    PDFWrapper.PdfMergeWithDeepOutlines(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf", path)
 end
 
 -------------------------------------------------------------------
@@ -75,18 +77,46 @@ Config.PageSizeToSave = iPageSize.NoResize
 -- @param path1, path2: string; Full file path of the files to compare.
 -- @return: int; If negative, file in path1 will be added to your pdf first.
 function Config:FilePathComparer(filePath1, filePath2)
-    -- 从完整路径中截取文件名
     local fileName1 = pathUtil.fileNameWithoutExtension(filePath1) or ""
     local fileName2 = pathUtil.fileNameWithoutExtension(filePath2) or ""
-    -- 获取文件名中的数字部分
-    local pattern = "(%d+)[^%d]-$"
-    local numInPath1, numInPath2 = tonumber(fileName1:match(pattern)), tonumber(fileName2:match(pattern))
 
-    if not numInPath1 and not numInPath2 then -- 如果二者都没有找到数字部分，采用默认排序决策
-        return filePath1 == filePath2 and 0 or filePath1 < filePath2 and -1 or 1
-    else                                      -- 若其中之一无数字，无数字者在前；否则数字小者在前
-        return (numInPath1 or -1) - (numInPath2 or -1)
+    -- 提取版本号部分的辅助函数
+    -- 将 "v1.10.1" 转换为 {1, 10, 1}
+    local function getVersionArray(name)
+        -- 提取第一个包含数字和点的连续序列
+        local versionStr = name:match("[%d%.]+")
+        if not versionStr then return nil end
+        
+        local res = {}
+        -- 匹配每一个数字段
+        for part in versionStr:gmatch("%d+") do
+            table.insert(res, tonumber(part))
+        end
+        return res
     end
+
+    local v1 = getVersionArray(fileName1)
+    local v2 = getVersionArray(fileName2)
+
+    if not v1 and not v2 then
+        if filePath1 == filePath2 then return 0 end
+        return filePath1 < filePath2 and -1 or 1
+    elseif not v1 then return -1
+    elseif not v2 then return 1
+    end
+
+    -- 核心逻辑：按位比较数组
+    local maxLen = math.max(#v1, #v2)
+    for i = 1, maxLen do
+        local n1 = v1[i] or 0 -- 如果长度不足，补0比较（例如 1.1 和 1.1.1）
+        local n2 = v2[i] or 0
+        
+        if n1 < n2 then return -1 end
+        if n1 > n2 then return 1 end
+    end
+
+    -- 如果数字部分完全一致，则按完整字符串排序
+    return filePath1 == filePath2 and 0 or (filePath1 < filePath2 and -1 or 1)
 end
 
 local tempExtraPath

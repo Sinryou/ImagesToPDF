@@ -139,7 +139,7 @@ namespace ImgsToPDFCore {
                 if (srcImage != null) {
                     imageBitmapList.Add(srcImage);
                 }
-            };
+            }
             ImagesToPdf(imageBitmapList, layout, fastFlag);
             foreach (Bitmap bitmap in imageBitmapList) {
                 bitmap?.Dispose();
@@ -170,6 +170,150 @@ namespace ImgsToPDFCore {
                                 reader.Close();
                             }
                         });
+                    }
+                }
+            }
+        }
+        public static void PdfMergeWithHierarchicalOutlines(List<string> inFiles, string outFile) {
+            // 1. 排序逻辑
+            var comparer = new StringLenComparer();
+            inFiles.Sort(comparer);
+
+            // 用于缓存已经创建过的文件夹书签，避免重复创建
+            var folderOutlineCache = new Dictionary<string, PdfOutline>();
+
+            using (var stream = new FileStream(outFile, FileMode.Create)) {
+                using (var doc = new Document()) {
+                    using (var pdf = new PdfCopy(doc, stream)) {
+                        doc.Open();
+
+                        int currentPage = 1;
+                        PdfOutline root = pdf.RootOutline;
+
+                        foreach (var file in inFiles) {
+                            if (!File.Exists(file)) continue;
+
+                            using (var reader = new PdfReader(file)) {
+                                int pageCount = reader.NumberOfPages;
+
+                                // --- 核心逻辑：处理层级书签 ---
+
+                                // 获取父文件夹名称 (例如 "第1话")
+                                string folderName = Path.GetFileName(Path.GetDirectoryName(file));
+                                // 获取文件名 (例如 "第1话.pdf")
+                                string fileName = Path.GetFileNameWithoutExtension(file);
+
+                                // 定义跳转动作：跳转到当前文件的第一页
+                                PdfAction action = PdfAction.GotoLocalPage(currentPage,
+                                                   new PdfDestination(PdfDestination.FITH), pdf);
+
+                                PdfOutline parentNode = root;
+
+                                // 如果文件夹名有效且不是根目录，则创建/获取一级书签
+                                if (!string.IsNullOrEmpty(folderName) && folderName != "abc") {
+                                    if (!folderOutlineCache.ContainsKey(folderName)) {
+                                        // 创建一级目录节点
+                                        var folderNode = new PdfOutline(root, action, folderName);
+                                        folderOutlineCache[folderName] = folderNode;
+                                    }
+                                    parentNode = folderOutlineCache[folderName];
+                                }
+
+                                // 在父节点下创建具体文件的二级书签
+                                // 如果文件名和文件夹名完全一样，可以考虑跳过这一级，直接用文件夹书签指向它
+                                if (fileName != folderName) {
+                                    new PdfOutline(parentNode, action, fileName);
+                                }
+
+                                // --- 书签逻辑结束 ---
+
+                                // 复制页面
+                                for (int i = 1; i <= pageCount; i++) {
+                                    pdf.AddPage(pdf.GetImportedPage(reader, i));
+                                }
+
+                                currentPage += pageCount;
+                                pdf.FreeReader(reader);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// 手动实现相对路径获取（兼容 .NET Framework）
+        /// </summary>
+        static string GetRelativePath(string rootPath, string fullPath) {
+            // 确保路径以目录分隔符结尾，避免 abc 与 abcd 混淆
+            if (!rootPath.EndsWith(Path.DirectorySeparatorChar.ToString())) {
+                rootPath += Path.DirectorySeparatorChar;
+            }
+
+            Uri rootUri = new Uri(rootPath);
+            Uri fullUri = new Uri(fullPath);
+
+            // 计算相对路径
+            Uri relativeUri = rootUri.MakeRelativeUri(fullUri);
+            // 将 Uri 格式转回系统路径格式（处理斜杠方向和空格转义 %20）
+            return Uri.UnescapeDataString(relativeUri.ToString()).Replace('/', Path.DirectorySeparatorChar);
+        }
+        public static void PdfMergeWithDeepOutlines(List<string> inFiles, string outFile, string rootPath) {
+            inFiles.Sort(new StringLenComparer());
+            var outlineCache = new Dictionary<string, PdfOutline>();
+
+            using (var stream = new FileStream(outFile, FileMode.Create)) {
+                using (var doc = new Document()) {
+                    using (var pdf = new PdfCopy(doc, stream)) {
+                        doc.Open();
+
+                        int currentPage = 1;
+                        PdfOutline rootOutline = pdf.RootOutline;
+
+                        foreach (var file in inFiles) {
+                            if (!File.Exists(file)) continue;
+
+                            using (var reader = new PdfReader(file)) {
+                                int pageCount = reader.NumberOfPages;
+
+                                // 1. 使用兼容方法获取相对路径
+                                string relativePath = GetRelativePath(rootPath, file);
+                                // 2. 切分目录层级
+                                string[] pathParts = relativePath.Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+
+                                PdfOutline parent = rootOutline;
+                                string currentPathAccumulator = rootPath;
+
+                                // 3. 迭代文件夹层级 (不含最后一个文件名)
+                                for (int i = 0; i < pathParts.Length - 1; i++) {
+                                    string folderName = pathParts[i];
+                                    currentPathAccumulator = Path.Combine(currentPathAccumulator, folderName);
+
+                                    if (!outlineCache.ContainsKey(currentPathAccumulator)) {
+                                        PdfAction folderAction = PdfAction.GotoLocalPage(currentPage,
+                                                                 new PdfDestination(PdfDestination.FITH), pdf);
+                                        // 创建并缓存文件夹书签
+                                        outlineCache[currentPathAccumulator] = new PdfOutline(parent, folderAction, folderName);
+                                    }
+                                    parent = outlineCache[currentPathAccumulator];
+                                }
+
+                                // 4. 创建文件书签
+                                string fileName = Path.GetFileNameWithoutExtension(file);
+                                PdfAction fileAction = PdfAction.GotoLocalPage(currentPage,
+                                                       new PdfDestination(PdfDestination.FITH), pdf);
+
+                                // 挂载到最后一级文件夹下
+                                new PdfOutline(parent, fileAction, fileName);
+
+                                // 5. 复制页面
+                                for (int i = 1; i <= pageCount; i++) {
+                                    pdf.AddPage(pdf.GetImportedPage(reader, i));
+                                }
+
+                                currentPage += pageCount;
+                                pdf.FreeReader(reader);
+                            }
+                        }
                     }
                 }
             }
