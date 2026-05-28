@@ -299,11 +299,16 @@ namespace ImgsToPDFCore {
 
                                 // 4. 创建文件书签
                                 string fileName = Path.GetFileNameWithoutExtension(file);
-                                PdfAction fileAction = PdfAction.GotoLocalPage(currentPage,
-                                                       new PdfDestination(PdfDestination.FITH), pdf);
+                                string parentFolderName = pathParts.Length >= 2 ? pathParts[pathParts.Length - 2] : null;
 
-                                // 挂载到最后一级文件夹下
-                                new PdfOutline(parent, fileAction, fileName);
+                                // 如果文件名与父文件夹名不同，才创建独立文件书签
+                                if (fileName != parentFolderName) {
+                                    PdfAction fileAction = PdfAction.GotoLocalPage(currentPage,
+                                                                   new PdfDestination(PdfDestination.FITH), pdf);
+
+                                    // 挂载到最后一级文件夹下
+                                    new PdfOutline(parent, fileAction, fileName);
+                                }
 
                                 // 5. 复制页面
                                 for (int i = 1; i <= pageCount; i++) {
