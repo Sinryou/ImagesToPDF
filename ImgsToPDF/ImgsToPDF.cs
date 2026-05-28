@@ -43,9 +43,9 @@ namespace ImgsToPDF
             generateModeBox.SelectedIndex = 0;
             Merge.Enabled = false;
         }
-        readonly string[] compressExtensions = { ".zip", ".rar", ".7z" };
+        readonly string[] compressExtensions = [".zip", ".rar", ".7z"];
         private void ImgsToPDF_DragEnter(object sender, DragEventArgs e) {
-            string filePath = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();
+            string filePath = ((Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();
             if (e.Data.GetDataPresent(DataFormats.FileDrop) &&
                 (Directory.Exists(filePath) || compressExtensions.Contains(Path.GetExtension(filePath)?.ToLower()))
                 ) {
@@ -65,15 +65,14 @@ namespace ImgsToPDF
             if (Directory.Exists(directoryPath)) {
                 PicInFolder.Image = Properties.Resources.no_photo;
                 FolderImg.Image = Properties.Resources.folder;
-                List<string> imageExtensions = new List<string> { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
+                List<string> imageExtensions = [".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif"];
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                     .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
                 foreach (var imagepath in imagepaths) {
                     try {
-                        using (var srcImage = new Bitmap(imagepath)) {
-                            PicInFolder.Image = Bitmap.FromFile(imagepath) as Bitmap;
-                            break;
-                        }
+                        using var srcImage = new Bitmap(imagepath);
+                        PicInFolder.Image = Bitmap.FromFile(imagepath) as Bitmap;
+                        break;
                     }
                     catch (Exception) {
                         // 如果文件不是一张合法的图片，则直接跳过
@@ -96,7 +95,7 @@ namespace ImgsToPDF
             MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
         }
         private void ImgsToPDF_DragDrop(object sender, DragEventArgs e) {
-            string directoryPath = ((System.Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
+            string directoryPath = ((Array)e.Data.GetData(DataFormats.FileDrop)).GetValue(0).ToString();       //获得路径
             ChooseFileAction(directoryPath);
         }
         private async void StartButton_Click(object sender, EventArgs e) {
@@ -139,24 +138,24 @@ namespace ImgsToPDF
                 //        MessageBox.Show(stderr);
                 //    }
                 //}
-                RecursiveFolder(PathLabel.Text, new List<string> { }).AsParallel().WithDegreeOfParallelism(4).ForAll(dirPath => {
-                    string[] args = FastMode.Checked ? new string[] {
+                RecursiveFolder(PathLabel.Text, []).AsParallel().WithDegreeOfParallelism(4).ForAll(dirPath => {
+                    string[] args = FastMode.Checked ? [
                         "-d", dirPath,
                         "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
-                    } : new string[] {
+                    ] : [
                         "-d", dirPath,
                         "-l", generateModeBox.SelectedIndex.ToString()
-                    };
+                    ];
                     var (_, stderr) = RunProcess(fileName, args);
                     if (stderr.Length > 0) {
                         MessageBox.Show(stderr);
                     }
                 });
                 if (Merge.Checked) {
-                    string[] args = new string[] {
+                    string[] args = [
                         "-d", PathLabel.Text,
                         "--merge-pdfs"
-                    };
+                    ];
                     var (_, stderr) = RunProcess(fileName, args);
                     if (stderr.Length > 0) {
                         MessageBox.Show(stderr);
@@ -164,13 +163,13 @@ namespace ImgsToPDF
                 }
             }
             else {
-                string[] args = FastMode.Checked ? new string[] {
+                string[] args = FastMode.Checked ? [
                     "-d", PathLabel.Text,
                     "-l", generateModeBox.SelectedIndex.ToString(), "--fast"
-                } : new string[] {
+                ] : [
                     "-d", PathLabel.Text,
                     "-l", generateModeBox.SelectedIndex.ToString()
-                };
+                ];
                 var (_, stderr) = RunProcess(fileName, args);
                 if (stderr.Length > 0) {
                     MessageBox.Show(stderr);
@@ -192,7 +191,7 @@ namespace ImgsToPDF
                 args[i] = string.Format("\"{0}\"", args[i]);
             }
             // 例Process
-            Process p = new Process();
+            Process p = new();
             p.StartInfo.FileName = fileName;
             p.StartInfo.Arguments = string.Join(" ", args);
             p.StartInfo.UseShellExecute = false;        // Shell的使用
@@ -211,8 +210,8 @@ namespace ImgsToPDF
         }
         private void toolStripMenuAbout_Click(object sender, EventArgs e) {
             MessageBox.Show(
-                "ImagesToPDF v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "\n"
-                + ((AssemblyCopyrightAttribute)System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false)[0]).Copyright + " At MIT License.",
+                "ImagesToPDF v" + Assembly.GetExecutingAssembly().GetName().Version + "\n"
+                + ((AssemblyCopyrightAttribute)Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false)[0]).Copyright + " At MIT License.",
                 "About",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information,
@@ -222,7 +221,7 @@ namespace ImgsToPDF
             );
         }
         private void toolStripMenuOpenFolder_Click(object sender, EventArgs e) {
-            FolderBrowserDialog dialog = new FolderBrowserDialog {
+            FolderBrowserDialog dialog = new() {
                 Description = Extra.ApplyResource(typeof(Extra), "strSelectIMGFolder")
             };
             if (dialog.ShowDialog() == DialogResult.Cancel) {

@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ImgsToPDF {
@@ -16,7 +13,7 @@ namespace ImgsToPDF {
         /// </summary>
         [STAThread]
         static void Main() {
-            Mutex obj = new Mutex(true, "Global\\ImgsToPDF", out bool isFirstInstance);
+            Mutex obj = new(true, "Global\\ImgsToPDF", out bool isFirstInstance);
             if (isFirstInstance) {  // 仅保留第一个窗口实例 新建跳过
 #if NETCOREAPP3_0_OR_GREATER
                 Application.SetHighDpiMode(HighDpiMode.SystemAware);

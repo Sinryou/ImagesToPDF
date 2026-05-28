@@ -9,7 +9,7 @@ namespace ImgsToPDF.Lang {
         /// <param name="Name">指定用资源文件中的哪个值</param>
         /// <returns></returns>
         internal static string ApplyResource(Type resourceObject, string Name) {
-            System.Resources.ResourceManager resource = new System.Resources.ResourceManager(resourceObject);
+            System.Resources.ResourceManager resource = new(resourceObject);
             return resource.GetString(Name);
         }
     }

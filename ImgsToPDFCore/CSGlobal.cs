@@ -9,15 +9,15 @@ using XLua;
 /// </summary>
 internal struct CSGlobal {
     #region readonlys
-    public static readonly LuaEnv luaEnv = new LuaEnv();
+    public static readonly LuaEnv luaEnv = new();
     [LuaCallCSharp]
     [ReflectionUse]
-    public static readonly List<Type> lua_call_cs_list = new List<Type>() {
+    public static readonly List<Type> lua_call_cs_list = [
         typeof(iTextSharp.text.PageSize),
         typeof(iTextSharp.text.Rectangle),
         typeof(Interaction),
         typeof(PDFWrapper),
-    };
+    ];
     #endregion
     public static IConfig luaConfig;
 }
