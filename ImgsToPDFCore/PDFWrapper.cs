@@ -210,7 +210,7 @@ namespace ImgsToPDFCore {
                                 PdfOutline parentNode = root;
 
                                 // 如果文件夹名有效且不是根目录，则创建/获取一级书签
-                                if (!string.IsNullOrEmpty(folderName) && folderName != "abc") {
+                                if (!string.IsNullOrEmpty(folderName)) {
                                     if (!folderOutlineCache.ContainsKey(folderName)) {
                                         // 创建一级目录节点
                                         var folderNode = new PdfOutline(root, action, folderName);
