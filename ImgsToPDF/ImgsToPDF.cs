@@ -70,8 +70,7 @@ namespace ImgsToPDF
                     .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
                 foreach (var imagepath in imagepaths) {
                     try {
-                        using var srcImage = new Bitmap(imagepath);
-                        PicInFolder.Image = Bitmap.FromFile(imagepath) as Bitmap;
+                        PicInFolder.Image = new Bitmap(imagepath);
                         break;
                     }
                     catch (Exception) {

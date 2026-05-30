@@ -67,44 +67,6 @@ namespace ImgsToPDFCore {
             bm2.Dispose();
             return bitMap;
         }
-        static void ImagesToPdf(List<Bitmap> imageList, Layout layout = Layout.Single, bool fastFlag = false) {
-            using var ms = new MemoryStream();
-            var document = new Document(PageSize.A4, 0, 0, 0, 0);
-            PdfWriter.GetInstance(document, ms).SetFullCompression();
-            document.Open();
-            if (layout != Layout.DuplexLeftToRight && layout != Layout.DuplexRightToLeft) {
-                // 如果layout flag为0，单页来写
-                foreach (var imagePic in imageList) {
-                    AddPage(document, imagePic, fastFlag);
-                }
-            }
-            else {
-                for (int i = 0; i < imageList.Count; i++) {
-                    if (i + 1 >= imageList.Count || !(imageList[i].Height >= imageList[i].Width && imageList[i + 1].Height >= imageList[i + 1].Width)) {
-                        AddPage(document, imageList[i], fastFlag);
-                    }
-                    else {   // 如果图片长大于宽且下一张也如此，把他们拼起来
-                        Bitmap picAtLeft = layout == Layout.DuplexLeftToRight ? imageList[i] : imageList[i + 1];
-                        Bitmap picAtRight = layout == Layout.DuplexLeftToRight ? imageList[i + 1] : imageList[i];
-                        using (var combinedBitmap = CombineBitmap(picAtLeft, picAtRight, 10)) {
-                            AddPage(document, combinedBitmap, fastFlag);
-                        }
-                        imageList[i]?.Dispose();
-                        imageList[i + 1]?.Dispose();
-                        i++;
-                    }
-                }
-            }
-            //Console.WriteLine(document.PageNumber);
-            // 如果零页，添加一页空页
-            if (document.PageNumber == 0) {
-                document.NewPage();
-                document.Add(Chunk.NEWLINE);
-            }
-            document.Close();
-            string pathToSave = CSGlobal.luaConfig.PathToSave(); // 从lua里读设置的保存路径
-            File.WriteAllBytes(pathToSave, ms.ToArray());
-        }
         /// <summary>
         /// 将指定文件夹下的图片合并为PDF文件
         /// </summary>
@@ -113,34 +75,104 @@ namespace ImgsToPDFCore {
         /// <param name="fastFlag">是否以图片质量换取生成速度</param>
         public static void ImagesToPDF(string directoryPath, Layout layout = Layout.Single, bool fastFlag = false) {
             if (!Directory.Exists(directoryPath)) { return; }   // 不存在文件夹则直接结束执行
+
             List<string> imageExtensions = [".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
             IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                 .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e))
                 .OrderBy(p => p, new StringLenComparer());
-            List<Bitmap> imageBitmapList = [];
-            foreach (var imagepath in imagepaths) {
-                var fileExt = Path.GetExtension(imagepath)?.ToLower();
-                Bitmap srcImage;
-                if (fileExt == ".webp") {
-                    // 读取webp文件的方法
-                    using WebP webp = new();
-                    srcImage = webp.Load(imagepath);
+
+            using var ms = new MemoryStream();
+            var document = new Document(PageSize.A4, 0, 0, 0, 0);
+            PdfWriter.GetInstance(document, ms).SetFullCompression();
+            document.Open();
+
+            try {
+                if (layout != Layout.DuplexLeftToRight && layout != Layout.DuplexRightToLeft) {
+                    foreach (var imagePath in imagepaths) {
+                        try {
+                            var srcImage = LoadImage(imagePath);
+                            if (srcImage != null) {
+                                AddPage(document, srcImage, fastFlag);
+                            }
+                        }
+                        catch (Exception ex) {
+                            Console.Error.WriteLine($"[ImgsToPDFCore] Failed to load image '{imagePath}': {ex.GetType().Name}: {ex.Message}");
+                        }
+                    }
                 }
                 else {
-                    try {
-                        srcImage = Bitmap.FromFile(imagepath) as Bitmap;
-                    }
-                    catch (Exception) {
-                        continue;
+                    using var enumerator = imagepaths.GetEnumerator();
+                    while (enumerator.MoveNext()) {
+                        Bitmap? bm1;
+                        try {
+                            bm1 = LoadImage(enumerator.Current);
+                        }
+                        catch (Exception ex) {
+                            Console.Error.WriteLine($"[ImgsToPDFCore] Failed to load image '{enumerator.Current}': {ex.GetType().Name}: {ex.Message}");
+                            continue;
+                        }
+                        if (bm1 == null) continue;
+
+                        if (bm1.Width >= bm1.Height) {
+                            AddPage(document, bm1, fastFlag);
+                            continue;
+                        }
+                        else if (!enumerator.MoveNext()) {
+                            AddPage(document, bm1, fastFlag);
+                            break;
+                        }
+
+                        Bitmap? bm2;
+                        try {
+                            bm2 = LoadImage(enumerator.Current);
+                        }
+                        catch (Exception ex) {
+                            Console.Error.WriteLine($"[ImgsToPDFCore] Failed to load image '{enumerator.Current}': {ex.GetType().Name}: {ex.Message}");
+                            AddPage(document, bm1, fastFlag);
+                            continue;
+                        }
+
+                        if (bm2 == null) {
+                            AddPage(document, bm1, fastFlag);
+                            continue;
+                        }
+
+                        if (bm1.Height >= bm1.Width && bm2.Height >= bm2.Width) {
+                            Bitmap picAtLeft = layout == Layout.DuplexLeftToRight ? bm1 : bm2;
+                            Bitmap picAtRight = layout == Layout.DuplexLeftToRight ? bm2 : bm1;
+                            using var combined = CombineBitmap(picAtLeft, picAtRight, 10);
+                            AddPage(document, combined, fastFlag);
+                        }
+                        else {
+                            AddPage(document, bm1, fastFlag);
+                            AddPage(document, bm2, fastFlag);
+                        }
                     }
                 }
-                if (srcImage != null) {
-                    imageBitmapList.Add(srcImage);
+
+                // 如果零页，添加一页空页
+                if (document.PageNumber == 0) {
+                    document.NewPage();
+                    document.Add(Chunk.NEWLINE);
                 }
             }
-            ImagesToPdf(imageBitmapList, layout, fastFlag);
-            foreach (Bitmap bitmap in imageBitmapList) {
-                bitmap?.Dispose();
+            finally {
+                document.Close();
+            }
+
+            string pathToSave = CSGlobal.luaConfig.PathToSave();
+            File.WriteAllBytes(pathToSave, ms.ToArray());
+        }
+
+        static Bitmap? LoadImage(string imagePath) {
+            var fileExt = Path.GetExtension(imagePath)?.ToLower();
+            if (fileExt == ".webp") {
+                // 读取webp文件的方法
+                using WebP webp = new();
+                return webp.Load(imagePath);
+            }
+            else {
+                return Bitmap.FromFile(imagePath) as Bitmap;
             }
         }
         /// <summary>
@@ -148,7 +180,7 @@ namespace ImgsToPDFCore {
         /// </summary>
         /// <param name="inFiles">待合并文件列表</param>
         /// <param name="outFile">合并生成的文件名称</param>
-        public static void PdfMerge(List<String> inFiles, String outFile) {
+        public static void PdfMerge(List<string> inFiles, string outFile) {
             // 1. 实例化比较器
             var comparer = new StringLenComparer();
             // 2. 调用 Sort 方法并传入比较器
