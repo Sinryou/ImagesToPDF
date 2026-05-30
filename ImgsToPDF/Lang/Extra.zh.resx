@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="strArchiveFile" xml:space="preserve">
+    <value>压缩文件</value>
+  </data>
   <data name="strClickToStart" xml:space="preserve">
     <value>点击开始按钮开始PDF文件生成</value>
   </data>
@@ -131,6 +134,9 @@
   </data>
   <data name="strPDFIsGenerating" xml:space="preserve">
     <value>PDF生成中......</value>
+  </data>
+  <data name="strSelectArchive" xml:space="preserve">
+    <value>请选择包含图片的压缩包</value>
   </data>
   <data name="strSelectIMGFolder" xml:space="preserve">
     <value>请选择需要合并为PDF的图片文件所在的文件夹。</value>

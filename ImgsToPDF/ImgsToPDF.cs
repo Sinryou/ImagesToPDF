@@ -273,5 +273,24 @@ namespace ImgsToPDF
                 Merge.Enabled = false; Merge.Checked = false;
             }
         }
+
+        private void toolStripMenuItemOpenArchive_Click(object sender, EventArgs e) {
+            using OpenFileDialog openFileDialog = new();
+            // 设置对话框标题
+            openFileDialog.Title = Extra.ApplyResource(typeof(Extra), "strSelectArchive");
+
+            openFileDialog.Filter = Extra.ApplyResource(typeof(Extra), "strArchiveFile")+"|*.zip;*.rar;*.7z";
+
+            // 默认选中第一个筛选器（压缩文件）
+            openFileDialog.FilterIndex = 1;
+
+            // 不允许选择多个文件
+            openFileDialog.Multiselect = false;
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK) {
+                string selectedFile = openFileDialog.FileName;
+                ChooseFileAction(selectedFile);
+            }
+        }
     }
 }

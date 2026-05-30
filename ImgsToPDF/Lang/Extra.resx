@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="strArchiveFile" xml:space="preserve">
+    <value>Archive File</value>
+  </data>
   <data name="strClickToStart" xml:space="preserve">
     <value>Click Start Button to Generate PDF file</value>
   </data>
@@ -131,6 +134,9 @@
   </data>
   <data name="strPDFIsGenerating" xml:space="preserve">
     <value>PDF is Generating......</value>
+  </data>
+  <data name="strSelectArchive" xml:space="preserve">
+    <value>Please select the archive file</value>
   </data>
   <data name="strSelectIMGFolder" xml:space="preserve">
     <value>Please select the folder where the images are located.</value>

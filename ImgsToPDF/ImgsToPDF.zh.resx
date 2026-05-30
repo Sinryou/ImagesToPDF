@@ -121,7 +121,7 @@
     <value>开始</value>
   </data>
   <data name="MsgLabel.Text" xml:space="preserve">
-    <value>拖入包含图片的文件夹</value>
+    <value>拖入包含图片的文件夹或压缩包</value>
   </data>
   <data name="labelLayout.Text" xml:space="preserve">
     <value>PDF输出版式:</value>
@@ -138,6 +138,12 @@
   </data>
   <data name="toolStripMenuOpenFolder.Text" xml:space="preserve">
     <value>打开文件夹(&amp;O)</value>
+  </data>
+  <data name="toolStripMenuItemOpenArchive.Size" type="System.Drawing.Size, System.Drawing">
+    <value>227, 34</value>
+  </data>
+  <data name="toolStripMenuItemOpenArchive.Text" xml:space="preserve">
+    <value>打开压缩包(&amp;Z)</value>
   </data>
   <data name="toolStripMenuClearChosen.Size" type="System.Drawing.Size, System.Drawing">
     <value>227, 34</value>

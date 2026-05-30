@@ -37,6 +37,7 @@
             this.menuStripMain = new System.Windows.Forms.MenuStrip();
             this.toolStripMenuFile = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuOpenFolder = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItemOpenArchive = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuClearChosen = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenuExit = new System.Windows.Forms.ToolStripMenuItem();
@@ -76,23 +77,23 @@
             // 
             // FolderImg
             // 
-            resources.ApplyResources(this.FolderImg, "FolderImg");
             this.FolderImg.BackColor = System.Drawing.Color.Transparent;
+            resources.ApplyResources(this.FolderImg, "FolderImg");
             this.FolderImg.Name = "FolderImg";
             this.FolderImg.TabStop = false;
             // 
             // PicInFolder
             // 
-            resources.ApplyResources(this.PicInFolder, "PicInFolder");
             this.PicInFolder.Image = global::ImgsToPDF.Properties.Resources.folder;
+            resources.ApplyResources(this.PicInFolder, "PicInFolder");
             this.PicInFolder.Name = "PicInFolder";
             this.PicInFolder.TabStop = false;
             // 
             // generateModeBox
             // 
-            resources.ApplyResources(this.generateModeBox, "generateModeBox");
             this.generateModeBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.generateModeBox.FormattingEnabled = true;
+            resources.ApplyResources(this.generateModeBox, "generateModeBox");
             this.generateModeBox.Name = "generateModeBox";
             // 
             // labelLayout
@@ -108,7 +109,6 @@
             // 
             // menuStripMain
             // 
-            resources.ApplyResources(this.menuStripMain, "menuStripMain");
             this.menuStripMain.GripMargin = new System.Windows.Forms.Padding(2, 2, 0, 2);
             this.menuStripMain.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.menuStripMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -116,71 +116,79 @@
             this.toolStripMenuConfigFile,
             this.languageToolStripMenuItem,
             this.toolStripMenuAbout});
+            resources.ApplyResources(this.menuStripMain, "menuStripMain");
             this.menuStripMain.Name = "menuStripMain";
             // 
             // toolStripMenuFile
             // 
-            resources.ApplyResources(this.toolStripMenuFile, "toolStripMenuFile");
             this.toolStripMenuFile.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripMenuOpenFolder,
+            this.toolStripMenuItemOpenArchive,
             this.toolStripMenuClearChosen,
             this.toolStripSeparator1,
             this.toolStripMenuExit});
             this.toolStripMenuFile.Name = "toolStripMenuFile";
+            resources.ApplyResources(this.toolStripMenuFile, "toolStripMenuFile");
             // 
             // toolStripMenuOpenFolder
             // 
-            resources.ApplyResources(this.toolStripMenuOpenFolder, "toolStripMenuOpenFolder");
             this.toolStripMenuOpenFolder.Name = "toolStripMenuOpenFolder";
+            resources.ApplyResources(this.toolStripMenuOpenFolder, "toolStripMenuOpenFolder");
             this.toolStripMenuOpenFolder.Click += new System.EventHandler(this.toolStripMenuOpenFolder_Click);
+            // 
+            // toolStripMenuItemOpenArchive
+            // 
+            this.toolStripMenuItemOpenArchive.Name = "toolStripMenuItemOpenArchive";
+            resources.ApplyResources(this.toolStripMenuItemOpenArchive, "toolStripMenuItemOpenArchive");
+            this.toolStripMenuItemOpenArchive.Click += new System.EventHandler(this.toolStripMenuItemOpenArchive_Click);
             // 
             // toolStripMenuClearChosen
             // 
-            resources.ApplyResources(this.toolStripMenuClearChosen, "toolStripMenuClearChosen");
             this.toolStripMenuClearChosen.Name = "toolStripMenuClearChosen";
+            resources.ApplyResources(this.toolStripMenuClearChosen, "toolStripMenuClearChosen");
             this.toolStripMenuClearChosen.Click += new System.EventHandler(this.toolStripMenuClearChosen_Click);
             // 
             // toolStripSeparator1
             // 
-            resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
             this.toolStripSeparator1.Name = "toolStripSeparator1";
+            resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
             // 
             // toolStripMenuExit
             // 
-            resources.ApplyResources(this.toolStripMenuExit, "toolStripMenuExit");
             this.toolStripMenuExit.Name = "toolStripMenuExit";
+            resources.ApplyResources(this.toolStripMenuExit, "toolStripMenuExit");
             this.toolStripMenuExit.Click += new System.EventHandler(this.toolStripMenuExit_Click);
             // 
             // toolStripMenuConfigFile
             // 
-            resources.ApplyResources(this.toolStripMenuConfigFile, "toolStripMenuConfigFile");
             this.toolStripMenuConfigFile.Name = "toolStripMenuConfigFile";
+            resources.ApplyResources(this.toolStripMenuConfigFile, "toolStripMenuConfigFile");
             this.toolStripMenuConfigFile.Click += new System.EventHandler(this.toolStripMenuConfigFile_Click);
             // 
             // languageToolStripMenuItem
             // 
-            resources.ApplyResources(this.languageToolStripMenuItem, "languageToolStripMenuItem");
             this.languageToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.englishToolStripMenuItem,
             this.chineseToolStripMenuItem});
             this.languageToolStripMenuItem.Name = "languageToolStripMenuItem";
+            resources.ApplyResources(this.languageToolStripMenuItem, "languageToolStripMenuItem");
             // 
             // englishToolStripMenuItem
             // 
-            resources.ApplyResources(this.englishToolStripMenuItem, "englishToolStripMenuItem");
             this.englishToolStripMenuItem.Name = "englishToolStripMenuItem";
+            resources.ApplyResources(this.englishToolStripMenuItem, "englishToolStripMenuItem");
             this.englishToolStripMenuItem.Click += new System.EventHandler(this.englishToolStripMenuItem_Click);
             // 
             // chineseToolStripMenuItem
             // 
-            resources.ApplyResources(this.chineseToolStripMenuItem, "chineseToolStripMenuItem");
             this.chineseToolStripMenuItem.Name = "chineseToolStripMenuItem";
+            resources.ApplyResources(this.chineseToolStripMenuItem, "chineseToolStripMenuItem");
             this.chineseToolStripMenuItem.Click += new System.EventHandler(this.chineseToolStripMenuItem_Click);
             // 
             // toolStripMenuAbout
             // 
-            resources.ApplyResources(this.toolStripMenuAbout, "toolStripMenuAbout");
             this.toolStripMenuAbout.Name = "toolStripMenuAbout";
+            resources.ApplyResources(this.toolStripMenuAbout, "toolStripMenuAbout");
             this.toolStripMenuAbout.Click += new System.EventHandler(this.toolStripMenuAbout_Click);
             // 
             // Recursive
@@ -198,8 +206,8 @@
             // 
             // ImgsToPDF
             // 
-            resources.ApplyResources(this, "$this");
             this.AllowDrop = true;
+            resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.Merge);
             this.Controls.Add(this.Recursive);
@@ -253,6 +261,7 @@
         private System.Windows.Forms.ToolStripMenuItem chineseToolStripMenuItem;
         private System.Windows.Forms.CheckBox Recursive;
         private System.Windows.Forms.CheckBox Merge;
+        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemOpenArchive;
     }
 }
 
