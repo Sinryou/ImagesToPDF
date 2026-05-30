@@ -81,9 +81,10 @@ namespace ImgsToPDFCore {
                 .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e))
                 .OrderBy(p => p, new StringLenComparer());
 
-            using var ms = new MemoryStream();
+            string pathToSave = CSGlobal.luaConfig.PathToSave();
+            using var fs = new FileStream(pathToSave, FileMode.Create, FileAccess.Write);
             var document = new Document(PageSize.A4, 0, 0, 0, 0);
-            PdfWriter.GetInstance(document, ms).SetFullCompression();
+            PdfWriter.GetInstance(document, fs).SetFullCompression();
             document.Open();
 
             try {
@@ -159,9 +160,6 @@ namespace ImgsToPDFCore {
             finally {
                 document.Close();
             }
-
-            string pathToSave = CSGlobal.luaConfig.PathToSave();
-            File.WriteAllBytes(pathToSave, ms.ToArray());
         }
 
         static Bitmap? LoadImage(string imagePath) {
@@ -191,13 +189,11 @@ namespace ImgsToPDFCore {
             doc.Open();
             inFiles.ForEach(file => {
                 if (File.Exists(file)) {
-                    var reader = new PdfReader(file);
+                    using var reader = new PdfReader(file);
                     for (int i = 0; i < reader.NumberOfPages; i++) {
                         var page = pdf.GetImportedPage(reader, i + 1);
                         pdf.AddPage(page);
                     }
-                    pdf.FreeReader(reader);
-                    reader.Close();
                 }
             });
         }
