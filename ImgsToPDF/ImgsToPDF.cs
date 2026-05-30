@@ -111,7 +111,7 @@ namespace ImgsToPDF
             StartButton.Enabled = true;
             MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strPDFGenerationSuccess");
         }
-        static List<string> RecursiveFolder(string path, List<string> dirs) {
+        private static List<string> RecursiveFolder(string path, List<string> dirs) {
             dirs.Add(path);
             var TheFolder = new DirectoryInfo(path);
             foreach (var childFolder in TheFolder.GetDirectories()) {
