@@ -35,11 +35,11 @@ namespace ImgsToPDF
             //FolderImg.SizeMode = PictureBoxSizeMode.Zoom;
             //PicInFolder.SizeMode = PictureBoxSizeMode.Zoom;
             MsgLabel.ForeColor = Color.Blue;
-            generateModeBox.Items.AddRange(new string[] {
+            generateModeBox.Items.AddRange([
                 Extra.ApplyResource(typeof(Extra), "strSingle"),
                 Extra.ApplyResource(typeof(Extra), "strDuplex"),
                 Extra.ApplyResource(typeof(Extra), "strDuplexRightToLeft")
-            });
+            ]);
             generateModeBox.SelectedIndex = 0;
             Merge.Enabled = false;
         }

@@ -6,7 +6,7 @@ namespace ImgsToPDFCore {
         /// <summary>
         /// 程序的所有命令行参数类型
         /// </summary>
-        class Options {
+        private class Options {
             [Option('d', "dir-path", Required = true, HelpText = "图片所在的文件夹路径。")]
             public string DirectoryPath { get; set; }
 
