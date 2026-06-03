@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("ImgsToPDFCore")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Sinryou")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("ImgsToPDFCore")]
 [assembly: AssemblyCopyright("Copyright © 2022-2026 Sinryou.")]
 [assembly: AssemblyTrademark("")]
