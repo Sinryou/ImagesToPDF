@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="ImgsToPDF/ImgsToPDF.csproj" Id="e76d7a69-7527-4079-b649-bd0a899239b1">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="ImgsToPDFCore/ImgsToPDFCore.csproj" Id="f8dfa59f-f04b-4bde-93da-3bde68c1ae0e">
+    <Platform Project="x64" />
+  </Project>
+</Solution>
