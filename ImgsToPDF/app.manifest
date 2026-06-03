@@ -5,7 +5,7 @@
 
   <assemblyIdentity
     version="1.0.0.0"
-    name="ImgsToPDF" />
+    name="ImgsToPDF.app" />
 
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
