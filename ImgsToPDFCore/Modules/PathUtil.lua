@@ -46,6 +46,10 @@ function PathUtil.listSubfolders(root_path, processor_func)
     return folders
 end
 
+function PathUtil.currentDir()
+    return lfs.currentdir()
+end
+
 function PathUtil.dirExist(path)
     local attr = lfs.attributes(path)
     return type(attr) == "table" and attr.mode == "directory"
