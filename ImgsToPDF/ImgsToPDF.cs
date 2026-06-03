@@ -70,11 +70,13 @@ namespace ImgsToPDF
                     .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
                 foreach (var imagepath in imagepaths) {
                     try {
-                        PicInFolder.Image = new Bitmap(imagepath);
+                        using var img = Image.FromFile(imagepath);
+                        PicInFolder.Image = new Bitmap(img);
                         break;
                     }
-                    catch (Exception) {
+                    catch (Exception ex) {
                         // 如果文件不是一张合法的图片，则直接跳过
+                        System.Diagnostics.Debug.WriteLine($"[ImgsToPDF] Skipped invalid image '{imagepath}': {ex.Message}");
                         continue;
                     }
                 }

@@ -170,7 +170,8 @@ namespace ImgsToPDFCore {
                 return webp.Load(imagePath);
             }
             else {
-                return Bitmap.FromFile(imagePath) as Bitmap;
+                using var img = System.Drawing.Image.FromFile(imagePath);
+                return new Bitmap(img);
             }
         }
         /// <summary>
