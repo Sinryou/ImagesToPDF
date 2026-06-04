@@ -192,7 +192,7 @@ namespace ImgsToPDF
                 args[i] = string.Format("\"{0}\"", args[i]);
             }
             // 例Process
-            Process p = new();
+            using Process p = new();
             p.StartInfo.FileName = fileName;
             p.StartInfo.Arguments = string.Join(" ", args);
             p.StartInfo.UseShellExecute = false;        // Shell的使用
@@ -207,7 +207,7 @@ namespace ImgsToPDF
             this.Close();
         }
         private void toolStripMenuConfigFile_Click(object sender, EventArgs e) {
-            Process.Start(AppDomain.CurrentDomain.BaseDirectory + "/Core/Config.lua");
+            using var _ = Process.Start(AppDomain.CurrentDomain.BaseDirectory + "/Core/config.lua");
         }
         private void toolStripMenuAbout_Click(object sender, EventArgs e) {
             MessageBox.Show(
