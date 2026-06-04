@@ -104,7 +104,7 @@ namespace ImgsToPDFCore {
                 else {
                     using var enumerator = imagepaths.GetEnumerator();
                     while (enumerator.MoveNext()) {
-                        Bitmap? bm1;
+                        Bitmap bm1;
                         try {
                             bm1 = LoadImage(enumerator.Current);
                         }
@@ -123,7 +123,7 @@ namespace ImgsToPDFCore {
                             break;
                         }
 
-                        Bitmap? bm2;
+                        Bitmap bm2;
                         try {
                             bm2 = LoadImage(enumerator.Current);
                         }
@@ -162,7 +162,7 @@ namespace ImgsToPDFCore {
             }
         }
 
-        static Bitmap? LoadImage(string imagePath) {
+        static Bitmap LoadImage(string imagePath) {
             var fileExt = Path.GetExtension(imagePath)?.ToLower();
             if (fileExt == ".webp") {
                 // 读取webp文件的方法
