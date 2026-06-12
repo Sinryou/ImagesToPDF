@@ -81,6 +81,9 @@ function PathUtil.getExtension(path)
 end
 
 function PathUtil.fileNameWithoutExtension(path)
+    if not PathUtil.fileName(path) then
+        return nil
+    end
     return PathUtil.fileName(path):sub(1, -(1 + #(PathUtil.getExtension(path) or "")))
 end
 

@@ -123,7 +123,7 @@ local tempExtraPath
 -- this func will be processed before pdf generation start
 -- 定义开始前要进行的动作
 function Config:PreProcess(...)
-    local path, layout, fastFlag, merge = table.unpack({ ... })
+    local path, layout, fastFlag, merge = ...
     local compressSuffix = { ".zip", ".rar", ".7z" }
     if pathUtil.dirExist(u2a(path)) then -- 如果是文件夹
         if merge then
@@ -137,9 +137,9 @@ function Config:PreProcess(...)
         return -- 不以压缩格式结尾 不做动作
     end
 
-    pdfFileName = pathUtil.fileNameWithoutExtension(path)
+    pdfFileName = pathUtil.fileNameWithoutExtension(path) or "Output"
     outputDir = pathUtil.dirPath(path)
-    tempExtraPath = path:sub(1, -(1 + #pathUtil.getExtension(path))) .. os.date("%Y%m%d%H%M%S")
+    tempExtraPath = outputDir .. "/" .. pdfFileName .. os.date("%Y%m%d%H%M%S")
     if not commonUtils.Decompress(path, tempExtraPath) then
         local password = interaction.InputBox("Input password:", "Encrypted Compress File")
         if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
