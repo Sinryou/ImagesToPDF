@@ -1,4 +1,4 @@
-﻿using iTextSharp.text;
+using iTextSharp.text;
 using iTextSharp.text.pdf;
 using System;
 using System.Collections.Generic;
@@ -55,8 +55,8 @@ namespace ImgsToPDFCore {
             var height = Math.Max(bm1.Height, bm2.Height);
             // 初始化画布(最终的拼图画布)并设置宽高
             Bitmap bitMap = new(width, height);
-            // 初始化画板
-            Graphics canavas = Graphics.FromImage(bitMap);
+            // 初始化画板（必须释放，否则双页模式页数多时会累积 GDI+ 句柄）
+            using Graphics canavas = Graphics.FromImage(bitMap);
             // 将画布涂为白色(底部颜色可自行设置)
             canavas.FillRectangle(Brushes.White, new System.Drawing.Rectangle(0, 0, width, height));
             //在x=0，y=0处画上图一

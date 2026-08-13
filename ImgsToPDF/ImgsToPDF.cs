@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -187,6 +188,49 @@ namespace ImgsToPDF
             return dirs;
         }
         /// <summary>
+        /// 同时运行的 Core 进程数硬上限：每个进程都是完整 .NET 运行时，
+        /// 高核数机器上不设上限会一次拉起几十个进程。
+        /// </summary>
+        private const int MaxCoreProcessConcurrency = 8;
+        /// <summary>
+        /// 单个 Core 进程的峰值内存预算（含 .NET 运行时、XLua/libwebp、
+        /// 最大单张图片解码及编码缓冲）。按大图最坏情况估算，
+        /// 实际峰值通常低于此值。
+        /// </summary>
+        private const long PerCoreProcessMemoryBudget = 1L << 30; // 1 GB
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private class MEMORYSTATUSEX {
+            public uint dwLength;
+            public uint dwMemoryLoad;
+            public ulong ullTotalPhys;
+            public ulong ullAvailPhys;
+            public ulong ullTotalPageFile;
+            public ulong ullAvailPageFile;
+            public ulong ullTotalVirtual;
+            public ulong ullAvailVirtual;
+            public ulong ullAvailExtendedVirtual;
+            public MEMORYSTATUSEX() {
+                dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
+            }
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GlobalMemoryStatusEx([In, Out] MEMORYSTATUSEX lpBuffer);
+
+        /// <summary>
+        /// 按当前可用物理内存估算允许同时运行的 Core 进程数，
+        /// 图片很大时避免同时解码过多大图导致内存耗尽。
+        /// </summary>
+        private static int GetConcurrencyLimitByMemory() {
+            var status = new MEMORYSTATUSEX();
+            if (!GlobalMemoryStatusEx(status)) {
+                return int.MaxValue; // 查询失败时不额外限制
+            }
+            return (int)Math.Max(1, (long)status.ullAvailPhys / PerCoreProcessMemoryBudget);
+        }
+        /// <summary>
         /// 在后台生成 PDF；错误通过返回值收集，统一回到 UI 线程展示。
         /// </summary>
         private async Task<List<string>> ButtonClickActionAsync(string directoryPath, bool recursive, bool fastMode, bool merge, int layoutIndex) {
@@ -197,12 +241,14 @@ namespace ImgsToPDF
                 // 递归收集子目录可能较慢（大量文件夹），放到后台执行
                 var dirs = await Task.Run(() => RecursiveFolder(directoryPath, []));
 
-                // 并发 Core 进程数由“任务量”与“CPU 线程数”综合决定：
+                // 并发 Core 进程数由任务量、CPU 线程数与可用内存综合决定：
                 // - 任务很少时按任务数并发，避免白白拉起多余的完整 .NET 进程；
-                // - 任务很多时按 CPU 线程数并发，避免进程间争抢 CPU。
-                // 注意：每个 Core 进程都会独立加载 XLua/libwebp 等运行时，
-                // 若图片极大导致内存吃紧，可在此基础上再加一个经验上限。
-                int maxConcurrency = Math.Max(1, Math.Min(Environment.ProcessorCount, dirs.Count));
+                // - 任务很多时按 CPU 线程数并发，避免进程间争抢 CPU；
+                // - 同时按可用内存估算上限，图片很大时避免同时解码过多大图；
+                // - MaxCoreProcessConcurrency 兜底，防止高核数机器一次拉起过多进程。
+                int maxConcurrency = Math.Max(1, Math.Min(
+                    Math.Min(Environment.ProcessorCount, dirs.Count),
+                    Math.Min(GetConcurrencyLimitByMemory(), MaxCoreProcessConcurrency)));
                 using var semaphore = new SemaphoreSlim(maxConcurrency);
                 var tasks = dirs.Select(async dirPath => {
                     await semaphore.WaitAsync();
