@@ -18,8 +18,8 @@ local interaction = CS.Microsoft.VisualBasic.Interaction
 local function getChildImgsAndDirs(dirPath)
     local imageExtensions = { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff",
         ".gif", ".webp" }
-    local imgPaths = {}
     local dirPaths = {}
+    local hasImg = false
     for entry in lfs.dir(dirPath) do
         if entry ~= '.' and entry ~= '..' then
             local path = dirPath .. '/' .. entry
@@ -27,12 +27,13 @@ local function getChildImgsAndDirs(dirPath)
             assert(type(attr) == 'table')
             if attr.mode == 'directory' then
                 table.insert(dirPaths, path)
-            elseif common.hasVal(imageExtensions, pathUtil.getExtension(path)) then
-                table.insert(imgPaths, path)
+            elseif common.hasVal(imageExtensions, (pathUtil.getExtension(path) or ""):lower()) then
+                hasImg = true
+                break -- 调用方只需要知道“是否存在图片”，找到第一张即可提前结束遍历
             end
         end
     end
-    return imgPaths, dirPaths
+    return hasImg, dirPaths
 end
 
 -- 合并pdf
@@ -72,28 +73,53 @@ end
 -- 或 Config.PageSizeToSave = iRectangle(0, 0, width, height)
 Config.PageSizeToSave = iPageSize.NoResize
 
+-- 排序辅助缓存：排序过程中同一个路径会被比较 O(log n) 次，
+-- 原实现每次都重新做字符串匹配和版本号解析，这里缓存结果避免重复计算。
+local pathNameCache = {}   -- 完整路径 -> 去扩展名的文件名
+local versionCache = {}    -- 文件名 -> 版本号数组（false 表示没有版本号）
+
+local function getBaseName(filePath)
+    local name = pathNameCache[filePath]
+    if name == nil then
+        name = pathUtil.fileNameWithoutExtension(filePath) or ""
+        pathNameCache[filePath] = name
+    end
+    return name
+end
+
+-- 将文件名中所有连续数字段提取为版本数组；没有数字时返回 false。
+-- 旧实现只取"第一个数字+点号的连续串"（[%d%.]+），遇到下划线/连字符/中文等
+-- 分隔符会被截断，且文件名前部出现数字时会抢走版本号，导致排序退化。
+-- 这里对任意分隔符都适用：
+--   "v1.10.1"   -> {1, 10, 1}
+--   "a_1_2_3"   -> {1, 2, 3}
+--   "a-1-2-3"   -> {1, 2, 3}
+--   "第1话 v1.2" -> {1, 1, 2}   （文件名里出现的所有数字都参与比较）
+local function getVersionArray(name)
+    local cached = versionCache[name]
+    if cached ~= nil then
+        return cached
+    end
+    local version = {}
+    -- 匹配文件名中的每一个数字段
+    for part in name:gmatch("%d+") do
+        table.insert(version, tonumber(part))
+    end
+    if #version == 0 then
+        version = false
+    end
+    versionCache[name] = version
+    return version
+end
+
 -- func that you can order your input files
--- 图片文件排序的方法，默认会去找文件名中的数字部分来进行排序
+-- 图片文件排序的方法：提取文件名中的数字段做自然排序，
+-- 数字段之间的分隔符不限（. _ - 空格、中文等均可），没有数字的文件排在最前
 -- @param path1, path2: string; Full file path of the files to compare.
 -- @return: int; If negative, file in path1 will be added to your pdf first.
 function Config:FilePathComparer(filePath1, filePath2)
-    local fileName1 = pathUtil.fileNameWithoutExtension(filePath1) or ""
-    local fileName2 = pathUtil.fileNameWithoutExtension(filePath2) or ""
-
-    -- 提取版本号部分的辅助函数
-    -- 将 "v1.10.1" 转换为 {1, 10, 1}
-    local function getVersionArray(name)
-        -- 提取第一个包含数字和点的连续序列
-        local versionStr = name:match("[%d%.]+")
-        if not versionStr then return nil end
-        
-        local res = {}
-        -- 匹配每一个数字段
-        for part in versionStr:gmatch("%d+") do
-            table.insert(res, tonumber(part))
-        end
-        return res
-    end
+    local fileName1 = getBaseName(filePath1)
+    local fileName2 = getBaseName(filePath2)
 
     local v1 = getVersionArray(fileName1)
     local v2 = getVersionArray(fileName2)
@@ -124,6 +150,9 @@ local tempExtraPath
 -- 定义开始前要进行的动作
 function Config:PreProcess(...)
     local path, layout, fastFlag, merge = ...
+    -- 每次任务开始前清空排序缓存，避免跨任务残留
+    pathNameCache = {}
+    versionCache = {}
     local compressSuffix = { ".zip", ".rar", ".7z" }
     if pathUtil.dirExist(u2a(path)) then -- 如果是文件夹
         if merge then
@@ -133,7 +162,7 @@ function Config:PreProcess(...)
         outputDir = path
         PDFWrapper.ImagesToPDF(path, layout, fastFlag)
         return
-    elseif not common.hasVal(compressSuffix, pathUtil.getExtension(path):lower()) then
+    elseif not common.hasVal(compressSuffix, (pathUtil.getExtension(path) or ""):lower()) then
         return -- 不以压缩格式结尾 不做动作
     end
 
@@ -147,8 +176,8 @@ function Config:PreProcess(...)
         end
     end
 
-    local childImgs, childDirs = getChildImgsAndDirs(u2a(tempExtraPath))
-    if not next(childImgs) then
+    local hasChildImgs, childDirs = getChildImgsAndDirs(u2a(tempExtraPath))
+    if not hasChildImgs then
         if next(childDirs) then
             PDFWrapper.ImagesToPDF(a2u(childDirs[1]), layout, fastFlag)
         end

@@ -81,10 +81,11 @@ function PathUtil.getExtension(path)
 end
 
 function PathUtil.fileNameWithoutExtension(path)
-    if not PathUtil.fileName(path) then
+    local name = PathUtil.fileName(path)
+    if not name then
         return nil
     end
-    return PathUtil.fileName(path):sub(1, -(1 + #(PathUtil.getExtension(path) or "")))
+    return name:sub(1, -(1 + #(PathUtil.getExtension(path) or "")))
 end
 
 function PathUtil.deleteDir(rootpath)

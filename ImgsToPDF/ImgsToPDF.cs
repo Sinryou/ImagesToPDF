@@ -197,8 +197,13 @@ namespace ImgsToPDF
                 // 递归收集子目录可能较慢（大量文件夹），放到后台执行
                 var dirs = await Task.Run(() => RecursiveFolder(directoryPath, []));
 
-                // 与原先的 AsParallel(4) 行为一致：最多同时运行 4 个 Core 进程
-                using var semaphore = new SemaphoreSlim(4);
+                // 并发 Core 进程数由“任务量”与“CPU 线程数”综合决定：
+                // - 任务很少时按任务数并发，避免白白拉起多余的完整 .NET 进程；
+                // - 任务很多时按 CPU 线程数并发，避免进程间争抢 CPU。
+                // 注意：每个 Core 进程都会独立加载 XLua/libwebp 等运行时，
+                // 若图片极大导致内存吃紧，可在此基础上再加一个经验上限。
+                int maxConcurrency = Math.Max(1, Math.Min(Environment.ProcessorCount, dirs.Count));
+                using var semaphore = new SemaphoreSlim(maxConcurrency);
                 var tasks = dirs.Select(async dirPath => {
                     await semaphore.WaitAsync();
                     try {
