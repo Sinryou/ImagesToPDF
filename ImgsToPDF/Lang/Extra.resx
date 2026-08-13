@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -143,5 +143,14 @@
   </data>
   <data name="strSingle" xml:space="preserve">
     <value>Single</value>
+  </data>
+  <data name="strErrorTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="strPDFGeneratedWithErrors" xml:space="preserve">
+    <value>PDF generated, but {0} error(s) occurred.</value>
+  </data>
+  <data name="strPDFGenerationFailed" xml:space="preserve">
+    <value>PDF generation failed: {0}</value>
   </data>
 </root>
