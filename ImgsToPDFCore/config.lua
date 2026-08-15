@@ -48,31 +48,6 @@ local function mergePdfs(path)
     PDFWrapper.PdfMergeWithDeepOutlines(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf", path)
 end
 
--------------------------------------------------------------------
-----***************************************************************
-----Config for how to generate your images to pdf file
-----图片转PDF的配置
-----***************************************************************
--------------------------------------------------------------------
-
-local Config = {}
-
--- the path to save your output pdf file
--- 输出PDF档的保存路径
--- @type string
-local pdfFileName
-local outputDir
-function Config.PathToSave()
-    return table.concat({ outputDir, "/", pdfFileName, ".pdf" })
-end
-
--- page size of the output pdf file
--- 输出PDF档的页大小
--- @type iTextSharp.text.Rectangle
--- e.g. Config.PageSizeToSave = iPageSize.A4 (支持NoResize, A0~A10, B0~B10等)
--- 或 Config.PageSizeToSave = iRectangle(0, 0, width, height)
-Config.PageSizeToSave = iPageSize.NoResize
-
 -- 排序辅助缓存：排序过程中同一个路径会被比较 O(log n) 次，
 -- 原实现每次都重新做字符串匹配和版本号解析，这里缓存结果避免重复计算。
 local pathNameCache = {}   -- 完整路径 -> 去扩展名的文件名
@@ -111,6 +86,31 @@ local function getVersionArray(name)
     versionCache[name] = version
     return version
 end
+
+-------------------------------------------------------------------
+----***************************************************************
+----Config for how to generate your images to pdf file
+----图片转PDF的配置
+----***************************************************************
+-------------------------------------------------------------------
+
+local Config = {}
+
+-- the path to save your output pdf file
+-- 输出PDF档的保存路径
+-- @type string
+local pdfFileName
+local outputDir
+function Config.PathToSave()
+    return table.concat({ outputDir, "/", pdfFileName, ".pdf" })
+end
+
+-- page size of the output pdf file
+-- 输出PDF档的页大小
+-- @type iTextSharp.text.Rectangle
+-- e.g. Config.PageSizeToSave = iPageSize.A4 (支持NoResize, A0~A10, B0~B10等)
+-- 或 Config.PageSizeToSave = iRectangle(0, 0, width, height)
+Config.PageSizeToSave = iPageSize.NoResize
 
 -- func that you can order your input files
 -- 图片文件排序的方法：提取文件名中的数字段做自然排序，
