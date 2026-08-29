@@ -12,10 +12,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace ImgsToPDF
-{
-    public partial class ImgsToPDF : Form
-    {
+namespace ImgsToPDF {
+    public partial class ImgsToPDF : Form {
         public ImgsToPDF() {
             string language = Properties.Settings.Default.DefaultLanguage != "" ? Properties.Settings.Default.DefaultLanguage : System.Globalization.CultureInfo.CurrentCulture.Name;
             System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(language);
@@ -45,7 +43,7 @@ namespace ImgsToPDF
             generateModeBox.SelectedIndex = 0;
             Merge.Enabled = false;
         }
-        readonly string[] compressExtensions = [".zip", ".rar", ".7z"];
+        readonly HashSet<string> compressExtensions = new(StringComparer.OrdinalIgnoreCase) { ".zip", ".rar", ".7z" };
         /// <summary>
         /// 当前动态创建的预览位图（需要手动释放）。
         /// Properties.Resources.* 返回的是缓存的单例，绝不能 Dispose。
@@ -64,7 +62,7 @@ namespace ImgsToPDF
                     return;
                 }
                 string filePath = files[0];
-                if (Directory.Exists(filePath) || compressExtensions.Contains(Path.GetExtension(filePath)?.ToLower())) {
+                if (Directory.Exists(filePath) || compressExtensions.Contains(Path.GetExtension(filePath))) {
                     e.Effect = DragDropEffects.All;
                 }
                 else {
@@ -94,12 +92,48 @@ namespace ImgsToPDF
             if (Directory.Exists(directoryPath)) {
                 PicInFolder.Image = Properties.Resources.no_photo;
                 FolderImg.Image = Properties.Resources.folder;
-                List<string> imageExtensions = [".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif"];
+                // 1. 使用 HashSet(StringComparer.OrdinalIgnoreCase) 提高查找效率并自动忽略大小写
+                HashSet<string> imageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
+
+                HashSet<string> imageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
+
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
-                    .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e));
+                    .Where(p => imageExtensions.Contains(Path.GetExtension(p)));
                 foreach (var imagepath in imagepaths) {
                     try {
-                        using var img = Image.FromFile(imagepath);
+                        // 2. 从 Stream 加载可避免文件被 GDI+ 长期占用/锁定
+                        using var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        using var img = Image.FromStream(stream);
+
+                        if (imageExtensionsEXIFOrientation.Contains(Path.GetExtension(imagepath))) {
+                            const int OrientationId = 0x0112;
+
+                            // 3. Array.IndexOf 比 Contains(PropertyIdList) 性能略高，减少不必要的数组遍历
+                            if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
+                                var property = img.GetPropertyItem(OrientationId);
+                                ushort orientation = BitConverter.ToUInt16(property.Value, 0);
+
+                                RotateFlipType rotateFlip = orientation switch {
+                                    1 => RotateFlipType.RotateNoneFlipNone,
+                                    2 => RotateFlipType.RotateNoneFlipX,
+                                    3 => RotateFlipType.Rotate180FlipNone,
+                                    4 => RotateFlipType.RotateNoneFlipY,
+                                    5 => RotateFlipType.Rotate90FlipX,
+                                    6 => RotateFlipType.Rotate90FlipNone,
+                                    7 => RotateFlipType.Rotate270FlipX,
+                                    8 => RotateFlipType.Rotate270FlipNone,
+                                    _ => RotateFlipType.RotateNoneFlipNone
+                                };
+
+                                if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                                    img.RotateFlip(rotateFlip);
+
+                                    // 4. 旋转后需要重置/移除 Orientation 标记，防止后续重复旋转或绘制异常
+                                    img.RemovePropertyItem(OrientationId);
+                                }
+                            }
+                        }
+
                         _previewImage = new Bitmap(img);
                         PicInFolder.Image = _previewImage;
                         break;
@@ -111,7 +145,7 @@ namespace ImgsToPDF
                     }
                 }
             }
-            else if (compressExtensions.Contains(Path.GetExtension(directoryPath)?.ToLower())) {
+            else if (compressExtensions.Contains(Path.GetExtension(directoryPath))) {
                 PicInFolder.Image = Properties.Resources.compressedFile;
                 FolderImg.Image = null;
             }
@@ -330,7 +364,7 @@ namespace ImgsToPDF
         private void toolStripMenuAbout_Click(object sender, EventArgs e) {
             MessageBox.Show(
                 "ImagesToPDF v" + Assembly.GetExecutingAssembly().GetName().Version + "\n"
-                + ((AssemblyCopyrightAttribute)Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false)[0]).Copyright + " At MIT License.",
+                + ((AssemblyCopyrightAttribute)Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false)[0]).Copyright + " Under MIT License.",
                 "About",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information,
@@ -384,8 +418,7 @@ namespace ImgsToPDF
             Application.Restart();
         }
 
-        private void Recursive_CheckedChanged(object sender, EventArgs e)
-        {
+        private void Recursive_CheckedChanged(object sender, EventArgs e) {
             if (Recursive.Checked) {
                 Merge.Enabled = true;
             }
@@ -399,7 +432,7 @@ namespace ImgsToPDF
             // 设置对话框标题
             openFileDialog.Title = Extra.ApplyResource(typeof(Extra), "strSelectArchive");
 
-            openFileDialog.Filter = Extra.ApplyResource(typeof(Extra), "strArchiveFile")+"|*.zip;*.rar;*.7z";
+            openFileDialog.Filter = Extra.ApplyResource(typeof(Extra), "strArchiveFile") + "|*.zip;*.rar;*.7z";
 
             // 默认选中第一个筛选器（压缩文件）
             openFileDialog.FilterIndex = 1;
