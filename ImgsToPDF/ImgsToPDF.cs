@@ -43,7 +43,11 @@ namespace ImgsToPDF {
             generateModeBox.SelectedIndex = 0;
             Merge.Enabled = false;
         }
-        readonly HashSet<string> compressExtensions = new(StringComparer.OrdinalIgnoreCase) { ".zip", ".rar", ".7z" };
+        // 使用 HashSet(StringComparer.OrdinalIgnoreCase) 提高查找效率并自动忽略大小写
+        private static readonly HashSet<string> imageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
+        private static readonly HashSet<string> imageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
+        private static readonly HashSet<string> compressExtensions = new(StringComparer.OrdinalIgnoreCase) { ".zip", ".rar", ".7z" };
+
         /// <summary>
         /// 当前动态创建的预览位图（需要手动释放）。
         /// Properties.Resources.* 返回的是缓存的单例，绝不能 Dispose。
@@ -92,10 +96,6 @@ namespace ImgsToPDF {
             if (Directory.Exists(directoryPath)) {
                 PicInFolder.Image = Properties.Resources.no_photo;
                 FolderImg.Image = Properties.Resources.folder;
-                // 1. 使用 HashSet(StringComparer.OrdinalIgnoreCase) 提高查找效率并自动忽略大小写
-                HashSet<string> imageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
-
-                HashSet<string> imageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
 
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                     .Where(p => imageExtensions.Contains(Path.GetExtension(p)));

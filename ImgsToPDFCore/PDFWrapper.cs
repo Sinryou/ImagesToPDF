@@ -14,6 +14,8 @@ namespace ImgsToPDFCore {
         DuplexRightToLeft
     }
     internal class PDFWrapper {
+        private static readonly HashSet<string> imageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
+        private static readonly HashSet<string> imageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
         static iTextSharp.text.Image GetImageInstance(Bitmap bitmap, bool fastFlag) {
             iTextSharp.text.Image resultImage;
             if (fastFlag) {
@@ -76,9 +78,8 @@ namespace ImgsToPDFCore {
         public static void ImagesToPDF(string directoryPath, Layout layout = Layout.Single, bool fastFlag = false) {
             if (!Directory.Exists(directoryPath)) { return; }   // 不存在文件夹则直接结束执行
 
-            List<string> imageExtensions = [".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
             IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
-                .Where(p => imageExtensions.Any(e => Path.GetExtension(p)?.ToLower() == e))
+                .Where(p => imageExtensions.Contains(Path.GetExtension(p)))
                 .OrderBy(p => p, new StringLenComparer());
 
             string pathToSave = CSGlobal.luaConfig.PathToSave();
@@ -89,6 +90,7 @@ namespace ImgsToPDFCore {
 
             try {
                 if (layout != Layout.DuplexLeftToRight && layout != Layout.DuplexRightToLeft) {
+                    // 如果layout flag为0，单页来写
                     foreach (var imagePath in imagepaths) {
                         try {
                             var srcImage = LoadImage(imagePath);
@@ -138,7 +140,7 @@ namespace ImgsToPDFCore {
                             continue;
                         }
 
-                        if (bm1.Height >= bm1.Width && bm2.Height >= bm2.Width) {
+                        if (bm1.Height >= bm1.Width && bm2.Height >= bm2.Width) {   // 如果图片长大于宽且下一张也如此，把它们拼起来
                             Bitmap picAtLeft = layout == Layout.DuplexLeftToRight ? bm1 : bm2;
                             Bitmap picAtRight = layout == Layout.DuplexLeftToRight ? bm2 : bm1;
                             using var combined = CombineBitmap(picAtLeft, picAtRight, 10);
@@ -161,18 +163,60 @@ namespace ImgsToPDFCore {
                 document.Close();
             }
         }
-
+        /// <summary>
+        /// EXIF Orientation 到 RotateFlipType 的映射函数
+        /// </summary>
+        private static RotateFlipType GetRotateFlipType(ushort orientation) => orientation switch {
+            1 => RotateFlipType.RotateNoneFlipNone,
+            2 => RotateFlipType.RotateNoneFlipX,
+            3 => RotateFlipType.Rotate180FlipNone,
+            4 => RotateFlipType.RotateNoneFlipY,
+            5 => RotateFlipType.Rotate90FlipX,
+            6 => RotateFlipType.Rotate90FlipNone,
+            7 => RotateFlipType.Rotate270FlipX,
+            8 => RotateFlipType.Rotate270FlipNone,
+            _ => RotateFlipType.RotateNoneFlipNone
+        };
         static Bitmap LoadImage(string imagePath) {
-            var fileExt = Path.GetExtension(imagePath)?.ToLower();
-            if (fileExt == ".webp") {
-                // 读取webp文件的方法
+            var fileExt = Path.GetExtension(imagePath);
+
+            // 1. WebP 逻辑处理
+            if (string.Equals(fileExt, ".webp", StringComparison.OrdinalIgnoreCase)) {
                 using WebP webp = new();
-                return webp.Load(imagePath);
+                var bitmapWebp = webp.Load(imagePath);
+
+                ushort? orientation = WebPExif.GetOrientation(imagePath);
+                if (orientation.HasValue) {
+                    RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
+                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                        bitmapWebp.RotateFlip(rotateFlip);
+                    }
+                }
+
+                return bitmapWebp;
             }
-            else {
-                using var img = System.Drawing.Image.FromFile(imagePath);
-                return new Bitmap(img);
+
+            // 使用 FileStream 加载图片，读完即关，不锁定磁盘文件
+            using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var img = System.Drawing.Image.FromStream(stream);
+            if (imageExtensionsEXIFOrientation.Contains(fileExt)) {
+                // 2. 常规格式处理（JPG / TIFF 等）
+                const int OrientationId = 0x0112;
+                if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
+                    var property = img.GetPropertyItem(OrientationId);
+                    ushort orientation = BitConverter.ToUInt16(property.Value, 0);
+
+                    RotateFlipType rotateFlip = GetRotateFlipType(orientation);
+
+                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                        img.RotateFlip(rotateFlip);
+                        img.RemovePropertyItem(OrientationId);
+                    }
+                }
             }
+
+            // 必须在 using 块内部拷贝深副本返回，随后 img 和 stream 正常安全释放
+            return new Bitmap(img);
         }
         /// <summary>
         /// 合并PDF文件
