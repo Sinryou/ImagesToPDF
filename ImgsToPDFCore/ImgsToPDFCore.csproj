@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -50,10 +50,12 @@
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <!-- 单独构建本项目（不经过 .slnx）时 SolutionDir 未定义，PostBuildEvent 需要它定位 UI 项目的 Core 目录 -->
+  <PropertyGroup>
+    <SolutionDir Condition="'$(SolutionDir)'==''">$(MSBuildProjectDirectory)\..\</SolutionDir>
+  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.VisualBasic">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\Microsoft.VisualBasic.dll</HintPath>
-    </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -134,7 +136,10 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>mkdir "$(SolutionDir)ImgsToPDF\Core" 1&gt;nul 2&gt;&amp;1
-xcopy /S /I /Q /F /E /Y /R "$(TargetDir)" "$(SolutionDir)ImgsToPDF\Core"</PostBuildEvent>
+    <!-- robocopy /MIR 与 xcopy 不同：会删除目标中已不存在的旧文件，避免切换 Debug/Release 或 Core 删文件后残留 -->
+    <!-- robocopy 退出码 0-7 均为成功，8 以上才是错误；PostBuildEvent 对非零返回即判构建失败，故需映射 -->
+    <PostBuildEvent>robocopy "$(TargetDir)\" "$(SolutionDir)ImgsToPDF\Core" /MIR
+if %25ERRORLEVEL%25 LEQ 7 exit /b 0
+exit /b %25ERRORLEVEL%25</PostBuildEvent>
   </PropertyGroup>
 </Project>

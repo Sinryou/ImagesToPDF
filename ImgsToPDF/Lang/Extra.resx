@@ -153,4 +153,7 @@
   <data name="strPDFGenerationFailed" xml:space="preserve">
     <value>PDF generation failed: {0}</value>
   </data>
+  <data name="strInvalidPath" xml:space="preserve">
+    <value>Invalid directory path</value>
+  </data>
 </root>

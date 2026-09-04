@@ -66,6 +66,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <!-- 仅用于构建顺序：确保 Core 先构建并执行其 PostBuildEvent 铺好 Core 目录。
+         不产生程序集引用（两进程各自独立），也不复制 Core 输出到 UI 输出目录 -->
+    <ProjectReference Include="..\ImgsToPDFCore\ImgsToPDFCore.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="ImgsToPDF.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -130,6 +138,11 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /S /I /Q /F /E /Y /R "$(ProjectDir)Core" "$(TargetDir)Core"</PostBuildEvent>
+    <!-- robocopy /MIR 会清理目标中已不存在的旧文件；退出码 0-7 均为成功，8 以上才视为构建失败 -->
+    <PostBuildEvent>robocopy "$(ProjectDir)Core" "$(TargetDir)Core" /MIR
+
+if %25ERRORLEVEL%25 LEQ 7 exit /b 0
+
+exit /b %25ERRORLEVEL%25</PostBuildEvent>
   </PropertyGroup>
 </Project>

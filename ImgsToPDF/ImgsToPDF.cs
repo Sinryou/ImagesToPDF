@@ -1,4 +1,4 @@
-using ImgsToPDF.Lang;
+﻿using ImgsToPDF.Lang;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -15,8 +15,20 @@ using System.Windows.Forms;
 namespace ImgsToPDF {
     public partial class ImgsToPDF : Form {
         public ImgsToPDF() {
-            string language = Properties.Settings.Default.DefaultLanguage != "" ? Properties.Settings.Default.DefaultLanguage : System.Globalization.CultureInfo.CurrentCulture.Name;
-            System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(language);
+            // 设置中的语言值可能为空或无效（settings 文件被手改/损坏），
+            // 构造 CultureInfo 失败时回退到系统当前语言，避免应用无法启动
+            string language = Properties.Settings.Default.DefaultLanguage;
+            try {
+                if (!string.IsNullOrEmpty(language)) {
+                    System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(language);
+                }
+                else {
+                    System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CurrentCulture;
+                }
+            }
+            catch (System.Globalization.CultureNotFoundException) {
+                System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CurrentCulture;
+            }
 
             this.StartPosition = FormStartPosition.CenterScreen; // 窗口居中
 
@@ -87,7 +99,7 @@ namespace ImgsToPDF {
             _previewImage?.Dispose();
             _previewImage = null;
         }
-        private void ChooseFileAction(string directoryPath) {
+        private async Task ChooseFileAction(string directoryPath) {
             DisposePreviewImage();
 
             PathLabel.Text = directoryPath;
@@ -97,52 +109,15 @@ namespace ImgsToPDF {
                 PicInFolder.Image = Properties.Resources.no_photo;
                 FolderImg.Image = Properties.Resources.folder;
 
-                IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
-                    .Where(p => imageExtensions.Contains(Path.GetExtension(p)));
-                foreach (var imagepath in imagepaths) {
-                    try {
-                        // 2. 从 Stream 加载可避免文件被 GDI+ 长期占用/锁定
-                        using var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        using var img = Image.FromStream(stream);
-
-                        if (imageExtensionsEXIFOrientation.Contains(Path.GetExtension(imagepath))) {
-                            const int OrientationId = 0x0112;
-
-                            // 3. Array.IndexOf 比 Contains(PropertyIdList) 性能略高，减少不必要的数组遍历
-                            if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
-                                var property = img.GetPropertyItem(OrientationId);
-                                ushort orientation = BitConverter.ToUInt16(property.Value, 0);
-
-                                RotateFlipType rotateFlip = orientation switch {
-                                    1 => RotateFlipType.RotateNoneFlipNone,
-                                    2 => RotateFlipType.RotateNoneFlipX,
-                                    3 => RotateFlipType.Rotate180FlipNone,
-                                    4 => RotateFlipType.RotateNoneFlipY,
-                                    5 => RotateFlipType.Rotate90FlipX,
-                                    6 => RotateFlipType.Rotate90FlipNone,
-                                    7 => RotateFlipType.Rotate270FlipX,
-                                    8 => RotateFlipType.Rotate270FlipNone,
-                                    _ => RotateFlipType.RotateNoneFlipNone
-                                };
-
-                                if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
-                                    img.RotateFlip(rotateFlip);
-
-                                    // 4. 旋转后需要重置/移除 Orientation 标记，防止后续重复旋转或绘制异常
-                                    img.RemovePropertyItem(OrientationId);
-                                }
-                            }
-                        }
-
-                        _previewImage = new Bitmap(img);
-                        PicInFolder.Image = _previewImage;
-                        break;
-                    }
-                    catch (Exception ex) {
-                        // 如果文件不是一张合法的图片，则直接跳过
-                        System.Diagnostics.Debug.WriteLine($"[ImgsToPDF] Skipped invalid image '{imagepath}': {ex.Message}");
-                        continue;
-                    }
+                // 目录扫描 + 图片解码在大目录/网络盘上较慢，移到后台线程执行，避免卡住 UI
+                Bitmap preview = await Task.Run(() => CreateFirstPreview(directoryPath));
+                // 用户可能已经切换到别的文件夹，此结果已过时：丢弃且不覆盖最新状态
+                if (PathLabel.Text == directoryPath && preview != null) {
+                    _previewImage = preview;
+                    PicInFolder.Image = _previewImage;
+                }
+                else {
+                    preview?.Dispose();
                 }
             }
             else if (compressExtensions.Contains(Path.GetExtension(directoryPath))) {
@@ -152,19 +127,71 @@ namespace ImgsToPDF {
             else {
                 PicInFolder.Image = Properties.Resources.no_photo;
                 FolderImg.Image = null;
-                MsgLabel.Text = "Invalid directory path";
+                MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strInvalidPath");
                 return;
             }
 
             StartButton.Enabled = true;
             MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
         }
-        private void ImgsToPDF_DragDrop(object sender, DragEventArgs e) {
+        /// <summary>
+        /// 扫描指定目录，找到第一张能正常解码的图片并返回应用 EXIF 方向后的预览 Bitmap。
+        /// 供后台线程调用（只做文件 IO 与 GDI+ 解码，不触碰任何控件）；找不到有效图片时返回 null。
+        /// </summary>
+        private static Bitmap CreateFirstPreview(string directoryPath) {
+            IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
+                .Where(p => imageExtensions.Contains(Path.GetExtension(p)));
+            foreach (var imagepath in imagepaths) {
+                try {
+                    // 从 Stream 加载可避免文件被 GDI+ 长期占用/锁定
+                    using var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    using var img = Image.FromStream(stream);
+
+                    if (imageExtensionsEXIFOrientation.Contains(Path.GetExtension(imagepath))) {
+                        const int OrientationId = 0x0112;
+
+                        // Array.IndexOf 比 Contains(PropertyIdList) 性能略高，减少不必要的数组遍历
+                        if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
+                            var property = img.GetPropertyItem(OrientationId);
+                            ushort orientation = BitConverter.ToUInt16(property.Value, 0);
+
+                            RotateFlipType rotateFlip = orientation switch {
+                                1 => RotateFlipType.RotateNoneFlipNone,
+                                2 => RotateFlipType.RotateNoneFlipX,
+                                3 => RotateFlipType.Rotate180FlipNone,
+                                4 => RotateFlipType.RotateNoneFlipY,
+                                5 => RotateFlipType.Rotate90FlipX,
+                                6 => RotateFlipType.Rotate90FlipNone,
+                                7 => RotateFlipType.Rotate270FlipX,
+                                8 => RotateFlipType.Rotate270FlipNone,
+                                _ => RotateFlipType.RotateNoneFlipNone
+                            };
+
+                            if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                                img.RotateFlip(rotateFlip);
+
+                                // 旋转后需要重置/移除 Orientation 标记，防止后续重复旋转或绘制异常
+                                img.RemovePropertyItem(OrientationId);
+                            }
+                        }
+                    }
+
+                    return new Bitmap(img);
+                }
+                catch (Exception ex) {
+                    // 如果文件不是一张合法的图片，则直接跳过
+                    System.Diagnostics.Debug.WriteLine($"[ImgsToPDF] Skipped invalid image '{imagepath}': {ex.Message}");
+                    continue;
+                }
+            }
+            return null;
+        }
+        private async void ImgsToPDF_DragDrop(object sender, DragEventArgs e) {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];       //获得路径
             if (files == null || files.Length == 0) {
                 return;
             }
-            ChooseFileAction(files[0]);   // 只处理第一个拖入项
+            await ChooseFileAction(files[0]);   // 只处理第一个拖入项
         }
         private async void StartButton_Click(object sender, EventArgs e) {
             // 在 UI 线程捕获控件状态快照，后台任务只读取这些局部变量，
@@ -359,12 +386,30 @@ namespace ImgsToPDF {
             this.Close();
         }
         private void toolStripMenuConfigFile_Click(object sender, EventArgs e) {
-            using var _ = Process.Start(AppDomain.CurrentDomain.BaseDirectory + "/Core/config.lua");
+            try {
+                // 不用 using：Process.Start 返回后记事本仍在运行，立即 Dispose 语义不正确；
+                // 且文件不存在或未关联打开程序时会抛 Win32Exception，需要提示而不是崩溃
+                Process.Start(AppDomain.CurrentDomain.BaseDirectory + "/Core/config.lua");
+            }
+            catch (Exception ex) {
+                MessageBox.Show(
+                    ex.Message,
+                    Extra.ApplyResource(typeof(Extra), "strErrorTitle"),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+            }
         }
         private void toolStripMenuAbout_Click(object sender, EventArgs e) {
+            var assembly = Assembly.GetExecutingAssembly();
+            string aboutText = "ImagesToPDF v" + assembly.GetName().Version;
+            // 用 GetCustomAttribute 并按判空处理，避免特性缺失时抛 IndexOutOfRangeException
+            var copyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
+            if (copyright != null && !string.IsNullOrEmpty(copyright.Copyright)) {
+                aboutText += "\n" + copyright.Copyright + " Under MIT License.";
+            }
             MessageBox.Show(
-                "ImagesToPDF v" + Assembly.GetExecutingAssembly().GetName().Version + "\n"
-                + ((AssemblyCopyrightAttribute)Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false)[0]).Copyright + " Under MIT License.",
+                aboutText,
                 "About",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information,
@@ -373,7 +418,7 @@ namespace ImgsToPDF {
                 "https://github.com/Sinryou/ImagesToPDF"
             );
         }
-        private void toolStripMenuOpenFolder_Click(object sender, EventArgs e) {
+        private async void toolStripMenuOpenFolder_Click(object sender, EventArgs e) {
             FolderBrowserDialog dialog = new() {
                 Description = Extra.ApplyResource(typeof(Extra), "strSelectIMGFolder")
             };
@@ -381,7 +426,7 @@ namespace ImgsToPDF {
                 return;
             }
             string directoryPath = dialog.SelectedPath.Trim();
-            ChooseFileAction(directoryPath);
+            await ChooseFileAction(directoryPath);
         }
         private void toolStripMenuClearChosen_Click(object sender, EventArgs e) {
             DisposePreviewImage();
@@ -427,7 +472,7 @@ namespace ImgsToPDF {
             }
         }
 
-        private void toolStripMenuItemOpenArchive_Click(object sender, EventArgs e) {
+        private async void toolStripMenuItemOpenArchive_Click(object sender, EventArgs e) {
             using OpenFileDialog openFileDialog = new();
             // 设置对话框标题
             openFileDialog.Title = Extra.ApplyResource(typeof(Extra), "strSelectArchive");
@@ -442,7 +487,7 @@ namespace ImgsToPDF {
 
             if (openFileDialog.ShowDialog() == DialogResult.OK) {
                 string selectedFile = openFileDialog.FileName;
-                ChooseFileAction(selectedFile);
+                await ChooseFileAction(selectedFile);
             }
         }
     }

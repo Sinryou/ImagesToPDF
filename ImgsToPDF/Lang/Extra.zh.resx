@@ -153,4 +153,7 @@
   <data name="strPDFGenerationFailed" xml:space="preserve">
     <value>PDF生成失败：{0}</value>
   </data>
+  <data name="strInvalidPath" xml:space="preserve">
+    <value>无效的文件夹路径</value>
+  </data>
 </root>

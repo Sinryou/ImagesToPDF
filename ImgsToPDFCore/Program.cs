@@ -1,4 +1,4 @@
-using CommandLine;
+﻿using CommandLine;
 using System;
 using XLua;
 
@@ -21,10 +21,11 @@ namespace ImgsToPDFCore {
             public bool Merge { get; set; }
         }
         static void Main(string[] args) {
-            //for (int i = 0; i < args.Length; i++) {
-            //    Console.WriteLine(i + " " + args[i]);
-            //}
-            Parser.Default.ParseArguments<Options>(args).WithParsed(Run);
+            Parser.Default.ParseArguments<Options>(args)
+                .WithParsed(Run)
+                .WithNotParsed(_ => {
+                    Environment.ExitCode = 1;
+                });
         }
         /// <summary>
         /// 使用解析后的命令行参数进行操作。
@@ -40,12 +41,10 @@ namespace ImgsToPDFCore {
 
                 CSGlobal.luaConfig = CSGlobal.luaEnv.Global.Get<IConfig>("config");
                 CSGlobal.luaConfig.PreProcess(option.DirectoryPath, option.Layout, option.FastFlag, option.Merge);
-
-                CSGlobal.luaConfig.PostProcess();
             }
             finally {
-                // PreProcess 中途抛异常时 PostProcess 不会执行，这里兜底清理临时目录。
-                // PostProcess 内部会先检查目录是否存在，重复调用是安全的。
+                // 统一在这里清理临时目录（正常流程与 PreProcess 中途抛异常都走这里）。
+                // PostProcess 内部会先检查目录是否存在，且 luaConfig 可能尚未赋值（Get 失败），故用 ?.
                 try {
                     CSGlobal.luaConfig?.PostProcess();
                 }

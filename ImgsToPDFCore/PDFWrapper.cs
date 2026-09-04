@@ -1,4 +1,4 @@
-using iTextSharp.text;
+﻿using iTextSharp.text;
 using iTextSharp.text.pdf;
 using System;
 using System.Collections.Generic;
@@ -182,10 +182,12 @@ namespace ImgsToPDFCore {
 
             // 1. WebP 逻辑处理
             if (string.Equals(fileExt, ".webp", StringComparison.OrdinalIgnoreCase)) {
+                // 只读一次盘：解码与 EXIF Orientation 解析共用同一份字节，避免同一文件读两遍
+                var rawWebP = File.ReadAllBytes(imagePath);
                 using WebP webp = new();
-                var bitmapWebp = webp.Load(imagePath);
+                var bitmapWebp = webp.Decode(rawWebP);
 
-                ushort? orientation = WebPExif.GetOrientation(imagePath);
+                ushort? orientation = WebPExif.GetOrientation(rawWebP);
                 if (orientation.HasValue) {
                     RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
                     if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
@@ -271,17 +273,17 @@ namespace ImgsToPDFCore {
                 // 获取文件名 (例如 "第1话.pdf")
                 string fileName = Path.GetFileNameWithoutExtension(file);
 
-                // 定义跳转动作：跳转到当前文件的第一页
-                PdfAction action = PdfAction.GotoLocalPage(currentPage,
-                                   new PdfDestination(PdfDestination.FITH), pdf);
-
+                // 每个书签使用独立的 PdfAction（iTextSharp 的 action 实例不应被多个 outline 共享，
+                // 共享实例存在被重复注册/页码解析异常的风险）
                 PdfOutline parentNode = root;
 
                 // 如果文件夹名有效且不是根目录，则创建/获取一级书签
                 if (!string.IsNullOrEmpty(folderName)) {
                     if (!folderOutlineCache.ContainsKey(folderName)) {
-                        // 创建一级目录节点
-                        var folderNode = new PdfOutline(root, action, folderName);
+                        // 创建一级目录节点，跳转到该文件夹第一个文件的第一页
+                        var folderAction = PdfAction.GotoLocalPage(currentPage,
+                                           new PdfDestination(PdfDestination.FITH), pdf);
+                        var folderNode = new PdfOutline(root, folderAction, folderName);
                         folderOutlineCache[folderName] = folderNode;
                     }
                     parentNode = folderOutlineCache[folderName];
@@ -290,7 +292,9 @@ namespace ImgsToPDFCore {
                 // 在父节点下创建具体文件的二级书签
                 // 如果文件名和文件夹名完全一样，可以考虑跳过这一级，直接用文件夹书签指向它
                 if (fileName != folderName) {
-                    new PdfOutline(parentNode, action, fileName);
+                    var fileAction = PdfAction.GotoLocalPage(currentPage,
+                                       new PdfDestination(PdfDestination.FITH), pdf);
+                    new PdfOutline(parentNode, fileAction, fileName);
                 }
 
                 // --- 书签逻辑结束 ---
