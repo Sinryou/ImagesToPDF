@@ -28,10 +28,13 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace WebPWrapper {
+namespace WebPWrapper
+{
     public sealed class WebP : IDisposable
     {
         private const int WEBP_MAX_DIMENSION = 16383;
+        private UnsafeNativeMethods.WebPMemoryWrite _myWriterDelegate;
+
         #region | Public Decode Functions |
         /// <summary>Read a WebP file</summary>
         /// <param name="pathFileName">WebP file to load</param>
@@ -786,15 +789,15 @@ namespace WebPWrapper {
                 wpic.custom_ptr = initPtr;
 
                 //Set up a byte-writing method (write-to-memory, in this case)
-                UnsafeNativeMethods.OnCallback = new UnsafeNativeMethods.WebPMemoryWrite(MyWriter);
-                wpic.writer = Marshal.GetFunctionPointerForDelegate(UnsafeNativeMethods.OnCallback);
+                _myWriterDelegate = new UnsafeNativeMethods.WebPMemoryWrite(MyWriter);
+                wpic.writer = Marshal.GetFunctionPointerForDelegate(_myWriterDelegate);
 
                 //compress the input samples
                 if (UnsafeNativeMethods.WebPEncode(ref config, ref wpic) != 1)
                     throw new Exception("Encoding error: " + ((WebPEncodingError)wpic.error_code).ToString());
 
                 //Remove OnCallback
-                UnsafeNativeMethods.OnCallback = null;
+                _myWriterDelegate = null;
 
                 //Unlock the pixels
                 bmp.UnlockBits(bmpData);
@@ -1077,7 +1080,6 @@ namespace WebPWrapper {
         /// <returns></returns>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate int WebPMemoryWrite([In()] IntPtr data, UIntPtr data_size, ref WebPPicture wpic);
-        internal static WebPMemoryWrite OnCallback;
 
         /// <summary>Compress to WebP format</summary>
         /// <param name="config">The configuration structure for compression parameters</param>
