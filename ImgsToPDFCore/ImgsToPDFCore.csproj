@@ -112,10 +112,10 @@
       <Version>2.9.1</Version>
     </PackageReference>
     <PackageReference Include="iTextSharp">
-      <Version>5.5.13.5</Version>
+      <Version>5.5.13.6</Version>
     </PackageReference>
     <PackageReference Include="SharpCompress">
-      <Version>0.49.0</Version>
+      <Version>0.50.4</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
