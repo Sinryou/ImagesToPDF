@@ -163,7 +163,9 @@ function Config:PreProcess(...)
         PDFWrapper.ImagesToPDF(path, layout, fastFlag)
         return
     elseif not common.hasVal(compressSuffix, (pathUtil.getExtension(path) or ""):lower()) then
-        return -- 不以压缩格式结尾 不做动作
+        -- 不以压缩格式结尾 不做动作；必须上报，否则上层会把"什么都没生成"当成生成成功
+        commonUtils.ReportFailure("Not a folder or a supported archive; no PDF was generated: " .. tostring(path))
+        return
     end
 
     pdfFileName = pathUtil.fileNameWithoutExtension(path) or "Output"
@@ -172,6 +174,9 @@ function Config:PreProcess(...)
     if not commonUtils.Decompress(path, tempExtraPath) then
         local password = interaction.InputBox("Input password:", "Encrypted Compress File")
         if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
+            -- 密码为空或密码错误：必须上报，否则上层会把"什么都没生成"当成生成成功
+            commonUtils.ReportFailure(
+                "Failed to extract the archive (empty or wrong password); no PDF was generated: " .. tostring(path))
             return
         end
     end
@@ -180,6 +185,9 @@ function Config:PreProcess(...)
     if not hasChildImgs then
         if next(childDirs) then
             PDFWrapper.ImagesToPDF(a2u(childDirs[1]), layout, fastFlag)
+        else
+            -- 压缩包内既没有图片也没有子目录：必须上报
+            commonUtils.ReportFailure("No image found in the archive; no PDF was generated: " .. tostring(path))
         end
         return
     end

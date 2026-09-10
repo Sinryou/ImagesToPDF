@@ -9,6 +9,17 @@ namespace ImgsToPDFCore
 {
     internal class CommonUtils
     {
+        /// <summary>
+        /// 上报"本次没有生成任何 PDF"这类失败。
+        /// 写 stderr（GUI 以此判定本次任务出错并提示用户）并设置非零退出码
+        /// （供从命令行直接调用 ImgsToPDFCore.exe 的脚本判断）。
+        /// 不调用它的话，什么都没生成也会被上层当成生成成功。
+        /// 同时供 Lua（config.lua）调用。
+        /// </summary>
+        public static void ReportFailure(string message) {
+            Console.Error.WriteLine("[ImgsToPDFCore] " + message);
+            Environment.ExitCode = 1;
+        }
         private static bool ExtraArchive(IArchive archive, string outFileDirectory) {
             if (!archive.Entries.Any()) { return false; }
             Directory.CreateDirectory(outFileDirectory);
