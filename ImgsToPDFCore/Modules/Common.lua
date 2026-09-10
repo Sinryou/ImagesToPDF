@@ -117,6 +117,7 @@ function Common.dump(o)
     if type(o) == 'table' then
         local s = '{ '
         for k, v in pairs(o) do
+            local k = k
             if type(k) ~= 'number' then k = '"' .. k .. '"' end
             s = s .. '[' .. k .. '] = ' .. Common.dump(v) .. ','
         end
