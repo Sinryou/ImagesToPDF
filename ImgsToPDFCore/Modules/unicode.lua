@@ -25,25 +25,25 @@ local function w2u(wstr, wlen)
     local len = ffi.C.WideCharToMultiByte(CP_UTF8, 0, wstr, wlen, nil, 0, nil, nil)
     local str = ffi.new('char[?]', len + 1)
     ffi.C.WideCharToMultiByte(CP_UTF8, 0, wstr, wlen, str, len, nil, nil)
-    return ffi.string(str)
+    return ffi.string(str, len)
 end
 
 local function w2a(wstr, wlen)
     local len = ffi.C.WideCharToMultiByte(CP_ACP, 0, wstr, wlen, nil, 0, nil, nil)
     local str = ffi.new('char[?]', len + 1)
     ffi.C.WideCharToMultiByte(CP_ACP, 0, wstr, wlen, str, len, nil, nil)
-    return ffi.string(str)
+    return ffi.string(str, len)
 end
 
 return {
     u2a = function(input)
-        if ffi.os ~= "Windows" or type(input) ~= "string" then
+        if ffi.os ~= "Windows" or type(input) ~= "string" or input == "" then
             return input
         end
         return w2a(u2w(input))
     end,
     a2u = function(input)
-        if ffi.os ~= "Windows" or type(input) ~= "string" then
+        if ffi.os ~= "Windows" or type(input) ~= "string" or input == "" then
             return input
         end
         return w2u(a2w(input))

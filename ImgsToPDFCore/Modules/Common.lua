@@ -1,17 +1,11 @@
 local Common = {}
 
 function Common.isInt(i)
-    if type(i) == "number" then
-        return i % 1 == 0
-    end
-    return false
+    return math.type(i) == "integer" or (type(i) == "number" and i % 1 == 0)
 end
 
 function Common.isFloat(i)
-    if type(i) == "number" then
-        return i % 1 ~= 0
-    end
-    return false
+    return math.type(i) == "float" and i % 1 ~= 0
 end
 
 function Common.isEmpty(o)
@@ -22,47 +16,49 @@ function Common.isEmpty(o)
 end
 
 function Common.len(t)
-    if type(t) ~= "table" then
+    if type(t) == "table" then
+        local len = 0
+        for _ in pairs(t) do
+            len = len + 1
+        end
+        return len
+    elseif type(t) == "string" then
         return #t
     end
-    local len = 0
-    for _, _ in pairs(t) do
-        len = len + 1
-    end
-    return len
+    return 0
 end
 
 function Common.fileRead(path)
-    if not path then return nil end
-    local file = io.open(path, "r")
+    if not path then return nil, "path is nil" end
+    local file, err = io.open(path, "r")
     if file then
         local data = file:read("*a")
         file:close()
         return data
     end
-    return ""
+    return nil, err
 end
 
 function Common.fileWrite(path, cont)
-    if not path then return nil end
-    local file = io.open(path, "w")
+    if not path then return false, "path is nil" end
+    local file, err = io.open(path, "w")
     if file then
-        file:write(cont)
+        file:write(cont or "")
         file:close()
         return true
     end
-    return false
+    return false, err
 end
 
 function Common.fileAppend(path, cont)
-    if not path then return nil end
-    local file = io.open(path, "a")
+    if not path then return false, "path is nil" end
+    local file, err = io.open(path, "a")
     if file then
-        file:write(cont)
+        file:write(cont or "")
         file:close()
         return true
     end
-    return false
+    return false, err
 end
 
 function Common.quote_arg(argument)
@@ -90,46 +86,73 @@ function Common.quote_arg(argument)
 end
 
 function Common.sendPopen(cmd)
-    local rsp = io.popen(cmd)
+    local rsp, err = io.popen(cmd)
     if rsp then
         local result = rsp:read("*a")
-        rsp:close()
-        return result
+        local ok, exit_type, code = rsp:close()
+        return result, ok, code
     end
-    return ""
+    return "", false, err
 end
 
 function Common.sendTerminal(cmd)
     local outfile = os.tmpname()
     local errfile = os.tmpname()
 
+    -- Windows 下 os.tmpname() 可能返回如 \s123.4 (驱动器根目录相对路径)，确保带上临时目录路径
+    if package.config:sub(1,1) == '\\' then
+        local tmpdir = os.getenv("TEMP") or os.getenv("TMP")
+        if tmpdir then
+            if outfile:sub(1, 1) == '\\' then outfile = tmpdir .. outfile end
+            if errfile:sub(1, 1) == '\\' then errfile = tmpdir .. errfile end
+        end
+    end
+
     cmd = cmd .. " > " .. Common.quote_arg(outfile) .. " 2> " .. Common.quote_arg(errfile)
 
     local status = os.execute(cmd)
-    local outcontent = Common.fileRead(outfile)
-    local errcontent = Common.fileRead(errfile)
+    local outcontent = Common.fileRead(outfile) or ""
+    local errcontent = Common.fileRead(errfile) or ""
     os.remove(outfile)
     os.remove(errfile)
-    return status, (outcontent or ""), (errcontent or "")
+    return status, outcontent, errcontent
 end
 
-function Common.dump(o)
-    if type(o) == 'table' then
-        local s = '{ '
-        for k, v in pairs(o) do
-            local k = k
-            if type(k) ~= 'number' then k = '"' .. k .. '"' end
-            s = s .. '[' .. k .. '] = ' .. Common.dump(v) .. ','
-        end
-        return s .. '} '
-    else
+function Common.dump(o, visited)
+    visited = visited or {}
+    local t = type(o)
+    if t == "string" then
+        return string.format("%q", o)
+    elseif t ~= "table" then
         return tostring(o)
     end
+
+    if visited[o] then
+        return "<circular reference>"
+    end
+    visited[o] = true
+
+    local parts = {}
+    for k, v in pairs(o) do
+        local k_str
+        if type(k) == "number" then
+            k_str = "[" .. k .. "]"
+        elseif type(k) == "string" then
+            k_str = "[" .. string.format("%q", k) .. "]"
+        else
+            k_str = "[" .. tostring(k) .. "]"
+        end
+        table.insert(parts, k_str .. " = " .. Common.dump(v, visited))
+    end
+    visited[o] = nil
+
+    return "{ " .. table.concat(parts, ", ") .. " }"
 end
 
 function Common.map(func, t)
-    local ret = {}
-    for i = 1, #t, 1 do
+    local n = #t
+    local ret = (table.create and table.create(n, 0)) or {}
+    for i = 1, n do
         ret[i] = func(t[i])
     end
     return ret
