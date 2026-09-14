@@ -99,15 +99,6 @@ function Common.sendTerminal(cmd)
     local outfile = os.tmpname()
     local errfile = os.tmpname()
 
-    -- Windows 下 os.tmpname() 可能返回如 \s123.4 (驱动器根目录相对路径)，确保带上临时目录路径
-    if package.config:sub(1,1) == '\\' then
-        local tmpdir = os.getenv("TEMP") or os.getenv("TMP")
-        if tmpdir then
-            if outfile:sub(1, 1) == '\\' then outfile = tmpdir .. outfile end
-            if errfile:sub(1, 1) == '\\' then errfile = tmpdir .. errfile end
-        end
-    end
-
     cmd = cmd .. " > " .. Common.quote_arg(outfile) .. " 2> " .. Common.quote_arg(errfile)
 
     local status = os.execute(cmd)
