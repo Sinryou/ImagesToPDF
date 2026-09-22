@@ -112,6 +112,10 @@ end
 -- 或 Config.PageSizeToSave = iRectangle(0, 0, width, height)
 Config.PageSizeToSave = iPageSize.NoResize
 
+-- 开启 --fast 时的 JPEG 压缩质量（1~100，默认 75；数值越小体积越小，数值越大画质越好）
+-- @type int
+Config.FastQuality = 75
+
 -- func that you can order your input files
 -- 图片文件排序的方法：提取文件名中的数字段做自然排序，
 -- 数字段之间的分隔符不限（. _ - 空格、中文等均可），没有数字的文件排在最前

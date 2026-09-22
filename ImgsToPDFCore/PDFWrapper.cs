@@ -3,6 +3,7 @@ using iTextSharp.text.pdf;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using WebPWrapper;
@@ -199,18 +200,114 @@ namespace ImgsToPDFCore {
             8 => RotateFlipType.Rotate270FlipNone,
             _ => RotateFlipType.RotateNoneFlipNone
         };
-        static iTextSharp.text.Image BitmapToPdfImage(Bitmap bitmap, System.Drawing.Imaging.ImageFormat format) {
+        private static readonly ImageCodecInfo jpegCodec = ImageCodecInfo.GetImageEncoders()
+            .FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);
+
+        private static long GetFastJpegQuality() {
+            try {
+                int q = CSGlobal.luaConfig != null ? CSGlobal.luaConfig.FastQuality : 0;
+                if (q >= 1 && q <= 100) {
+                    return q;
+                }
+            }
+            catch {
+                // Lua 配置读取异常时安全降级
+            }
+            return 75L;
+        }
+
+        /// <summary>
+        /// 将 Image 压缩为指定质量的 JPEG 字节流（支持透明通道白底铺垫，防止透明背景变黑）
+        /// </summary>
+        static byte[] CompressToJpeg(System.Drawing.Image img, long quality) {
+            using var outMs = new MemoryStream();
+            using var encoderParams = new EncoderParameters(1);
+            encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+
+            // 如果原图带透明通道（如 PNG），绘制到白色背景画布上，避免转 JPEG 后透明区域变黑
+            if (System.Drawing.Image.IsAlphaPixelFormat(img.PixelFormat)) {
+                using var canvas = new Bitmap(img.Width, img.Height, PixelFormat.Format24bppRgb);
+                using (var g = Graphics.FromImage(canvas)) {
+                    g.Clear(Color.White);
+                    g.DrawImage(img, 0, 0, img.Width, img.Height);
+                }
+                if (jpegCodec != null) {
+                    canvas.Save(outMs, jpegCodec, encoderParams);
+                }
+                else {
+                    canvas.Save(outMs, ImageFormat.Jpeg);
+                }
+            }
+            else {
+                if (jpegCodec != null) {
+                    img.Save(outMs, jpegCodec, encoderParams);
+                }
+                else {
+                    img.Save(outMs, ImageFormat.Jpeg);
+                }
+            }
+
+            return outMs.ToArray();
+        }
+
+        static iTextSharp.text.Image BitmapToPdfImage(Bitmap bitmap, ImageFormat format) {
             using var ms = new MemoryStream();
             bitmap.Save(ms, format);
             return iTextSharp.text.Image.GetInstance(ms.ToArray());
         }
         /// <summary>
-        /// 载入图片并封装为 iTextSharp 图像实例（单页模式使用原生字节直通）
+        /// 载入图片并封装为 iTextSharp 图像实例（单页模式：fastFlag 开启时全格式质量压缩，未开启时原生字节直通）
         /// </summary>
         static iTextSharp.text.Image LoadPdfImage(string imagePath, bool fastFlag) {
             var fileExt = Path.GetExtension(imagePath);
 
-            // 1. WebP 格式：iTextSharp 原生不支持，通过 WebPWrapper 解码后转为 PDF 图像
+            // --- 开启 fastFlag：所有格式均压缩为指定质量的 JPEG，最大化减小产物体积 ---
+            if (fastFlag) {
+                long quality = GetFastJpegQuality();
+
+                // 1. WebP 格式：解码并处理 EXIF 旋转后，压缩为目标质量 JPEG
+                if (string.Equals(fileExt, ".webp", StringComparison.OrdinalIgnoreCase)) {
+                    var rawWebP = File.ReadAllBytes(imagePath);
+                    using WebP webp = new();
+                    using var bitmapWebp = webp.Decode(rawWebP);
+
+                    ushort? orientation = WebPExif.GetOrientation(rawWebP);
+                    if (orientation.HasValue) {
+                        RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
+                        if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                            bitmapWebp.RotateFlip(rotateFlip);
+                        }
+                    }
+
+                    var compressedBytes = CompressToJpeg(bitmapWebp, quality);
+                    return iTextSharp.text.Image.GetInstance(compressedBytes);
+                }
+
+                // 2. 常规格式（JPG, PNG, GIF, BMP, TIFF 等）：读入后处理 EXIF 旋转，再压缩为目标质量 JPEG
+                var rawBytes = File.ReadAllBytes(imagePath);
+                using var stream = new MemoryStream(rawBytes);
+                using var img = System.Drawing.Image.FromStream(stream);
+
+                if (imageExtensionsEXIFOrientation.Contains(fileExt)) {
+                    const int OrientationId = 0x0112;
+                    if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
+                        var property = img.GetPropertyItem(OrientationId);
+                        ushort orientation = BitConverter.ToUInt16(property.Value, 0);
+                        RotateFlipType rotateFlip = GetRotateFlipType(orientation);
+
+                        if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                            img.RotateFlip(rotateFlip);
+                            img.RemovePropertyItem(OrientationId);
+                        }
+                    }
+                }
+
+                var jpegBytes = CompressToJpeg(img, quality);
+                return iTextSharp.text.Image.GetInstance(jpegBytes);
+            }
+
+            // --- 未开启 fastFlag：无损直通方案 ---
+            // 1. WebP 格式：iTextSharp 原生不支持，通过 WebPWrapper 解码后转为无损 PNG 图像
             if (string.Equals(fileExt, ".webp", StringComparison.OrdinalIgnoreCase)) {
                 var rawWebP = File.ReadAllBytes(imagePath);
                 using WebP webp = new();
@@ -224,17 +321,15 @@ namespace ImgsToPDFCore {
                     }
                 }
 
-                // fastFlag 时转为 Jpeg 加快速度与减小体积；否则转为无损 Png
-                var targetFormat = fastFlag ? System.Drawing.Imaging.ImageFormat.Jpeg : System.Drawing.Imaging.ImageFormat.Png;
-                return BitmapToPdfImage(bitmapWebp, targetFormat);
+                return BitmapToPdfImage(bitmapWebp, ImageFormat.Png);
             }
 
             // 2. 原生支持格式（JPG, PNG, GIF, BMP, TIFF 等）：直接读取原始字节，避免占用磁盘句柄
-            var rawBytes = File.ReadAllBytes(imagePath);
+            var normalBytes = File.ReadAllBytes(imagePath);
 
             // 检查 EXIF Orientation 旋转（主要针对 JPG / TIFF）
             if (imageExtensionsEXIFOrientation.Contains(fileExt)) {
-                using var ms = new MemoryStream(rawBytes, writable: false);
+                using var ms = new MemoryStream(normalBytes, writable: false);
                 using var img = System.Drawing.Image.FromStream(ms, useEmbeddedColorManagement: false, validateImageData: false);
                 const int OrientationId = 0x0112;
                 if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
@@ -243,17 +338,17 @@ namespace ImgsToPDFCore {
                     RotateFlipType rotateFlip = GetRotateFlipType(orientation);
 
                     if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
-                        using var fullMs = new MemoryStream(rawBytes);
+                        using var fullMs = new MemoryStream(normalBytes);
                         using var fullImg = System.Drawing.Image.FromStream(fullMs);
                         fullImg.RotateFlip(rotateFlip);
                         fullImg.RemovePropertyItem(OrientationId);
                         using var outMs = new MemoryStream();
                         var fallbackFormat = (string.Equals(fileExt, ".tif", StringComparison.OrdinalIgnoreCase) ||
                                               string.Equals(fileExt, ".tiff", StringComparison.OrdinalIgnoreCase))
-                            ? System.Drawing.Imaging.ImageFormat.Tiff
-                            : System.Drawing.Imaging.ImageFormat.Jpeg;
+                            ? ImageFormat.Tiff
+                            : ImageFormat.Jpeg;
 
-                        var saveFormat = fullImg.RawFormat.Equals(System.Drawing.Imaging.ImageFormat.MemoryBmp)
+                        var saveFormat = fullImg.RawFormat.Equals(ImageFormat.MemoryBmp)
                             ? fallbackFormat
                             : fullImg.RawFormat;
                         fullImg.Save(outMs, saveFormat);
@@ -262,17 +357,8 @@ namespace ImgsToPDFCore {
                 }
             }
 
-            // fastFlag 且为 BMP 格式时，转为 Jpeg 避免 PDF 膨胀
-            if (fastFlag && string.Equals(fileExt, ".bmp", StringComparison.OrdinalIgnoreCase)) {
-                using var ms = new MemoryStream(rawBytes);
-                using var img = System.Drawing.Image.FromStream(ms);
-                using var outMs = new MemoryStream();
-                img.Save(outMs, System.Drawing.Imaging.ImageFormat.Jpeg);
-                return iTextSharp.text.Image.GetInstance(outMs.ToArray());
-            }
-
             // 绝大多数情况：直接将原始字节直通注入 PDF（DCTDecode / FlateDecode），0 损耗、极速嵌入
-            return iTextSharp.text.Image.GetInstance(rawBytes);
+            return iTextSharp.text.Image.GetInstance(normalBytes);
         }
         static Bitmap LoadImage(string imagePath) {
             var fileExt = Path.GetExtension(imagePath);

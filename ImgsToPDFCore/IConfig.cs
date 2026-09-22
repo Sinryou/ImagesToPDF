@@ -11,5 +11,6 @@ namespace ImgsToPDFCore {
         int FilePathComparer(string a, string b);
         void PreProcess(string directoryPath, Layout layout, bool fastFlag, bool merge);
         void PostProcess();
+        int FastQuality { get; set; }
     }
 }
