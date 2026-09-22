@@ -52,6 +52,28 @@ namespace ImgsToPDFCore {
             document.Add(image);
             bitmap.Dispose();   // 释放位图占用资源
         }
+        static void AddPage(Document document, iTextSharp.text.Image image) {
+            iTextSharp.text.Rectangle pageSize;
+            if (CSGlobal.luaConfig.PageSizeToSave != null) {
+                pageSize = CSGlobal.luaConfig.PageSizeToSave;
+            }
+            else {
+                pageSize = new iTextSharp.text.Rectangle(0, 0, image.ScaledWidth, image.ScaledHeight);
+            }
+            document.SetPageSize(pageSize);
+            if (CSGlobal.luaConfig.PageSizeToSave != null) {
+                image.ScaleToFit(pageSize.Width, pageSize.Height);
+                var wMargins = (pageSize.Width - image.ScaledWidth) / 2;
+                var hMargins = (pageSize.Height - image.ScaledHeight) / 2;
+                document.SetMargins(wMargins, wMargins, hMargins, hMargins);
+            }
+            else {
+                document.SetMargins(0, 0, 0, 0);
+            }
+            document.NewPage();
+            document.PageCount = document.PageNumber + 1;
+            document.Add(image);
+        }
         static Bitmap CombineBitmap(Bitmap bm1, Bitmap bm2, int margin) {
             var width = bm1.Width + bm2.Width + margin;
             var height = Math.Max(bm1.Height, bm2.Height);
@@ -90,12 +112,12 @@ namespace ImgsToPDFCore {
 
             try {
                 if (layout != Layout.DuplexLeftToRight && layout != Layout.DuplexRightToLeft) {
-                    // 如果layout flag为0，单页来写
+                    // 如果layout flag为0，单页来写（采用方案B原生直通流）
                     foreach (var imagePath in imagepaths) {
                         try {
-                            var srcImage = LoadImage(imagePath);
+                            var srcImage = LoadPdfImage(imagePath, fastFlag);
                             if (srcImage != null) {
-                                AddPage(document, srcImage, fastFlag);
+                                AddPage(document, srcImage);
                             }
                         }
                         catch (Exception ex) {
@@ -177,6 +199,81 @@ namespace ImgsToPDFCore {
             8 => RotateFlipType.Rotate270FlipNone,
             _ => RotateFlipType.RotateNoneFlipNone
         };
+        static iTextSharp.text.Image BitmapToPdfImage(Bitmap bitmap, System.Drawing.Imaging.ImageFormat format) {
+            using var ms = new MemoryStream();
+            bitmap.Save(ms, format);
+            return iTextSharp.text.Image.GetInstance(ms.ToArray());
+        }
+        /// <summary>
+        /// 载入图片并封装为 iTextSharp 图像实例（单页模式使用原生字节直通）
+        /// </summary>
+        static iTextSharp.text.Image LoadPdfImage(string imagePath, bool fastFlag) {
+            var fileExt = Path.GetExtension(imagePath);
+
+            // 1. WebP 格式：iTextSharp 原生不支持，通过 WebPWrapper 解码后转为 PDF 图像
+            if (string.Equals(fileExt, ".webp", StringComparison.OrdinalIgnoreCase)) {
+                var rawWebP = File.ReadAllBytes(imagePath);
+                using WebP webp = new();
+                using var bitmapWebp = webp.Decode(rawWebP);
+
+                ushort? orientation = WebPExif.GetOrientation(rawWebP);
+                if (orientation.HasValue) {
+                    RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
+                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                        bitmapWebp.RotateFlip(rotateFlip);
+                    }
+                }
+
+                // fastFlag 时转为 Jpeg 加快速度与减小体积；否则转为无损 Png
+                var targetFormat = fastFlag ? System.Drawing.Imaging.ImageFormat.Jpeg : System.Drawing.Imaging.ImageFormat.Png;
+                return BitmapToPdfImage(bitmapWebp, targetFormat);
+            }
+
+            // 2. 原生支持格式（JPG, PNG, GIF, BMP, TIFF 等）：直接读取原始字节，避免占用磁盘句柄
+            var rawBytes = File.ReadAllBytes(imagePath);
+
+            // 检查 EXIF Orientation 旋转（主要针对 JPG / TIFF）
+            if (imageExtensionsEXIFOrientation.Contains(fileExt)) {
+                using var ms = new MemoryStream(rawBytes, writable: false);
+                using var img = System.Drawing.Image.FromStream(ms, useEmbeddedColorManagement: false, validateImageData: false);
+                const int OrientationId = 0x0112;
+                if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
+                    var property = img.GetPropertyItem(OrientationId);
+                    ushort orientation = BitConverter.ToUInt16(property.Value, 0);
+                    RotateFlipType rotateFlip = GetRotateFlipType(orientation);
+
+                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                        using var fullMs = new MemoryStream(rawBytes);
+                        using var fullImg = System.Drawing.Image.FromStream(fullMs);
+                        fullImg.RotateFlip(rotateFlip);
+                        fullImg.RemovePropertyItem(OrientationId);
+                        using var outMs = new MemoryStream();
+                        var fallbackFormat = (string.Equals(fileExt, ".tif", StringComparison.OrdinalIgnoreCase) ||
+                                              string.Equals(fileExt, ".tiff", StringComparison.OrdinalIgnoreCase))
+                            ? System.Drawing.Imaging.ImageFormat.Tiff
+                            : System.Drawing.Imaging.ImageFormat.Jpeg;
+
+                        var saveFormat = fullImg.RawFormat.Equals(System.Drawing.Imaging.ImageFormat.MemoryBmp)
+                            ? fallbackFormat
+                            : fullImg.RawFormat;
+                        fullImg.Save(outMs, saveFormat);
+                        return iTextSharp.text.Image.GetInstance(outMs.ToArray());
+                    }
+                }
+            }
+
+            // fastFlag 且为 BMP 格式时，转为 Jpeg 避免 PDF 膨胀
+            if (fastFlag && string.Equals(fileExt, ".bmp", StringComparison.OrdinalIgnoreCase)) {
+                using var ms = new MemoryStream(rawBytes);
+                using var img = System.Drawing.Image.FromStream(ms);
+                using var outMs = new MemoryStream();
+                img.Save(outMs, System.Drawing.Imaging.ImageFormat.Jpeg);
+                return iTextSharp.text.Image.GetInstance(outMs.ToArray());
+            }
+
+            // 绝大多数情况：直接将原始字节直通注入 PDF（DCTDecode / FlateDecode），0 损耗、极速嵌入
+            return iTextSharp.text.Image.GetInstance(rawBytes);
+        }
         static Bitmap LoadImage(string imagePath) {
             var fileExt = Path.GetExtension(imagePath);
 
