@@ -113,12 +113,18 @@ namespace ImgsToPDFCore {
 
             try {
                 if (layout != Layout.DuplexLeftToRight && layout != Layout.DuplexRightToLeft) {
-                    // 如果layout flag为0，单页来写（采用方案B原生直通流）
+                    // 如果layout flag为0，单页来写
                     foreach (var imagePath in imagepaths) {
                         try {
-                            var srcImage = LoadPdfImage(imagePath, fastFlag);
-                            if (srcImage != null) {
-                                AddPage(document, srcImage);
+                            if (string.Equals(Path.GetExtension(imagePath), ".webp", StringComparison.OrdinalIgnoreCase)) {
+                                var srcImage = LoadImage(imagePath);
+                                AddPage(document, srcImage, fastFlag);
+                            }
+                            else {
+                                var srcImage = LoadPdfImage(imagePath, fastFlag);
+                                if (srcImage != null) {
+                                    AddPage(document, srcImage);
+                                }
                             }
                         }
                         catch (Exception ex) {
@@ -250,40 +256,23 @@ namespace ImgsToPDFCore {
             return outMs.ToArray();
         }
 
-        static iTextSharp.text.Image BitmapToPdfImage(Bitmap bitmap, ImageFormat format) {
-            using var ms = new MemoryStream();
-            bitmap.Save(ms, format);
-            return iTextSharp.text.Image.GetInstance(ms.ToArray());
-        }
         /// <summary>
-        /// 载入图片并封装为 iTextSharp 图像实例（单页模式：fastFlag 开启时全格式质量压缩，未开启时原生字节直通）
+        /// 载入图片并封装为 iTextSharp 图像实例（单页模式：fastFlag 开启时常规格式质量压缩，未开启时原生字节直通；WebP 保持 LoadImage + GetImageInstance）
         /// </summary>
         static iTextSharp.text.Image LoadPdfImage(string imagePath, bool fastFlag) {
             var fileExt = Path.GetExtension(imagePath);
 
-            // --- 开启 fastFlag：所有格式均压缩为指定质量的 JPEG，最大化减小产物体积 ---
+            // WebP 格式：改回最初版本逻辑（使用 LoadImage + GetImageInstance）
+            //if (string.Equals(fileExt, ".webp", StringComparison.OrdinalIgnoreCase)) {
+            //    using var bitmap = LoadImage(imagePath);
+            //    return GetImageInstance(bitmap, fastFlag);
+            //}
+
+            // --- 开启 fastFlag：常规格式均压缩为指定质量的 JPEG，最大化减小产物体积 ---
             if (fastFlag) {
                 long quality = GetFastJpegQuality();
 
-                // 1. WebP 格式：解码并处理 EXIF 旋转后，压缩为目标质量 JPEG
-                if (string.Equals(fileExt, ".webp", StringComparison.OrdinalIgnoreCase)) {
-                    var rawWebP = File.ReadAllBytes(imagePath);
-                    using WebP webp = new();
-                    using var bitmapWebp = webp.Decode(rawWebP);
-
-                    ushort? orientation = WebPExif.GetOrientation(rawWebP);
-                    if (orientation.HasValue) {
-                        RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
-                        if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
-                            bitmapWebp.RotateFlip(rotateFlip);
-                        }
-                    }
-
-                    var compressedBytes = CompressToJpeg(bitmapWebp, quality);
-                    return iTextSharp.text.Image.GetInstance(compressedBytes);
-                }
-
-                // 2. 常规格式（JPG, PNG, GIF, BMP, TIFF 等）：读入后处理 EXIF 旋转，再压缩为目标质量 JPEG
+                // 常规格式（JPG, PNG, GIF, BMP, TIFF 等）：读入后处理 EXIF 旋转，再压缩为目标质量 JPEG
                 var rawBytes = File.ReadAllBytes(imagePath);
                 using var stream = new MemoryStream(rawBytes);
                 using var img = System.Drawing.Image.FromStream(stream);
@@ -307,24 +296,7 @@ namespace ImgsToPDFCore {
             }
 
             // --- 未开启 fastFlag：无损直通方案 ---
-            // 1. WebP 格式：iTextSharp 原生不支持，通过 WebPWrapper 解码后转为无损 PNG 图像
-            if (string.Equals(fileExt, ".webp", StringComparison.OrdinalIgnoreCase)) {
-                var rawWebP = File.ReadAllBytes(imagePath);
-                using WebP webp = new();
-                using var bitmapWebp = webp.Decode(rawWebP);
-
-                ushort? orientation = WebPExif.GetOrientation(rawWebP);
-                if (orientation.HasValue) {
-                    RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
-                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
-                        bitmapWebp.RotateFlip(rotateFlip);
-                    }
-                }
-
-                return BitmapToPdfImage(bitmapWebp, ImageFormat.Png);
-            }
-
-            // 2. 原生支持格式（JPG, PNG, GIF, BMP, TIFF 等）：直接读取原始字节，避免占用磁盘句柄
+            // 原生支持格式（JPG, PNG, GIF, BMP, TIFF 等）：直接读取原始字节，避免占用磁盘句柄
             var normalBytes = File.ReadAllBytes(imagePath);
 
             // 检查 EXIF Orientation 旋转（主要针对 JPG / TIFF）
