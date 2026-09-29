@@ -172,8 +172,8 @@ namespace ImgsToPDF {
             MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
         }
         private void ImgsToPDF_DragDrop(object sender, DragEventArgs e) {
-            var files = e.Data.GetData(DataFormats.FileDrop) as string[];       //获得路径
-            if (files == null || files.Length == 0) {
+            //获得路径
+            if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0) {
                 return;
             }
             ChooseFileAction(files[0]);   // 只处理第一个拖入项
@@ -299,8 +299,8 @@ namespace ImgsToPDF {
                 var tasks = dirs.Select(async dirPath => {
                     await semaphore.WaitAsync();
                     try {
-                        var (_, stderr) = await RunProcessAsync(fileName, BuildCoreArgs(dirPath, fastMode, layoutIndex));
-                        if (stderr.Length > 0) {
+                        var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(dirPath, fastMode, layoutIndex));
+                        if (exitCode != 0 || stderr.Length > 0) {
                             errorQueue.Enqueue(stderr);
                         }
                     }
@@ -311,19 +311,19 @@ namespace ImgsToPDF {
                 await Task.WhenAll(tasks);
 
                 if (merge) {
-                    var (_, stderr) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode: false, layoutIndex: 0, mergePdfs: true));
-                    if (stderr.Length > 0) {
+                    var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode: false, layoutIndex: 0, mergePdfs: true));
+                    if (exitCode != 0 || stderr.Length > 0) {
                         errorQueue.Enqueue(stderr);
                     }
                 }
             }
             else {
-                var (_, stderr) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode, layoutIndex));
-                if (stderr.Length > 0) {
+                var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode, layoutIndex));
+                if (exitCode != 0 || stderr.Length > 0) {
                     errorQueue.Enqueue(stderr);
                 }
             }
-            return errorQueue.ToList();
+            return [.. errorQueue];
         }
         /// <summary>
         /// 构造传给 Core 进程的命令行参数
@@ -336,14 +336,15 @@ namespace ImgsToPDF {
             if (fastMode) {
                 args.Add("--fast");
             }
-            return args.ToArray();
+            return [.. args];
         }
         /// <summary>
-        /// 运行给定的命令，返回得到的标准输出及标准错误
+        /// 运行给定的命令，返回得到的标准输出、标准错误及退出码
         /// </summary>
         /// <param name="fileName">需要运行的指令</param>
-        /// <returns>元组：(stdout:标准输出, stderr:标准错误)</returns>
-        private static async Task<(string stdout, string stderr)> RunProcessAsync(string fileName, string[] args) {
+        /// <param name="args">命令行参数列表</param>
+        /// <returns>元组：(stdout: 标准输出, stderr: 标准错误, exitCode: 进程退出码)</returns>
+        private static async Task<(string stdout, string stderr, int exitCode)> RunProcessAsync(string fileName, string[] args) {
             for (int i = 0; i < args.Length; i++) {
                 if (args[i].EndsWith(@"\")) {
                     //处理最后若为“\\”，会被转义成“\”，然后变成转义符。
@@ -360,12 +361,19 @@ namespace ImgsToPDF {
             p.StartInfo.RedirectStandardOutput = true;  // 重定向输出
             p.StartInfo.RedirectStandardError = true;   // 重定向输出错误
             p.StartInfo.CreateNoWindow = true;          // 设置不显示窗口
+
             p.Start();
+
             // 同时异步读取 stdout 与 stderr，避免管道缓冲写满时互相阻塞导致死锁
             var stdoutTask = p.StandardOutput.ReadToEndAsync();
             var stderrTask = p.StandardError.ReadToEndAsync();
+
             var outputs = await Task.WhenAll(stdoutTask, stderrTask);
-            return (outputs[0], outputs[1]);
+
+            // 适配 .NET Framework：使用 Task.Run 包装同步的 WaitForExit
+            await Task.Run(() => p.WaitForExit());
+
+            return (outputs[0], outputs[1], p.ExitCode);
         }
         private void toolStripMenuExit_Click(object sender, EventArgs e) {
             this.Close();
