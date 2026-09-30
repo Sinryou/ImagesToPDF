@@ -194,16 +194,26 @@ namespace ImgsToPDF {
             StartButton.Enabled = false;
 
             try {
-                var errors = await ButtonClickActionAsync(directoryPath, recursive, fastMode, merge, layoutIndex);
+                var (failures, warnings) = await ButtonClickActionAsync(directoryPath, recursive, fastMode, merge, layoutIndex);
                 progressBar.Value = 100;
-                if (errors.Count > 0) {
-                    MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGeneratedWithErrors"), errors.Count);
+                if (failures.Count > 0) {
+                    MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGeneratedWithErrors"), failures.Count);
                     // 回到 UI 线程统一展示错误，不再在后台线程弹 MessageBox
                     MessageBox.Show(
-                        string.Join(Environment.NewLine + Environment.NewLine, errors),
+                        string.Join(Environment.NewLine + Environment.NewLine, failures),
                         Extra.ApplyResource(typeof(Extra), "strErrorTitle"),
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Warning
+                    );
+                }
+                else if (warnings.Count > 0) {
+                    // 退出码为 0 说明 PDF 已经生成，这里只是部分文件被跳过，不能再报成生成失败
+                    MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGeneratedWithSkipped"), warnings.Count);
+                    MessageBox.Show(
+                        string.Join(Environment.NewLine + Environment.NewLine, warnings),
+                        Extra.ApplyResource(typeof(Extra), "strWarningTitle"),
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information
                     );
                 }
                 else {
@@ -278,10 +288,13 @@ namespace ImgsToPDF {
         }
         /// <summary>
         /// 在后台生成 PDF；错误通过返回值收集，统一回到 UI 线程展示。
+        /// 判定标准：Core 进程退出码非 0 才算失败；退出码为 0 但 stderr 有内容
+        /// （例如个别图片无法解码被跳过）只算警告，不再把成功当成失败上报。
         /// </summary>
-        private async Task<List<string>> ButtonClickActionAsync(string directoryPath, bool recursive, bool fastMode, bool merge, int layoutIndex) {
+        private async Task<(List<string> failures, List<string> warnings)> ButtonClickActionAsync(string directoryPath, bool recursive, bool fastMode, bool merge, int layoutIndex) {
             var fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
-            var errorQueue = new ConcurrentQueue<string>();
+            var failureQueue = new ConcurrentQueue<string>();
+            var warningQueue = new ConcurrentQueue<string>();
 
             if (recursive && Directory.Exists(directoryPath)) {
                 // 递归收集子目录可能较慢（大量文件夹），放到后台执行
@@ -300,9 +313,7 @@ namespace ImgsToPDF {
                     await semaphore.WaitAsync();
                     try {
                         var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(dirPath, fastMode, layoutIndex));
-                        if (exitCode != 0 || stderr.Length > 0) {
-                            errorQueue.Enqueue(stderr);
-                        }
+                        CollectProcessResult(dirPath, stderr, exitCode, failureQueue, warningQueue);
                     }
                     finally {
                         semaphore.Release();
@@ -312,18 +323,32 @@ namespace ImgsToPDF {
 
                 if (merge) {
                     var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode: false, layoutIndex: 0, mergePdfs: true));
-                    if (exitCode != 0 || stderr.Length > 0) {
-                        errorQueue.Enqueue(stderr);
-                    }
+                    CollectProcessResult(directoryPath, stderr, exitCode, failureQueue, warningQueue);
                 }
             }
             else {
                 var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode, layoutIndex));
-                if (exitCode != 0 || stderr.Length > 0) {
-                    errorQueue.Enqueue(stderr);
-                }
+                CollectProcessResult(directoryPath, stderr, exitCode, failureQueue, warningQueue);
             }
-            return [.. errorQueue];
+            return ([.. failureQueue], [.. warningQueue]);
+        }
+        /// <summary>
+        /// 归类一次 Core 进程的执行结果。
+        /// 失败（退出码非 0）：stderr 为空时补上退出码，避免弹出内容为空的对话框；
+        /// 警告（退出码为 0 但 stderr 有内容）：例如个别图片解码失败被跳过，PDF 本身已生成。
+        /// 两种情况都会带上对应的目录/压缩包路径，并发处理多个目录时才能定位是谁出的问题。
+        /// </summary>
+        private static void CollectProcessResult(string targetPath, string stderr, int exitCode, ConcurrentQueue<string> failureQueue, ConcurrentQueue<string> warningQueue) {
+            string detail = stderr == null ? string.Empty : stderr.Trim();
+            if (exitCode != 0) {
+                if (detail.Length == 0) {
+                    detail = string.Format(Extra.ApplyResource(typeof(Extra), "strNoErrorOutput"), exitCode);
+                }
+                failureQueue.Enqueue(targetPath + Environment.NewLine + detail);
+            }
+            else if (detail.Length > 0) {
+                warningQueue.Enqueue(targetPath + Environment.NewLine + detail);
+            }
         }
         /// <summary>
         /// 构造传给 Core 进程的命令行参数

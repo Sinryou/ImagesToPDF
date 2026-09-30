@@ -156,4 +156,13 @@
   <data name="strInvalidPath" xml:space="preserve">
     <value>Invalid directory path</value>
   </data>
+  <data name="strWarningTitle" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="strPDFGeneratedWithSkipped" xml:space="preserve">
+    <value>PDF generated, but {0} item(s) reported problems (see the list below).</value>
+  </data>
+  <data name="strNoErrorOutput" xml:space="preserve">
+    <value>The core process exited with code {0} but produced no error message.</value>
+  </data>
 </root>
