@@ -29,7 +29,7 @@
             this.StartButton = new System.Windows.Forms.Button();
             this.MsgLabel = new System.Windows.Forms.Label();
             this.PathLabel = new System.Windows.Forms.Label();
-            this.FolderImg = new System.Windows.Forms.PictureBox();
+            this.FolderImg = new TransparentOverlayPictureBox();
             this.PicInFolder = new System.Windows.Forms.PictureBox();
             this.generateModeBox = new System.Windows.Forms.ComboBox();
             this.labelLayout = new System.Windows.Forms.Label();
@@ -243,7 +243,7 @@
         private System.Windows.Forms.Button StartButton;
         private System.Windows.Forms.Label MsgLabel;
         private System.Windows.Forms.Label PathLabel;
-        private System.Windows.Forms.PictureBox FolderImg;
+        private TransparentOverlayPictureBox FolderImg;
         private System.Windows.Forms.PictureBox PicInFolder;
         private System.Windows.Forms.ComboBox generateModeBox;
         private System.Windows.Forms.Label labelLayout;

@@ -44,8 +44,8 @@ namespace ImgsToPDF {
                 englishToolStripMenuItem.Checked = true;
                 englishToolStripMenuItem.Enabled = false;
             }
-            //FolderImg.SizeMode = PictureBoxSizeMode.Zoom;
-            //PicInFolder.SizeMode = PictureBoxSizeMode.Zoom;
+            FolderImg.UnderlyingControl = PicInFolder;
+            FolderImg.BringToFront();
             MsgLabel.ForeColor = Color.Blue;
             generateModeBox.Items.AddRange([
                 Extra.ApplyResource(typeof(Extra), "strSingle"),
