@@ -465,7 +465,7 @@ namespace ImgsToPDF {
             );
         }
         private void toolStripMenuOpenFolder_Click(object sender, EventArgs e) {
-            FolderBrowserDialog dialog = new() {
+            using FolderBrowserDialog dialog = new() {
                 Description = Extra.ApplyResource(typeof(Extra), "strSelectIMGFolder")
             };
             if (dialog.ShowDialog() == DialogResult.Cancel) {
