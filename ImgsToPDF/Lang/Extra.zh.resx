@@ -165,4 +165,7 @@
   <data name="strNoErrorOutput" xml:space="preserve">
     <value>Core 进程退出码为 {0}，但没有输出任何错误信息。</value>
   </data>
+  <data name="strWarnGenerating" xml:space="preserve">
+    <value>PDF 正在生成中，确定要退出程序吗？</value>
+  </data>
 </root>

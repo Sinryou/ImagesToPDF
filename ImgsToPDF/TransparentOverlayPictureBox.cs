@@ -13,6 +13,9 @@ namespace ImgsToPDF {
     public class TransparentOverlayPictureBox : PictureBox {
         private Control _underlyingControl;
         private bool _isCapturingUnderlying;
+        private Bitmap _cachedUnderlyingBmp;
+        private Image _lastUnderlyingImage;
+        private bool _isCacheDirty = true;
 
         /// <summary>
         /// 位于本控件下方的同级兄弟控件（例如大图预览 PicInFolder）。
@@ -36,7 +39,7 @@ namespace ImgsToPDF {
                         _underlyingControl.SizeChanged += OnUnderlyingControlLayoutChanged;
                         _underlyingControl.VisibleChanged += OnUnderlyingControlLayoutChanged;
                     }
-                    Invalidate();
+                    InvalidateCache();
                 }
             }
         }
@@ -50,16 +53,30 @@ namespace ImgsToPDF {
             BackColor = Color.Transparent;
         }
 
+        public void InvalidateCache() {
+            _isCacheDirty = true;
+            Invalidate();
+        }
+
         private void OnUnderlyingControlPaint(object sender, PaintEventArgs e) {
             // 防重入：在 DrawToBitmap 截取期间底层控件可能触发 Paint，此时不重复 Invalidate
             if (_isCapturingUnderlying) {
                 return;
             }
-            Invalidate();
+
+            // 针对底层 PictureBox 优化：底层 Image 引用未变时无需重绘，避免级联 Invalidate
+            if (_underlyingControl is PictureBox pb) {
+                if (!ReferenceEquals(pb.Image, _lastUnderlyingImage)) {
+                    InvalidateCache();
+                }
+            }
+            else {
+                InvalidateCache();
+            }
         }
 
         private void OnUnderlyingControlLayoutChanged(object sender, EventArgs e) {
-            Invalidate();
+            InvalidateCache();
         }
 
         protected override void OnPaint(PaintEventArgs pe) {
@@ -80,11 +97,9 @@ namespace ImgsToPDF {
             if (_underlyingControl != null && _underlyingControl.Visible && _underlyingControl.Width > 0 && _underlyingControl.Height > 0) {
                 Rectangle intersect = Rectangle.Intersect(Bounds, _underlyingControl.Bounds);
                 if (!intersect.IsEmpty) {
-                    try {
-                        _isCapturingUnderlying = true;
-                        using var underlyingBmp = new Bitmap(_underlyingControl.Width, _underlyingControl.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-                        _underlyingControl.DrawToBitmap(underlyingBmp, new Rectangle(0, 0, _underlyingControl.Width, _underlyingControl.Height));
+                    UpdateUnderlyingCacheIfNeeded();
 
+                    if (_cachedUnderlyingBmp != null) {
                         // 计算交集在底层控件中的源矩形与当前控件中的目标矩形
                         Rectangle srcRect = new(
                             intersect.X - _underlyingControl.Left,
@@ -100,13 +115,7 @@ namespace ImgsToPDF {
                             intersect.Height
                         );
 
-                        g.DrawImage(underlyingBmp, destRect, srcRect, GraphicsUnit.Pixel);
-                    }
-                    catch (Exception ex) {
-                        System.Diagnostics.Debug.WriteLine($"[TransparentOverlayPictureBox] Capture underlying control failed: {ex.Message}");
-                    }
-                    finally {
-                        _isCapturingUnderlying = false;
+                        g.DrawImage(_cachedUnderlyingBmp, destRect, srcRect, GraphicsUnit.Pixel);
                     }
                 }
             }
@@ -118,6 +127,40 @@ namespace ImgsToPDF {
             g.CompositingQuality = CompositingQuality.HighQuality;
 
             DrawImageBySizeMode(g, Image, ClientRectangle);
+        }
+
+        private void UpdateUnderlyingCacheIfNeeded() {
+            if (!_isCacheDirty && _cachedUnderlyingBmp != null) {
+                return;
+            }
+
+            try {
+                _isCapturingUnderlying = true;
+                int w = _underlyingControl.Width;
+                int h = _underlyingControl.Height;
+                if (w <= 0 || h <= 0) {
+                    return;
+                }
+
+                // 尺寸改变或尚未分配时才重新创建 Bitmap，重用现有实例减少 GC 分配
+                if (_cachedUnderlyingBmp == null || _cachedUnderlyingBmp.Width != w || _cachedUnderlyingBmp.Height != h) {
+                    _cachedUnderlyingBmp?.Dispose();
+                    _cachedUnderlyingBmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+                }
+
+                _underlyingControl.DrawToBitmap(_cachedUnderlyingBmp, new Rectangle(0, 0, w, h));
+
+                if (_underlyingControl is PictureBox pb) {
+                    _lastUnderlyingImage = pb.Image;
+                }
+                _isCacheDirty = false;
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"[TransparentOverlayPictureBox] Capture underlying control failed: {ex.Message}");
+            }
+            finally {
+                _isCapturingUnderlying = false;
+            }
         }
 
         private void DrawImageBySizeMode(Graphics g, Image img, Rectangle destRect) {
@@ -155,6 +198,9 @@ namespace ImgsToPDF {
         protected override void Dispose(bool disposing) {
             if (disposing) {
                 UnderlyingControl = null; // 解绑事件监听
+                _cachedUnderlyingBmp?.Dispose();
+                _cachedUnderlyingBmp = null;
+                _lastUnderlyingImage = null;
             }
             base.Dispose(disposing);
         }

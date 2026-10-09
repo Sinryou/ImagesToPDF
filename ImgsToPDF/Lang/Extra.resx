@@ -165,4 +165,7 @@
   <data name="strNoErrorOutput" xml:space="preserve">
     <value>The core process exited with code {0} but produced no error message.</value>
   </data>
+  <data name="strWarnGenerating" xml:space="preserve">
+    <value>PDF generation is in progress. Are you sure you want to exit?</value>
+  </data>
 </root>

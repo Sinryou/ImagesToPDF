@@ -32,7 +32,7 @@ namespace ImgsToPDF {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            Application.Run(new ImgsToPDF());
+            Application.Run(new MainForm());
         }
 
         private static void ActivateExistingInstance() {

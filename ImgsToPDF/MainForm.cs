@@ -13,8 +13,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ImgsToPDF {
-    public partial class ImgsToPDF : Form {
-        public ImgsToPDF() {
+    public partial class MainForm : Form {
+        public MainForm() {
             // 设置中的语言值可能为空或无效（settings 文件被手改/损坏），
             // 构造 CultureInfo 失败时回退到系统当前语言，避免应用无法启动
             string language = Properties.Settings.Default.DefaultLanguage;
@@ -33,9 +33,11 @@ namespace ImgsToPDF {
             this.StartPosition = FormStartPosition.CenterScreen; // 窗口居中
 
             InitializeComponent();
+
+            this.Disposed += (s, e) => _pathToolTip?.Dispose();
         }
 
-        private void ImgsToPDF_Load(object sender, EventArgs e) {
+        private void MainForm_Load(object sender, EventArgs e) {
             if (System.Threading.Thread.CurrentThread.CurrentUICulture.Name.StartsWith("zh")) {
                 chineseToolStripMenuItem.Checked = true;
                 chineseToolStripMenuItem.Enabled = false;
@@ -62,11 +64,46 @@ namespace ImgsToPDF {
         private static readonly HashSet<string> compressExtensions = new(StringComparer.OrdinalIgnoreCase) { ".zip", ".rar", ".7z" };
 
         /// <summary>
+        /// 当前是否正在后台生成 PDF，用于全局锁定界面交互并防止竞态操作
+        /// </summary>
+        private bool _isProcessing;
+
+        /// <summary>
+        /// 用于在悬停时显示完整路径的 ToolTip，防止长路径被截断后用户无法查看
+        /// </summary>
+        private readonly ToolTip _pathToolTip = new();
+
+        /// <summary>
         /// 当前动态创建的预览位图（需要手动释放）。
         /// Properties.Resources.* 返回的是缓存的单例，绝不能 Dispose。
         /// </summary>
         private Bitmap _previewImage;
-        private void ImgsToPDF_DragEnter(object sender, DragEventArgs e) {
+
+        /// <summary>
+        /// 全局设置界面忙碌/就绪状态，锁定用户输入以防止竞态条件
+        /// </summary>
+        private void SetUiState(bool isProcessing) {
+            _isProcessing = isProcessing;
+
+            StartButton.Enabled = !isProcessing && !string.IsNullOrEmpty(PathLabel.Text);
+            generateModeBox.Enabled = !isProcessing;
+            FastMode.Enabled = !isProcessing;
+            Recursive.Enabled = !isProcessing;
+            Merge.Enabled = !isProcessing && Recursive.Checked;
+
+            toolStripMenuOpenFolder.Enabled = !isProcessing;
+            toolStripMenuItemOpenArchive.Enabled = !isProcessing;
+            toolStripMenuClearChosen.Enabled = !isProcessing;
+            languageToolStripMenuItem.Enabled = !isProcessing;
+            toolStripMenuConfigFile.Enabled = !isProcessing;
+        }
+
+        private void MainForm_DragEnter(object sender, DragEventArgs e) {
+            if (_isProcessing) {
+                e.Effect = DragDropEffects.None;
+                return;
+            }
+
             // 先判断数据类型，避免 GetData 返回 null 时抛 NullReferenceException
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) {
                 e.Effect = DragDropEffects.None;
@@ -128,6 +165,12 @@ namespace ImgsToPDF {
             DisposePreviewImage();
 
             PathLabel.Text = directoryPath;
+            _pathToolTip.SetToolTip(PathLabel, directoryPath);
+
+            // 若路径像素宽度超出控件，切换为靠左对齐，确保盘符及前置路径可见并通过 AutoEllipsis 在末尾追加省略号；
+            // 路径较短时居中对齐，与上方预览控件保持对称
+            int textWidth = TextRenderer.MeasureText(directoryPath, PathLabel.Font).Width;
+            PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
 
             // 检查路径是否有效
             if (Directory.Exists(directoryPath)) {
@@ -196,10 +239,14 @@ namespace ImgsToPDF {
                 return;
             }
 
-            StartButton.Enabled = true;
+            StartButton.Enabled = !_isProcessing;
             MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
         }
-        private void ImgsToPDF_DragDrop(object sender, DragEventArgs e) {
+        private void MainForm_DragDrop(object sender, DragEventArgs e) {
+            if (_isProcessing) {
+                return;
+            }
+
             //获得路径
             if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0) {
                 return;
@@ -207,9 +254,17 @@ namespace ImgsToPDF {
             ChooseFileAction(files[0]);   // 只处理第一个拖入项
         }
         private async void StartButton_Click(object sender, EventArgs e) {
+            if (_isProcessing) {
+                return;
+            }
+
             // 在 UI 线程捕获控件状态快照，后台任务只读取这些局部变量，
             // 因此不需要关闭跨线程安全检查
             string directoryPath = PathLabel.Text;
+            if (string.IsNullOrEmpty(directoryPath)) {
+                return;
+            }
+
             bool recursive = Recursive.Checked;
             bool fastMode = FastMode.Checked;
             bool merge = Merge.Checked;
@@ -219,7 +274,8 @@ namespace ImgsToPDF {
             progressBar.Visible = true;
             progressBar.Maximum = 100;
             progressBar.Value = 50;
-            StartButton.Enabled = false;
+
+            SetUiState(true);
 
             try {
                 var (failures, warnings) = await ButtonClickActionAsync(directoryPath, recursive, fastMode, merge, layoutIndex);
@@ -228,6 +284,7 @@ namespace ImgsToPDF {
                     MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGeneratedWithErrors"), failures.Count);
                     // 回到 UI 线程统一展示错误，不再在后台线程弹 MessageBox
                     MessageBox.Show(
+                        this,
                         string.Join(Environment.NewLine + Environment.NewLine, failures),
                         Extra.ApplyResource(typeof(Extra), "strErrorTitle"),
                         MessageBoxButtons.OK,
@@ -238,6 +295,7 @@ namespace ImgsToPDF {
                     // 退出码为 0 说明 PDF 已经生成，这里只是部分文件被跳过，不能再报成生成失败
                     MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGeneratedWithSkipped"), warnings.Count);
                     MessageBox.Show(
+                        this,
                         string.Join(Environment.NewLine + Environment.NewLine, warnings),
                         Extra.ApplyResource(typeof(Extra), "strWarningTitle"),
                         MessageBoxButtons.OK,
@@ -252,6 +310,7 @@ namespace ImgsToPDF {
                 progressBar.Value = 100;
                 MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGenerationFailed"), ex.Message);
                 MessageBox.Show(
+                    this,
                     ex.Message,
                     Extra.ApplyResource(typeof(Extra), "strErrorTitle"),
                     MessageBoxButtons.OK,
@@ -259,8 +318,8 @@ namespace ImgsToPDF {
                 );
             }
             finally {
-                // 无论成功还是出错，都恢复按钮可用状态，避免界面卡死
-                StartButton.Enabled = true;
+                // 无论成功还是出错，都恢复界面交互可用状态，避免界面卡死
+                SetUiState(false);
             }
         }
         private static List<string> RecursiveFolder(string path, List<string> dirs) {
@@ -465,6 +524,8 @@ namespace ImgsToPDF {
             );
         }
         private void toolStripMenuOpenFolder_Click(object sender, EventArgs e) {
+            if (_isProcessing) return;
+
             using FolderBrowserDialog dialog = new() {
                 Description = Extra.ApplyResource(typeof(Extra), "strSelectIMGFolder")
             };
@@ -475,15 +536,23 @@ namespace ImgsToPDF {
             ChooseFileAction(directoryPath);
         }
         private void toolStripMenuClearChosen_Click(object sender, EventArgs e) {
+            if (_isProcessing) return;
+
             DisposePreviewImage();
             PicInFolder.Image = Properties.Resources.folder;
             FolderImg.Image = null;
             PathLabel.Text = null;
+            PathLabel.TextAlign = ContentAlignment.MiddleCenter;
+            _pathToolTip.SetToolTip(PathLabel, null);
+            progressBar.Visible = false;
+            progressBar.Value = 0;
             StartButton.Enabled = false;
             MsgLabel.Text = Extra.ApplyResource(this.GetType(), "MsgLabel.Text");
         }
 
         private void englishToolStripMenuItem_Click(object sender, EventArgs e) {
+            if (_isProcessing) return;
+
             Properties.Settings.Default.DefaultLanguage = "en-US";
             Properties.Settings.Default.Save();
             MessageBox.Show(
@@ -497,6 +566,8 @@ namespace ImgsToPDF {
         }
 
         private void chineseToolStripMenuItem_Click(object sender, EventArgs e) {
+            if (_isProcessing) return;
+
             Properties.Settings.Default.DefaultLanguage = "zh-CN";
             Properties.Settings.Default.Save();
             MessageBox.Show(
@@ -519,6 +590,8 @@ namespace ImgsToPDF {
         }
 
         private void toolStripMenuItemOpenArchive_Click(object sender, EventArgs e) {
+            if (_isProcessing) return;
+
             using OpenFileDialog openFileDialog = new();
             // 设置对话框标题
             openFileDialog.Title = Extra.ApplyResource(typeof(Extra), "strSelectArchive");
@@ -535,6 +608,22 @@ namespace ImgsToPDF {
                 string selectedFile = openFileDialog.FileName;
                 ChooseFileAction(selectedFile);
             }
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e) {
+            if (_isProcessing) {
+                string msg = Extra.ApplyResource(typeof(Extra), "strWarnGenerating");
+                string title = Extra.ApplyResource(typeof(Extra), "strWarningTitle");
+                if (MessageBox.Show(this, msg, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No) {
+                    e.Cancel = true;
+                    return;
+                }
+            }
+            base.OnFormClosing(e);
+        }
+
+        private void FolderImg_Click(object sender, EventArgs e) {
+
         }
     }
 }

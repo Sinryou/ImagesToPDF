@@ -1,5 +1,5 @@
 ﻿namespace ImgsToPDF {
-    partial class ImgsToPDF {
+    partial class MainForm {
         /// <summary>
         /// 必需的设计器变量。
         /// </summary>
@@ -24,12 +24,11 @@
         /// 使用代码编辑器修改此方法的内容。
         /// </summary>
         private void InitializeComponent() {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ImgsToPDF));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.StartButton = new System.Windows.Forms.Button();
             this.MsgLabel = new System.Windows.Forms.Label();
             this.PathLabel = new System.Windows.Forms.Label();
-            this.FolderImg = new TransparentOverlayPictureBox();
             this.PicInFolder = new System.Windows.Forms.PictureBox();
             this.generateModeBox = new System.Windows.Forms.ComboBox();
             this.labelLayout = new System.Windows.Forms.Label();
@@ -48,9 +47,10 @@
             this.toolStripMenuAbout = new System.Windows.Forms.ToolStripMenuItem();
             this.Recursive = new System.Windows.Forms.CheckBox();
             this.Merge = new System.Windows.Forms.CheckBox();
-            ((System.ComponentModel.ISupportInitialize)(this.FolderImg)).BeginInit();
+            this.FolderImg = new ImgsToPDF.TransparentOverlayPictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.PicInFolder)).BeginInit();
             this.menuStripMain.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.FolderImg)).BeginInit();
             this.SuspendLayout();
             // 
             // progressBar
@@ -67,20 +67,15 @@
             // 
             // MsgLabel
             // 
+            this.MsgLabel.AutoEllipsis = true;
             resources.ApplyResources(this.MsgLabel, "MsgLabel");
             this.MsgLabel.Name = "MsgLabel";
             // 
             // PathLabel
             // 
+            this.PathLabel.AutoEllipsis = true;
             resources.ApplyResources(this.PathLabel, "PathLabel");
             this.PathLabel.Name = "PathLabel";
-            // 
-            // FolderImg
-            // 
-            this.FolderImg.BackColor = System.Drawing.Color.Transparent;
-            resources.ApplyResources(this.FolderImg, "FolderImg");
-            this.FolderImg.Name = "FolderImg";
-            this.FolderImg.TabStop = false;
             // 
             // PicInFolder
             // 
@@ -204,7 +199,15 @@
             this.Merge.Name = "Merge";
             this.Merge.UseVisualStyleBackColor = true;
             // 
-            // ImgsToPDF
+            // FolderImg
+            // 
+            this.FolderImg.BackColor = System.Drawing.Color.Transparent;
+            resources.ApplyResources(this.FolderImg, "FolderImg");
+            this.FolderImg.Name = "FolderImg";
+            this.FolderImg.TabStop = false;
+            this.FolderImg.Click += new System.EventHandler(this.FolderImg_Click);
+            // 
+            // MainForm
             // 
             this.AllowDrop = true;
             resources.ApplyResources(this, "$this");
@@ -224,14 +227,14 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MainMenuStrip = this.menuStripMain;
             this.MaximizeBox = false;
-            this.Name = "ImgsToPDF";
-            this.Load += new System.EventHandler(this.ImgsToPDF_Load);
-            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.ImgsToPDF_DragDrop);
-            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.ImgsToPDF_DragEnter);
-            ((System.ComponentModel.ISupportInitialize)(this.FolderImg)).EndInit();
+            this.Name = "MainForm";
+            this.Load += new System.EventHandler(this.MainForm_Load);
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
             ((System.ComponentModel.ISupportInitialize)(this.PicInFolder)).EndInit();
             this.menuStripMain.ResumeLayout(false);
             this.menuStripMain.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.FolderImg)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
