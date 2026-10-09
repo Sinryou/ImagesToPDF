@@ -1,5 +1,11 @@
+local lfs <const> = require("lfs")
+
 local PathUtil = {}
-local lfs = require("lfs")
+
+-- Lua 5.5 table.create 兼容层
+if not table.create then
+    rawset(table, "create", function(narr, nrec) return {} end)
+end
 
 function PathUtil.currentDir()
     return lfs.currentdir()
@@ -7,13 +13,13 @@ end
 
 function PathUtil.dirExist(path)
     if not path then return false end
-    local attr = lfs.attributes(path)
+    local attr <const> = lfs.attributes(path)
     return type(attr) == "table" and attr.mode == "directory"
 end
 
 function PathUtil.fileExist(path)
     if not path then return false end
-    local attr = lfs.attributes(path)
+    local attr <const> = lfs.attributes(path)
     return type(attr) == "table" and attr.mode == "file"
 end
 
@@ -24,27 +30,27 @@ end
 
 function PathUtil.getExtension(path)
     if not path then return nil end
-    local name = PathUtil.fileName(path)
+    local name <const> = PathUtil.fileName(path)
     if not name then return nil end
     return name:match("(%.[^.]+)$")
 end
 
 function PathUtil.fileNameWithoutExtension(path)
-    local name = PathUtil.fileName(path)
+    local name <const> = PathUtil.fileName(path)
     if not name then return nil end
-    local ext = PathUtil.getExtension(name)
+    local ext <const> = PathUtil.getExtension(name)
     if not ext then return name end
     return name:sub(1, #name - #ext)
 end
 
 function PathUtil.dirPath(path)
     if not path then return nil end
-    local clean = path:match("^(.-)[/\\]?$")
+    local clean <const> = path:match("^(.-)[/\\]?$")
     if PathUtil.dirExist(clean) then
         return clean
     end
     if PathUtil.fileExist(clean) or PathUtil.getExtension(clean) then
-        local parent = clean:match("^(.*)[/\\][^/\\]+$")
+        local parent <const> = clean:match("^(.*)[/\\][^/\\]+$")
         return (parent and parent ~= "") and parent or "."
     end
     return clean
@@ -52,9 +58,9 @@ end
 
 function PathUtil.dirName(path)
     if not path then return nil end
-    local dp = PathUtil.dirPath(path)
+    local dp <const> = PathUtil.dirPath(path)
     if not dp then return nil end
-    local clean = dp:match("^(.-)[/\\]?$")
+    local clean <const> = dp:match("^(.-)[/\\]?$")
     return clean:match("([^/\\]+)$") or clean
 end
 
@@ -62,7 +68,7 @@ function PathUtil.listDirContents(dirPath)
     if not dirPath or not PathUtil.dirExist(dirPath) then
         return nil, "Directory does not exist: " .. tostring(dirPath)
     end
-    local dirContents = {}
+    local dirContents <const> = table.create(16, 0)
     local ok, iter, dir_obj = pcall(lfs.dir, dirPath)
     if not ok then
         return nil, iter
@@ -83,28 +89,22 @@ function PathUtil.listSubfolders(root_path, processor_func)
     if not root_path or not PathUtil.dirExist(root_path) then
         return {}
     end
-    local folders = {}
+    local folders <const> = table.create(16, 0)
 
     -- 内部递归辅助函数
     local function traverseFolder(current_path)
-        -- 遍历当前目录下的所有条目
         local ok, iter, dir_obj = pcall(lfs.dir, current_path)
         if not ok then return end
         for entry in iter, dir_obj do
             if entry ~= "." and entry ~= ".." then
-                local full_path = current_path .. "/" .. entry
-                local attr = lfs.attributes(full_path)
+                local full_path <const> = current_path .. "/" .. entry
+                local attr <const> = lfs.attributes(full_path)
 
-                -- 如果是文件夹则递归
                 if attr and attr.mode == "directory" then
-                    -- 如果存在处理函数，则处理后再加入列表
-                    local final_path = full_path
-                    if type(processor_func) == "function" then
-                        final_path = processor_func(full_path)
-                    end
-                    
+                    local final_path <const> = (type(processor_func) == "function")
+                        and processor_func(full_path)
+                        or full_path
                     table.insert(folders, final_path)
-                    
                     traverseFolder(full_path)
                 end
             end
@@ -121,7 +121,7 @@ function PathUtil.deleteDir(rootpath)
     end
 
     local function deleteEntry(path)
-        local attr = lfs.attributes(path)
+        local attr <const> = lfs.attributes(path)
         if not attr then return false end
         if attr.mode == 'directory' then
             local ok, iter, dir_obj = pcall(lfs.dir, path)

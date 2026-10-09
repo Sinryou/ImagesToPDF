@@ -1,36 +1,38 @@
-local ffi = require 'ffi'
+local ffi <const> = require 'ffi'
 ffi.cdef [[
     int MultiByteToWideChar(unsigned int CodePage, unsigned long dwFlags, const char* lpMultiByteStr, int cbMultiByte, wchar_t* lpWideCharStr, int cchWideChar);
     int WideCharToMultiByte(unsigned int CodePage, unsigned long dwFlags, const wchar_t* lpWideCharStr, int cchWideChar, char* lpMultiByteStr, int cchMultiByte, const char* lpDefaultChar, int* pfUsedDefaultChar);
 ]]
 
-local CP_UTF8 = 65001
-local CP_ACP = 0
+local CP_UTF8 <const> = 65001
+local CP_ACP <const> = 0
 
 local function u2w(input)
-    local wlen = ffi.C.MultiByteToWideChar(CP_UTF8, 0, input, #input, nil, 0)
-    local wstr = ffi.new('wchar_t[?]', wlen + 1)
-    ffi.C.MultiByteToWideChar(CP_UTF8, 0, input, #input, wstr, wlen)
+    local len <const> = #input
+    local wlen <const> = ffi.C.MultiByteToWideChar(CP_UTF8, 0, input, len, nil, 0)
+    local wstr <const> = ffi.new('wchar_t[?]', wlen + 1)
+    ffi.C.MultiByteToWideChar(CP_UTF8, 0, input, len, wstr, wlen)
     return wstr, wlen
 end
 
 local function a2w(input)
-    local wlen = ffi.C.MultiByteToWideChar(CP_ACP, 0, input, #input, nil, 0)
-    local wstr = ffi.new('wchar_t[?]', wlen + 1)
-    ffi.C.MultiByteToWideChar(CP_ACP, 0, input, #input, wstr, wlen)
+    local len <const> = #input
+    local wlen <const> = ffi.C.MultiByteToWideChar(CP_ACP, 0, input, len, nil, 0)
+    local wstr <const> = ffi.new('wchar_t[?]', wlen + 1)
+    ffi.C.MultiByteToWideChar(CP_ACP, 0, input, len, wstr, wlen)
     return wstr, wlen
 end
 
 local function w2u(wstr, wlen)
-    local len = ffi.C.WideCharToMultiByte(CP_UTF8, 0, wstr, wlen, nil, 0, nil, nil)
-    local str = ffi.new('char[?]', len + 1)
+    local len <const> = ffi.C.WideCharToMultiByte(CP_UTF8, 0, wstr, wlen, nil, 0, nil, nil)
+    local str <const> = ffi.new('char[?]', len + 1)
     ffi.C.WideCharToMultiByte(CP_UTF8, 0, wstr, wlen, str, len, nil, nil)
     return ffi.string(str, len)
 end
 
 local function w2a(wstr, wlen)
-    local len = ffi.C.WideCharToMultiByte(CP_ACP, 0, wstr, wlen, nil, 0, nil, nil)
-    local str = ffi.new('char[?]', len + 1)
+    local len <const> = ffi.C.WideCharToMultiByte(CP_ACP, 0, wstr, wlen, nil, 0, nil, nil)
+    local str <const> = ffi.new('char[?]', len + 1)
     ffi.C.WideCharToMultiByte(CP_ACP, 0, wstr, wlen, str, len, nil, nil)
     return ffi.string(str, len)
 end
