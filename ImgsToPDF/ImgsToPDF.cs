@@ -55,6 +55,7 @@ namespace ImgsToPDF {
             generateModeBox.SelectedIndex = 0;
             Merge.Enabled = false;
         }
+
         // 使用 HashSet(StringComparer.OrdinalIgnoreCase) 提高查找效率并自动忽略大小写
         private static readonly HashSet<string> imageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
         private static readonly HashSet<string> imageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
