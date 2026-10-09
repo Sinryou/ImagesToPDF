@@ -9,10 +9,7 @@ namespace ImgsToPDF {
         /// </summary>
         [STAThread]
         static void Main() {
-            using Mutex mutex = new(
-                true,
-                @"ImgsToPDF",
-                out bool isFirstInstance);
+            using Mutex mutex = new(true, @"ImgsToPDF", out bool isFirstInstance);
 
             if (!isFirstInstance) {
                 return;

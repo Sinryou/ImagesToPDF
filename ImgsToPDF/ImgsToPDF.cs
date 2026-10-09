@@ -99,6 +99,30 @@ namespace ImgsToPDF {
             _previewImage?.Dispose();
             _previewImage = null;
         }
+
+        /// <summary>
+        /// 按目标最大宽高限制生成高质量缩略图，避免巨幅大图常驻内存造成内存暴涨
+        /// </summary>
+        private static Bitmap CreateThumbnail(Image source, int maxWidth, int maxHeight) {
+            if (source.Width <= maxWidth && source.Height <= maxHeight) {
+                return new Bitmap(source);
+            }
+
+            float ratio = Math.Min((float)maxWidth / source.Width, (float)maxHeight / source.Height);
+            int destWidth = Math.Max(1, (int)(source.Width * ratio));
+            int destHeight = Math.Max(1, (int)(source.Height * ratio));
+
+            var thumb = new Bitmap(destWidth, destHeight, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            using (var g = Graphics.FromImage(thumb)) {
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                g.DrawImage(source, new Rectangle(0, 0, destWidth, destHeight));
+            }
+            return thumb;
+        }
+
         private void ChooseFileAction(string directoryPath) {
             DisposePreviewImage();
 
@@ -146,7 +170,10 @@ namespace ImgsToPDF {
                             }
                         }
 
-                        _previewImage = new Bitmap(img);
+                        // 按预览控件两倍尺寸（适配高DPI且保证清晰度）生成缩略图，避免几十上百MB大图常驻内存
+                        int maxThumbW = Math.Max(PicInFolder.Width * 2, 400);
+                        int maxThumbH = Math.Max(PicInFolder.Height * 2, 600);
+                        _previewImage = CreateThumbnail(img, maxThumbW, maxThumbH);
                         PicInFolder.Image = _previewImage;
                         break;
                     }
