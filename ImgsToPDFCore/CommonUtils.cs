@@ -45,7 +45,7 @@ namespace ImgsToPDFCore
             entries = null;
             error = null;
             try {
-                entries = archive.Entries.Where(e => !e.IsDirectory).ToList();
+                entries = [.. archive.Entries.Where(e => !e.IsDirectory)];
             }
             catch (Exception ex) {
                 error = $"failed to read the archive entries: {ex.GetType().Name}: {ex.Message}";

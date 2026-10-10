@@ -477,6 +477,12 @@ namespace ImgsToPDF {
             p.StartInfo.RedirectStandardOutput = true;  // 重定向输出
             p.StartInfo.RedirectStandardError = true;   // 重定向输出错误
             p.StartInfo.CreateNoWindow = true;          // 设置不显示窗口
+            // 必须与 Core 内 Console.OutputEncoding 的设置保持一致：
+            // 不指定时 .NET Framework 用 Encoding.Default（ANSI 码页）解码，
+            // 而 Core 输出的是 UTF-8，含中文的路径会在错误提示里变成乱码。
+            var utf8NoBom = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            p.StartInfo.StandardOutputEncoding = utf8NoBom;
+            p.StartInfo.StandardErrorEncoding = utf8NoBom;
 
             p.Start();
 

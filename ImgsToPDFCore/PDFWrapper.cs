@@ -512,8 +512,8 @@ namespace ImgsToPDFCore {
         /// <summary>
         /// 载入非 WebP 图片并封装为页面图像。
         /// --fast：解码后按 FastQuality 重编码为 JPEG（EXIF 方向此时烘焙进像素，透明区域铺白底）；
-        /// 未开启：原始字节直通 PDF（JPEG 无解码无损耗），EXIF 方向留到排版期由变换矩阵应用，
-        /// 因此带方向的照片不会再被重新编码。
+        /// 未开启：JPEG 原始字节直通 PDF（无解码，逐字节一致），PNG/GIF/BMP/TIFF 则无损重编码为
+        /// Deflate；EXIF 方向留到排版期由变换矩阵应用，因此带方向的照片不会再被重新编码。
         /// </summary>
         static PageImage LoadPdfImage(string imagePath, bool fastFlag) {
             var fileExt = Path.GetExtension(imagePath);
@@ -550,7 +550,9 @@ namespace ImgsToPDFCore {
             // 这样带 EXIF 方向的 JPEG 同样保持原始字节直通
             ushort exifOrientation = needsExifCheck ? ReadExifOrientation(normalBytes) : (ushort)1;
 
-            // 绝大多数情况：直接将原始字节直通注入 PDF（DCTDecode / FlateDecode），0 损耗、极速嵌入
+            // JPEG 为字节直通（DCTDecode），源文件与 PDF 内嵌流逐字节一致，真正 0 损耗；
+            // PNG/GIF/BMP/TIFF 会被解码后用 Deflate 重新压缩（FlateDecode），同样无损（像素不变），
+            // 但不是字节直通，需要一次解码 + 一次重编码，因此只有 JPEG 走的是"极速嵌入"路径。
             return new PageImage {
                 Image = iTextSharp.text.Image.GetInstance(normalBytes),
                 Orientation = exifOrientation

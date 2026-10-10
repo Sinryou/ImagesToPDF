@@ -22,6 +22,11 @@ namespace ImgsToPDFCore {
             public bool Merge { get; set; }
         }
         static void Main(string[] args) {
+            // 显式指定 stderr/stdout 的编码。Core 由 GUI 以「重定向输出 + 无窗口」方式启动，
+            // 此时 Console 默认使用 OEM 代码页，而 GUI 侧按 UTF-8 解码，
+            // 导致错误信息里含中文的文件名/文件夹名变成乱码（用户无法辨认是哪张图出错）。
+            Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed(Run)
                 .WithNotParsed(_ => {
