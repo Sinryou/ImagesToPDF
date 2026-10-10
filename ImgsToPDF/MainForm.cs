@@ -46,7 +46,6 @@ namespace ImgsToPDF {
                 englishToolStripMenuItem.Checked = true;
                 englishToolStripMenuItem.Enabled = false;
             }
-            FolderImg.UnderlyingControl = PicInFolder;
             FolderImg.BringToFront();
             MsgLabel.ForeColor = Color.Blue;
             generateModeBox.Items.AddRange([
@@ -175,7 +174,6 @@ namespace ImgsToPDF {
             // 检查路径是否有效
             if (Directory.Exists(directoryPath)) {
                 PicInFolder.Image = Properties.Resources.no_photo;
-                FolderImg.Image = Properties.Resources.folder;
 
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                     .Where(p => imageExtensions.Contains(Path.GetExtension(p)));
@@ -227,6 +225,7 @@ namespace ImgsToPDF {
                         continue;
                     }
                 }
+                FolderImg.Image = Properties.Resources.folder;
             }
             else if (compressExtensions.Contains(Path.GetExtension(directoryPath))) {
                 PicInFolder.Image = Properties.Resources.compressedFile;
