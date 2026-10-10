@@ -155,7 +155,7 @@ namespace ImgsToPDFCore
                 // 加密包返回 false，由调用方（config.lua）走密码流程；
                 // 是否真的需要密码由 IsArchiveEncrypted 判断，避免误报
                 if (ContainsEncryptedEntry(archive)) {
-                    ReportReason($"the archive is encrypted, a password is required: {fromFilePath}");
+                    // ReportReason($"the archive is encrypted, a password is required: {fromFilePath}");
                     return false;
                 }
                 if (!TryGetFileEntries(archive, out var entries, out string entryError)) {

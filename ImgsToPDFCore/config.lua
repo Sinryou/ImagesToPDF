@@ -179,7 +179,8 @@ function Config:PreProcess(...)
     pdfFileName = pathUtil.fileNameWithoutExtension(path) or "Output"
     outputDir = pathUtil.dirPath(path)
     tempExtraPath = outputDir .. "/" .. pdfFileName .. os.date("%Y%m%d%H%M%S")
-    if not commonUtils.Decompress(path, tempExtraPath) then
+    local _, result = pcall(commonUtils.Decompress, path, tempExtraPath)
+    if not result then
         -- 只有确实是加密包才去问密码。否则把解压失败的真实原因（条目非法、磁盘错误等）
         -- 直接上报，免得像以前那样一律提示"密码为空或错误"，用户输多少次密码都没用。
         if not commonUtils.IsArchiveEncrypted(path) then
