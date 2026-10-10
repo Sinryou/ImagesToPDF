@@ -34,7 +34,11 @@ namespace ImgsToPDF {
 
             InitializeComponent();
 
-            this.Disposed += (s, e) => _pathToolTip?.Dispose();
+            this.Disposed += (s, e) => {
+                ReplaceImage(PicInFolder, null);
+                ReplaceImage(FolderImg, null);
+                _pathToolTip?.Dispose();
+            };
         }
 
         private void MainForm_Load(object sender, EventArgs e) {
@@ -71,12 +75,6 @@ namespace ImgsToPDF {
         /// 用于在悬停时显示完整路径的 ToolTip，防止长路径被截断后用户无法查看
         /// </summary>
         private readonly ToolTip _pathToolTip = new();
-
-        /// <summary>
-        /// 当前动态创建的预览位图（需要手动释放）。
-        /// Properties.Resources.* 返回的是缓存的单例，绝不能 Dispose。
-        /// </summary>
-        private Bitmap _previewImage;
 
         /// <summary>
         /// 全局设置界面忙碌/就绪状态，锁定用户输入以防止竞态条件
@@ -128,13 +126,17 @@ namespace ImgsToPDF {
             }
         }
         /// <summary>
-        /// 释放动态创建的预览位图。
-        /// 注意：Properties.Resources.* 返回的是缓存的单例，不能在这里 Dispose，
-        /// 否则再次赋值时会拿到已释放的实例。
+        /// 替换 PictureBox 显示的图像并及时释放旧图像的 GDI+ 句柄。
+        /// Properties.Resources.* 每次访问都会反序列化生成新的 Bitmap 实例，
+        /// 因此与动态生成的缩略图一样，在被替换或窗体销毁时都应及时 Dispose。
         /// </summary>
-        private void DisposePreviewImage() {
-            _previewImage?.Dispose();
-            _previewImage = null;
+        private static void ReplaceImage(PictureBox pictureBox, Image newImage) {
+            Image oldImage = pictureBox.Image;
+            if (ReferenceEquals(oldImage, newImage)) {
+                return;
+            }
+            pictureBox.Image = newImage;
+            oldImage?.Dispose();
         }
 
         /// <summary>
@@ -150,19 +152,23 @@ namespace ImgsToPDF {
             int destHeight = Math.Max(1, (int)(source.Height * ratio));
 
             var thumb = new Bitmap(destWidth, destHeight, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-            using (var g = Graphics.FromImage(thumb)) {
-                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-                g.DrawImage(source, new Rectangle(0, 0, destWidth, destHeight));
+            try {
+                using (var g = Graphics.FromImage(thumb)) {
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                    g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                    g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                    g.DrawImage(source, new Rectangle(0, 0, destWidth, destHeight));
+                }
+                return thumb;
             }
-            return thumb;
+            catch {
+                thumb.Dispose();
+                throw;
+            }
         }
 
         private void ChooseFileAction(string directoryPath) {
-            DisposePreviewImage();
-
             PathLabel.Text = directoryPath;
             _pathToolTip.SetToolTip(PathLabel, directoryPath);
 
@@ -173,8 +179,7 @@ namespace ImgsToPDF {
 
             // 检查路径是否有效
             if (Directory.Exists(directoryPath)) {
-                PicInFolder.Image = Properties.Resources.no_photo;
-
+                Bitmap preview = null;
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                     .Where(p => imageExtensions.Contains(Path.GetExtension(p)));
                 foreach (var imagepath in imagepaths) {
@@ -215,8 +220,7 @@ namespace ImgsToPDF {
                         // 按预览控件两倍尺寸（适配高DPI且保证清晰度）生成缩略图，避免几十上百MB大图常驻内存
                         int maxThumbW = Math.Max(PicInFolder.Width * 2, 400);
                         int maxThumbH = Math.Max(PicInFolder.Height * 2, 600);
-                        _previewImage = CreateThumbnail(img, maxThumbW, maxThumbH);
-                        PicInFolder.Image = _previewImage;
+                        preview = CreateThumbnail(img, maxThumbW, maxThumbH);
                         break;
                     }
                     catch (Exception ex) {
@@ -225,15 +229,16 @@ namespace ImgsToPDF {
                         continue;
                     }
                 }
-                FolderImg.Image = Properties.Resources.folder;
+                ReplaceImage(PicInFolder, preview ?? Properties.Resources.no_photo);
+                ReplaceImage(FolderImg, Properties.Resources.folder);
             }
             else if (compressExtensions.Contains(Path.GetExtension(directoryPath))) {
-                PicInFolder.Image = Properties.Resources.compressedFile;
-                FolderImg.Image = null;
+                ReplaceImage(PicInFolder, Properties.Resources.compressedFile);
+                ReplaceImage(FolderImg, null);
             }
             else {
-                PicInFolder.Image = Properties.Resources.no_photo;
-                FolderImg.Image = null;
+                ReplaceImage(PicInFolder, Properties.Resources.no_photo);
+                ReplaceImage(FolderImg, null);
                 MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strInvalidPath");
                 return;
             }
@@ -537,9 +542,8 @@ namespace ImgsToPDF {
         private void toolStripMenuClearChosen_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
 
-            DisposePreviewImage();
-            PicInFolder.Image = Properties.Resources.folder;
-            FolderImg.Image = null;
+            ReplaceImage(PicInFolder, Properties.Resources.folder);
+            ReplaceImage(FolderImg, null);
             PathLabel.Text = null;
             PathLabel.TextAlign = ContentAlignment.MiddleCenter;
             _pathToolTip.SetToolTip(PathLabel, null);
