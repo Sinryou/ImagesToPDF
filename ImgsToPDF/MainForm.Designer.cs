@@ -67,7 +67,6 @@
             // 
             // MsgLabel
             // 
-            this.MsgLabel.AutoEllipsis = true;
             resources.ApplyResources(this.MsgLabel, "MsgLabel");
             this.MsgLabel.Name = "MsgLabel";
             // 
@@ -83,6 +82,7 @@
             resources.ApplyResources(this.PicInFolder, "PicInFolder");
             this.PicInFolder.Name = "PicInFolder";
             this.PicInFolder.TabStop = false;
+            this.PicInFolder.Click += new System.EventHandler(this.PicInFolder_Click);
             // 
             // generateModeBox
             // 
@@ -205,7 +205,6 @@
             resources.ApplyResources(this.FolderImg, "FolderImg");
             this.FolderImg.Name = "FolderImg";
             this.FolderImg.TabStop = false;
-            this.FolderImg.Click += new System.EventHandler(this.FolderImg_Click);
             // 
             // MainForm
             // 

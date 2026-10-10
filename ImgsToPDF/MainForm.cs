@@ -625,8 +625,17 @@ namespace ImgsToPDF {
             base.OnFormClosing(e);
         }
 
-        private void FolderImg_Click(object sender, EventArgs e) {
+        private void PicInFolder_Click(object sender, EventArgs e) {
+            if (_isProcessing) return;
 
+            using FolderBrowserDialog dialog = new() {
+                Description = Extra.ApplyResource(typeof(Extra), "strSelectIMGFolder")
+            };
+            if (dialog.ShowDialog() == DialogResult.Cancel) {
+                return;
+            }
+            string directoryPath = dialog.SelectedPath.Trim();
+            ChooseFileAction(directoryPath);
         }
     }
 }
