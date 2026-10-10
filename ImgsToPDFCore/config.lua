@@ -15,26 +15,6 @@ local interaction = CS.Microsoft.VisualBasic.Interaction
 
 -- add your local funcs below
 -- 建议在这个部分添加你自己要用到的函数
-local function getChildImgsAndDirs(dirPath)
-    local imageExtensions = { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff",
-        ".gif", ".webp" }
-    local dirPaths = {}
-    local hasImg = false
-    for entry in lfs.dir(dirPath) do
-        if entry ~= '.' and entry ~= '..' then
-            local path = dirPath .. '/' .. entry
-            local attr = lfs.attributes(path)
-            assert(type(attr) == 'table')
-            if attr.mode == 'directory' then
-                table.insert(dirPaths, path)
-            elseif common.hasVal(imageExtensions, (pathUtil.getExtension(path) or ""):lower()) then
-                hasImg = true
-                break -- 调用方只需要知道“是否存在图片”，找到第一张即可提前结束遍历
-            end
-        end
-    end
-    return hasImg, dirPaths
-end
 
 -- 合并pdf
 local function mergePdfs(path)
@@ -149,6 +129,26 @@ function Config:FilePathComparer(filePath1, filePath2)
     return filePath1 == filePath2 and 0 or (filePath1 < filePath2 and -1 or 1)
 end
 
+-- 递归收集子文件夹：同级目录按 Config:FilePathComparer 排序，父目录先于子目录。
+-- 顺序稳定的意义：压缩包里的多个章节目录会按同一套规则合并进同一个 PDF，
+-- chap1 / chap2 / chap10 这类目录不会被字符串顺序排成 chap1、chap10、chap2。
+local function collectSubfolders(rootPath, out)
+    local entries = pathUtil.listDirContents(rootPath)
+    if not entries then return end
+    local subDirs = {}
+    for i = 1, #entries do
+        local full = rootPath .. "/" .. entries[i]
+        if pathUtil.dirExist(full) then
+            table.insert(subDirs, full)
+        end
+    end
+    table.sort(subDirs, function(a, b) return Config:FilePathComparer(a, b) < 0 end)
+    for i = 1, #subDirs do
+        table.insert(out, subDirs[i])
+        collectSubfolders(subDirs[i], out)
+    end
+end
+
 local tempExtraPath
 -- this func will be processed before pdf generation start
 -- 定义开始前要进行的动作
@@ -160,6 +160,10 @@ function Config:PreProcess(...)
     local compressSuffix = { ".zip", ".rar", ".7z" }
     if pathUtil.dirExist(u2a(path)) then -- 如果是文件夹
         if merge then
+            -- 合并分支也要把"预期输出路径"填好：Program 用它校验本次是否真的产出了 PDF，
+            -- 命名与 mergePdfs 写出的文件保持一致
+            pdfFileName = (pathUtil.dirName(path) or "Output") .. "_Merged"
+            outputDir = path
             return mergePdfs(path)
         end
         pdfFileName = pathUtil.dirName(path)
@@ -176,6 +180,12 @@ function Config:PreProcess(...)
     outputDir = pathUtil.dirPath(path)
     tempExtraPath = outputDir .. "/" .. pdfFileName .. os.date("%Y%m%d%H%M%S")
     if not commonUtils.Decompress(path, tempExtraPath) then
+        -- 只有确实是加密包才去问密码。否则把解压失败的真实原因（条目非法、磁盘错误等）
+        -- 直接上报，免得像以前那样一律提示"密码为空或错误"，用户输多少次密码都没用。
+        if not commonUtils.IsArchiveEncrypted(path) then
+            commonUtils.ReportFailure("Failed to extract the archive; no PDF was generated: " .. tostring(path))
+            return
+        end
         local password = interaction.InputBox("Input password:", "Encrypted Compress File")
         if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
             -- 密码为空或密码错误：必须上报，否则上层会把"什么都没生成"当成生成成功
@@ -185,17 +195,23 @@ function Config:PreProcess(...)
         end
     end
 
-    local hasChildImgs, childDirs = getChildImgsAndDirs(u2a(tempExtraPath))
-    if not hasChildImgs then
-        if next(childDirs) then
-            PDFWrapper.ImagesToPDF(a2u(childDirs[1]), layout, fastFlag)
-        else
-            -- 压缩包内既没有图片也没有子目录：必须上报
-            commonUtils.ReportFailure("No image found in the archive; no PDF was generated: " .. tostring(path))
-        end
-        return
+    -- 把解压出来的整棵目录树都交给 Core。
+    -- 旧实现只看根目录：根目录有图片就只转根目录，否则只转"第一个子目录"，
+    -- 其余目录里的图片会被静默丢掉，却依然上报"生成成功"。
+    -- 顺序：根目录最先，其余子目录按 Config:FilePathComparer 排序（父目录先于子目录）。
+    local ansiFolders = { u2a(tempExtraPath) }
+    collectSubfolders(ansiFolders[1], ansiFolders)
+    local folders = {}
+    for i = 1, #ansiFolders do
+        folders[i] = a2u(ansiFolders[i])
     end
-    PDFWrapper.ImagesToPDF(tempExtraPath, layout, fastFlag)
+
+    local pages = PDFWrapper.ImagesToPDFFromFolders(folders, layout, fastFlag)
+    if pages == 0 and not commonUtils.FailureReported then
+        -- 整包里一张图片都没有：必须上报，否则上层会把"什么都没生成"当成生成成功。
+        -- 若已经上报过失败（例如输出文件写不进去），就不再补一条会误导人的"没有图片"。
+        commonUtils.ReportFailure("No image found in the archive; no PDF was generated: " .. tostring(path))
+    end
 end
 
 -- this func will be processed after your pdf generated
