@@ -1,4 +1,4 @@
-﻿namespace ImgsToPDF {
+namespace ImgsToPDF {
     partial class MainForm {
         /// <summary>
         /// 必需的设计器变量。

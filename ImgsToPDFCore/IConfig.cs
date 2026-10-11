@@ -1,4 +1,4 @@
-﻿using XLua;
+using XLua;
 
 namespace ImgsToPDFCore {
     /// <summary>

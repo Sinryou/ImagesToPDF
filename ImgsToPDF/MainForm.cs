@@ -1,4 +1,4 @@
-﻿using ImgsToPDF.Lang;
+using ImgsToPDF.Lang;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
