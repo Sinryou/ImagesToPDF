@@ -223,6 +223,7 @@ namespace ImgsToPDFCore {
             bool committed = false;
             try {
                 write(fs);
+                CSGlobal.ThrowIfCancelled();
                 CommitOutputFile(tempPath, pathToSave);
                 committed = true;
                 return true;
@@ -301,6 +302,7 @@ namespace ImgsToPDFCore {
         /// <param name="layout">合并方式</param>
         /// <param name="fastFlag">是否以图片质量换取生成速度</param>
         public static void ImagesToPDF(string directoryPath, Layout layout = Layout.Single, bool fastFlag = false) {
+            CSGlobal.ThrowIfCancelled();
             if (string.IsNullOrEmpty(directoryPath) || !Directory.Exists(directoryPath)) {
                 return;   // 不存在文件夹则直接结束执行（保持原行为：不生成任何文件）
             }
@@ -315,12 +317,14 @@ namespace ImgsToPDFCore {
         /// 由调用方（config.lua）负责上报失败。压缩包路径就靠这个返回值判断"整包无图片"。
         /// </summary>
         public static int ImagesToPDFFromFolders(string[] directoryPaths, Layout layout = Layout.Single, bool fastFlag = false) {
+            CSGlobal.ThrowIfCancelled();
             if (directoryPaths == null || directoryPaths.Length == 0) {
                 CommonUtils.ReportFailure("No source folder was provided; no PDF was generated.");
                 return 0;
             }
             var folders = new List<List<string>>();
             foreach (var directoryPath in directoryPaths) {
+                CSGlobal.ThrowIfCancelled();
                 var images = CollectSortedImagePaths(directoryPath);
                 if (images.Count > 0) {
                     folders.Add(images);
@@ -370,6 +374,7 @@ namespace ImgsToPDFCore {
             if (layout != Layout.DuplexLeftToRight && layout != Layout.DuplexRightToLeft) {
                 // 如果layout flag为0，单页来写
                 foreach (var imagePath in imagePaths) {
+                    CSGlobal.ThrowIfCancelled();
                     try {
                         var pageImage = LoadPageImage(imagePath, fastFlag);
                         if (pageImage != null) {
@@ -385,6 +390,7 @@ namespace ImgsToPDFCore {
 
             using var enumerator = imagePaths.GetEnumerator();
             while (enumerator.MoveNext()) {
+                CSGlobal.ThrowIfCancelled();
                 PageImage bm1;
                 try {
                     bm1 = LoadPageImage(enumerator.Current, fastFlag);
@@ -405,6 +411,7 @@ namespace ImgsToPDFCore {
                     break;
                 }
 
+                CSGlobal.ThrowIfCancelled();
                 PageImage bm2;
                 try {
                     bm2 = LoadPageImage(enumerator.Current, fastFlag);
@@ -584,6 +591,7 @@ namespace ImgsToPDFCore {
         /// <param name="inFiles">待合并文件列表</param>
         /// <param name="outFile">合并生成的文件名称</param>
         public static void PdfMerge(List<string> inFiles, string outFile) {
+            CSGlobal.ThrowIfCancelled();
             // 1. 实例化比较器
             var comparer = new StringLenComparer();
             // 2. 调用 Sort 方法并传入比较器
@@ -593,9 +601,11 @@ namespace ImgsToPDFCore {
                 using var pdf = new PdfCopy(doc, stream);
                 doc.Open();
                 inFiles.ForEach(file => {
+                    CSGlobal.ThrowIfCancelled();
                     if (File.Exists(file)) {
                         using var reader = new PdfReader(file);
                         for (int i = 0; i < reader.NumberOfPages; i++) {
+                            CSGlobal.ThrowIfCancelled();
                             var page = pdf.GetImportedPage(reader, i + 1);
                             pdf.AddPage(page);
                         }
@@ -604,6 +614,7 @@ namespace ImgsToPDFCore {
             });
         }
         public static void PdfMergeWithHierarchicalOutlines(List<string> inFiles, string outFile) {
+            CSGlobal.ThrowIfCancelled();
             // 1. 排序逻辑
             var comparer = new StringLenComparer();
             inFiles.Sort(comparer);
@@ -620,6 +631,7 @@ namespace ImgsToPDFCore {
                 PdfOutline root = pdf.RootOutline;
 
                 foreach (var file in inFiles) {
+                    CSGlobal.ThrowIfCancelled();
                     if (!File.Exists(file)) continue;
 
                     using var reader = new PdfReader(file);
@@ -660,6 +672,7 @@ namespace ImgsToPDFCore {
 
                     // 复制页面
                     for (int i = 1; i <= pageCount; i++) {
+                        CSGlobal.ThrowIfCancelled();
                         pdf.AddPage(pdf.GetImportedPage(reader, i));
                     }
 
@@ -732,6 +745,7 @@ namespace ImgsToPDFCore {
         /// 父文件夹书签会指到子文件夹的起始页，点进去完全不是那个章节。）
         /// </summary>
         public static void PdfMergeWithDeepOutlines(List<string> inFiles, string outFile, string rootPath) {
+            CSGlobal.ThrowIfCancelled();
             inFiles.Sort(new StringLenComparer());
             string root = NormalizeDir(rootPath);
 
@@ -739,6 +753,7 @@ namespace ImgsToPDFCore {
             var plan = new List<(string File, int StartPage, int PageCount)>();
             int cursor = 1;
             foreach (var file in inFiles) {
+                CSGlobal.ThrowIfCancelled();
                 if (!File.Exists(file)) continue;
                 try {
                     using var probe = new PdfReader(file);
@@ -831,6 +846,7 @@ namespace ImgsToPDFCore {
 
                 // 拷贝页面
                 foreach (var (file, _, pageCount) in plan) {
+                    CSGlobal.ThrowIfCancelled();
                     PdfReader reader;
                     try {
                         reader = new PdfReader(file);
@@ -841,6 +857,7 @@ namespace ImgsToPDFCore {
                     }
                     using (reader) {
                         for (int i = 1; i <= pageCount; i++) {
+                            CSGlobal.ThrowIfCancelled();
                             pdf.AddPage(pdf.GetImportedPage(reader, i));
                         }
                         pdf.FreeReader(reader);

@@ -20,4 +20,18 @@ internal struct CSGlobal {
     ];
     #endregion
     public static IConfig luaConfig;
+
+    /// <summary>
+    /// 父进程（GUI）是否已断开标准输入管道（即父进程已关闭或崩溃退出）。
+    /// </summary>
+    public static volatile bool IsCancelled;
+
+    /// <summary>
+    /// 若已收到父进程退出信号，抛出取消异常以中断耗时循环并触发 finally 清理临时文件。
+    /// </summary>
+    public static void ThrowIfCancelled() {
+        if (IsCancelled) {
+            throw new OperationCanceledException("The parent process has exited.");
+        }
+    }
 }

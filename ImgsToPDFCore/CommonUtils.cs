@@ -72,6 +72,7 @@ namespace ImgsToPDFCore
                 return false;
             }
             foreach (var entry in entries) {
+                CSGlobal.ThrowIfCancelled();
                 // 不再用 entry.Size > 0 过滤：部分格式（流式 tar 等）取不到条目大小，
                 // 过滤会把正常文件（包括图片）静默丢掉
                 try {
@@ -130,6 +131,7 @@ namespace ImgsToPDFCore
         /// 判断不出来时返回 false（不弹框，直接把真实原因上报为失败）。
         /// </summary>
         public static bool IsArchiveEncrypted(string fromFilePath) {
+            CSGlobal.ThrowIfCancelled();
             var archive = TryOpenArchive(fromFilePath, null, out string openError);
             if (archive == null) {
                 ReportReason(openError);

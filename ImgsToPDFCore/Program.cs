@@ -1,6 +1,7 @@
 using CommandLine;
 using System;
 using System.IO;
+using System.Threading;
 using XLua;
 
 namespace ImgsToPDFCore {
@@ -27,11 +28,43 @@ namespace ImgsToPDFCore {
             // 导致错误信息里含中文的文件名/文件夹名变成乱码（用户无法辨认是哪张图出错）。
             Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+            StartParentWatchdogIfRedirected();
+
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed(Run)
                 .WithNotParsed(_ => {
                     Environment.ExitCode = 1;
                 });
+        }
+
+        /// <summary>
+        /// 当由 GUI 以重定向标准输入方式拉起时，后台监听 Stdin 管道 EOF：
+        /// 一旦父进程关闭或异常崩溃，OS 会自动关闭管道写端，ReadByte() 立即返回 -1。
+        /// 先置取消标志让主线程走 finally 清理临时文件与解压目录，超时未退则强制自毁。
+        /// </summary>
+        private static void StartParentWatchdogIfRedirected() {
+            if (!Console.IsInputRedirected) {
+                return;
+            }
+            new Thread(() => {
+                try {
+                    using var stdin = Console.OpenStandardInput();
+                    while (stdin.ReadByte() != -1) { }
+                }
+                catch {
+                    // 管道读取异常同样视为父进程已断开
+                }
+
+                CSGlobal.IsCancelled = true;
+
+                // 给主线程预留 2 秒宽限期以完成栈展开及 finally 清理（删除 .pdf.tmp 与解压目录）；
+                // 若主线程正阻塞在 InputBox 密码弹窗等无法响应取消检查的位置，到期直接终止进程。
+                Thread.Sleep(2000);
+                Environment.Exit(1);
+            }) {
+                IsBackground = true,
+                Name = "ParentStdinWatchdog"
+            }.Start();
         }
         /// <summary>
         /// 使用解析后的命令行参数进行操作。

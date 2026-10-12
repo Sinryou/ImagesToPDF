@@ -72,6 +72,11 @@ namespace ImgsToPDF {
         private bool _isProcessing;
 
         /// <summary>
+        /// 窗体是否已确认关闭，用于阻止关闭瞬间排队中的任务继续拉起新子进程
+        /// </summary>
+        private volatile bool _isClosing;
+
+        /// <summary>
         /// 用于在悬停时显示完整路径的 ToolTip，防止长路径被截断后用户无法查看
         /// </summary>
         private readonly ToolTip _pathToolTip = new();
@@ -283,6 +288,8 @@ namespace ImgsToPDF {
 
             try {
                 var (failures, warnings) = await ButtonClickActionAsync(directoryPath, recursive, fastMode, merge, layoutIndex);
+                if (_isClosing || IsDisposed) return;
+
                 progressBar.Value = 100;
                 if (failures.Count > 0) {
                     MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGeneratedWithErrors"), failures.Count);
@@ -311,6 +318,8 @@ namespace ImgsToPDF {
                 }
             }
             catch (Exception ex) {
+                if (_isClosing || IsDisposed) return;
+
                 progressBar.Value = 100;
                 MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGenerationFailed"), ex.Message);
                 MessageBox.Show(
@@ -322,8 +331,10 @@ namespace ImgsToPDF {
                 );
             }
             finally {
-                // 无论成功还是出错，都恢复界面交互可用状态，避免界面卡死
-                SetUiState(false);
+                if (!_isClosing && !IsDisposed) {
+                    // 无论成功还是出错，都恢复界面交互可用状态，避免界面卡死
+                    SetUiState(false);
+                }
             }
         }
         private static List<string> RecursiveFolder(string path, List<string> dirs) {
@@ -403,6 +414,7 @@ namespace ImgsToPDF {
                 var tasks = dirs.Select(async dirPath => {
                     await semaphore.WaitAsync();
                     try {
+                        if (_isClosing) return;
                         var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(dirPath, fastMode, layoutIndex));
                         CollectProcessResult(dirPath, stderr, exitCode, failureQueue, warningQueue);
                     }
@@ -412,12 +424,12 @@ namespace ImgsToPDF {
                 });
                 await Task.WhenAll(tasks);
 
-                if (merge) {
+                if (merge && !_isClosing) {
                     var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode: false, layoutIndex: 0, mergePdfs: true));
                     CollectProcessResult(directoryPath, stderr, exitCode, failureQueue, warningQueue);
                 }
             }
-            else {
+            else if (!_isClosing) {
                 var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode, layoutIndex));
                 CollectProcessResult(directoryPath, stderr, exitCode, failureQueue, warningQueue);
             }
@@ -628,6 +640,7 @@ namespace ImgsToPDF {
                     return;
                 }
             }
+            _isClosing = true;
             base.OnFormClosing(e);
         }
 
