@@ -158,13 +158,47 @@ $msbuildPath = Find-MSBuild
 Write-Host "使用 MSBuild: $msbuildPath" -ForegroundColor Gray
 
 # 3. 解决 Windows 环境下的 Mark of the Web (Zone.Identifier / Integrity Level)
+# 只处理 .resx：GenerateResource 报 MSB3821 的触发条件是「.resx 带有网络来源标记，
+# 或所在目录/文件处于 Low 完整性级别」。因此只需修复真正会触发它的那几个文件，
+# 不要对整个仓库（含 .git）递归改写完整性级别——那既慢，又会在工作副本上留下
+# 与版本控制无关的 ACL 副作用，而且遍历期间任何被占用的文件都会让整条命令中途失败。
 try {
-    # 避免因目录带有 Low Mandatory Level 导致 GenerateResource 报 MSB3821 错误
-    $icaclsCmd = Get-Command icacls.exe -ErrorAction SilentlyContinue
-    if ($icaclsCmd) {
-        & icacls.exe "$repoRoot" /setintegritylevel "(OI)(CI)Medium" /T /C /Q | Out-Null
+    $hasIcacls = $null -ne (Get-Command icacls.exe -ErrorAction SilentlyContinue)
+
+    # 先定位项目目录（含工程文件的目录），再只在其中找 .resx——
+    # 避免为了找几个 resx 而遍历 .git、bin、obj 等与构建无关的内容。
+    $projDirs = Get-ChildItem -Path $repoRoot -Filter "*.??proj" -File -Recurse -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty DirectoryName -Unique
+
+    foreach ($projDir in $projDirs) {
+        $resxFiles = @(Get-ChildItem -Path $projDir -Filter "*.resx" -Recurse -File -ErrorAction SilentlyContinue)
+        foreach ($resx in $resxFiles) {
+            # (a) 去掉网络来源标记。等价于 Unblock-File，但只对确实带标记的文件动手，
+            #     并且直接删除 Zone.Identifier 流——避免 Unblock-File 在个别文件上失败时中断整批处理。
+            try {
+                $zoneStream = Get-Item -LiteralPath $resx.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue
+                if ($zoneStream) {
+                    Remove-Item -LiteralPath $resx.FullName -Stream Zone.Identifier -ErrorAction Stop
+                    Write-Host "  已移除网络来源标记: $($resx.FullName)" -ForegroundColor Gray
+                }
+            }
+            catch {
+                Write-Warning "无法移除网络来源标记: $($resx.FullName) - $($_.Exception.Message)"
+            }
+
+            # (b) 保证不处于 Low 完整性级别。icacls 的 Mandatory Label 名称会随系统语言本地化
+            #     （中文系统是「强制性级别」），解析输出判断不可靠，而该命令本身是幂等的，
+            #     所以直接设置。这里刻意不加 /T，作用范围仅限该文件，不波及子目录与仓库其它内容。
+            if ($hasIcacls) {
+                try {
+                    & icacls.exe $resx.FullName /setintegritylevel Medium 2>&1 | Out-Null
+                }
+                catch {
+                    Write-Warning "无法调整完整性级别: $($resx.FullName) - $($_.Exception.Message)"
+                }
+            }
+        }
     }
-    Get-ChildItem -Path $repoRoot -Filter "*.resx" -Recurse | Unblock-File -ErrorAction SilentlyContinue
 } catch {
     # 仅作为安全兜底，非致命
 }
