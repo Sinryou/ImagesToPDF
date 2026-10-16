@@ -503,14 +503,22 @@ namespace ImgsToPDFCore {
         /// <summary>
         /// 把解码得到的位图封装为 iTextSharp 图像实例。
         /// --fast 时统一按 FastQuality 压缩为 JPEG（透明区域铺白底），与其它路径保持一致；
-        /// 否则 WebP 直接转为 BMP 写出，其余按读入的格式写。
+        /// 否则带透明通道的位图编码为 PNG（保留 alpha，iText 会据此生成 /SMask），
+        /// 不透明的位图仍按 BMP 写出（体积更小，且不会产生多余的 /SMask）。
         /// </summary>
         static iTextSharp.text.Image GetImageInstance(Bitmap bitmap, bool fastFlag) {
             if (fastFlag) {
                 return iTextSharp.text.Image.GetInstance(CompressToJpeg(bitmap, GetFastJpegQuality()));
             }
-            // webp直接转为bmp写，否则报错；其他的按读入的格式写
+            // webp 解码得到的是内存位图（RawFormat 为 MemoryBmp），iText 无法直接识别，需要指定格式。
+            // 这里必须区分透明与不透明：BMP 不携带 alpha，透明区域会变成纯黑（libwebp 对全透明像素
+            // 输出 RGBA(0,0,0,0)）；改用 PNG 则 iText 会生成 /SMask，透明背景得以保留。
             if (bitmap.RawFormat.Equals(ImageFormat.MemoryBmp)) {
+                if (System.Drawing.Image.IsAlphaPixelFormat(bitmap.PixelFormat)) {
+                    using var ms = new MemoryStream();
+                    bitmap.Save(ms, ImageFormat.Png);
+                    return iTextSharp.text.Image.GetInstance(ms.ToArray());
+                }
                 return iTextSharp.text.Image.GetInstance(bitmap, ImageFormat.Bmp);
             }
             return iTextSharp.text.Image.GetInstance(bitmap, bitmap.RawFormat);
