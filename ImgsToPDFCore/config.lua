@@ -179,17 +179,33 @@ function Config:PreProcess(...)
     pdfFileName = pathUtil.fileNameWithoutExtension(path) or "Output"
     outputDir = pathUtil.dirPath(path)
     tempExtraPath = outputDir .. "/" .. pdfFileName .. os.date("%Y%m%d%H%M%S")
-    local _, result = pcall(commonUtils.Decompress, path, tempExtraPath)
+    -- pcall 的返回值是 (ok, ...)。必须同时检查 ok：C# 抛出的异常会被 XLua 转成
+    -- 一个"字符串"错误对象返回，而字符串在 Lua 里为真——只看第二个返回值会把
+    -- "解压抛异常"误判成"解压成功"，然后继续在空目录上跑，最后报成"压缩包里没有图片"，
+    -- 真正的原因（磁盘错误、父进程退出等）反而被埋掉，解压目录也不会被清理。
+    local ok, result = pcall(commonUtils.Decompress, path, tempExtraPath)
+    if not ok then
+        commonUtils.ReportFailure("Failed to extract the archive: " .. tostring(result))
+        return
+    end
     if not result then
         -- 只有确实是加密包才去问密码。否则把解压失败的真实原因（条目非法、磁盘错误等）
         -- 直接上报，免得像以前那样一律提示"密码为空或错误"，用户输多少次密码都没用。
-        if not commonUtils.IsArchiveEncrypted(path) then
+        -- IsArchiveEncrypted 同样可能抛异常（例如压缩包被截断），这里一并兜住，
+        -- 抛异常时按"判断不出来"处理，直接上报失败而不是让错误逃逸成 LuaException。
+        local encryptedOk, encrypted = pcall(commonUtils.IsArchiveEncrypted, path)
+        if not encryptedOk or not encrypted then
             commonUtils.ReportFailure("Failed to extract the archive; no PDF was generated: " .. tostring(path))
             return
         end
         local password = interaction.InputBox("Input password:", "Encrypted Compress File")
-        if common.isEmpty(password) or not commonUtils.Decompress(path, tempExtraPath, password) then
-            -- 密码为空或密码错误：必须上报，否则上层会把"什么都没生成"当成生成成功
+        -- 带密码解压这一路同样可能抛异常，不能让它逃逸
+        local pwdOk, pwdResult = false, false
+        if not common.isEmpty(password) then
+            pwdOk, pwdResult = pcall(commonUtils.Decompress, path, tempExtraPath, password)
+        end
+        if not pwdOk or not pwdResult then
+            -- 密码为空、密码错误或解压抛异常：必须上报，否则上层会把"什么都没生成"当成生成成功
             commonUtils.ReportFailure(
                 "Failed to extract the archive (empty or wrong password); no PDF was generated: " .. tostring(path))
             return
