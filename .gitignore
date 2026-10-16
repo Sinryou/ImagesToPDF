@@ -362,3 +362,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /ImgsToPDF/Core
+
+# Build pipeline and packaging artifacts
+/artifacts/
+/build/dist/
+*.sha256

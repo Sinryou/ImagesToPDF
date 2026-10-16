@@ -1,0 +1,52 @@
+name: Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse Tag Version
+        id: parse_version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $cleanVersion = $tag.TrimStart('v')
+          Write-Host "Releasing version: $cleanVersion"
+          "version=$cleanVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --no-progress
+
+      - name: Run Build and Packaging Script
+        shell: pwsh
+        run: |
+          .\build\build.ps1 -Configuration Release -Platform x64 -Package -Installer -Version "${{ steps.parse_version.outputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ImgsToPDF ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            artifacts/*.zip
+            artifacts/*.exe
+            artifacts/*.sha256

@@ -1,0 +1,38 @@
+name: CI Build & Package
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Package (Windows x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --no-progress
+
+      - name: Run Build and Packaging Script
+        shell: pwsh
+        run: |
+          .\build\build.ps1 -Configuration Release -Platform x64 -Package -Installer
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImgsToPDF-Build-Artifacts
+          path: artifacts/
+          retention-days: 14
