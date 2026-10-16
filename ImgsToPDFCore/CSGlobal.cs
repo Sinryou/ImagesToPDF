@@ -27,6 +27,12 @@ internal struct CSGlobal {
     public static volatile bool IsCancelled;
 
     /// <summary>
+    /// 临时文件与解压目录的清理是否已完成。供看门狗判断：
+    /// 清理已完成后不要再用 Environment.Exit 强制结束进程，否则会顶掉真实退出码。
+    /// </summary>
+    public static volatile bool CleanupCompleted;
+
+    /// <summary>
     /// 若已收到父进程退出信号，抛出取消异常以中断耗时循环并触发 finally 清理临时文件。
     /// </summary>
     public static void ThrowIfCancelled() {

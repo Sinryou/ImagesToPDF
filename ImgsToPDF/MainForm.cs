@@ -496,6 +496,12 @@ namespace ImgsToPDF {
             p.StartInfo.StandardOutputEncoding = utf8NoBom;
             p.StartInfo.StandardErrorEncoding = utf8NoBom;
 
+            // 显式告知 Core「我是 GUI 拉起的」，它才会开启父进程看门狗：
+            // 该看门狗把 stdin 当作父进程存活管道，一旦读到 EOF 就取消任务并在宽限期后自毁，
+            // 避免 GUI 退出后残留孤儿进程。Core 不能靠 Console.IsInputRedirected 自行判断——
+            // 那会把「管道/重定向调用命令行」也误判成父进程已退出，导致 Core 完全无法被脚本调用。
+            p.StartInfo.EnvironmentVariables["IMGTSPDF_WATCH_PARENT"] = "1";
+
             p.Start();
 
             // 同时异步读取 stdout 与 stderr，避免管道缓冲写满时互相阻塞导致死锁
