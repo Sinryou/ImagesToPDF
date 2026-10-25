@@ -168,4 +168,7 @@
   <data name="strWarnGenerating" xml:space="preserve">
     <value>PDF generation is in progress. Are you sure you want to exit?</value>
   </data>
+  <data name="strNoImagesFound" xml:space="preserve">
+    <value>No supported images were found in the selected folder or its subfolders.</value>
+  </data>
 </root>
