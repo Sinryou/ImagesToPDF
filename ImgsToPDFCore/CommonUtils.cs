@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace ImgsToPDFCore
 {
@@ -195,6 +196,87 @@ namespace ImgsToPDFCore
                 ReportReason($"failed to extract '{fromFilePath}' with the given password: {error}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 请求解压密码。
+        /// 若由 GUI 调起，通过 stdout 向 GUI 发起协议请求并等待回传；
+        /// 若由命令行直接运行，在控制台中提示输入密码（支持终端掩码输入）。
+        /// 返回 null 或空字符串表示用户取消或未提供密码。
+        /// </summary>
+        public static string PromptPassword(string archivePath) {
+            CSGlobal.ThrowIfCancelled();
+            if (!CSGlobal.IsGuiMode) {
+                return PromptConsolePassword(archivePath);
+            }
+
+            // GUI 模式：向标准输出写入约定的密码请求指令
+            Console.WriteLine($"::__REQ_PASSWORD__::{archivePath}");
+            Console.Out.Flush();
+
+            // 等待 GUI 回传（最长等待 10 分钟）
+            string response = CSGlobal.WaitForStdinLine(TimeSpan.FromMinutes(10));
+            CSGlobal.ThrowIfCancelled();
+
+            if (string.IsNullOrEmpty(response) || response == "::__CANCEL__::") {
+                return null;
+            }
+
+            const string prefix = "::__RESP_PASSWORD__::";
+            if (response.StartsWith(prefix)) {
+                string base64 = response.Substring(prefix.Length);
+                try {
+                    byte[] bytes = Convert.FromBase64String(base64);
+                    return Encoding.UTF8.GetString(bytes);
+                }
+                catch (Exception ex) {
+                    Console.Error.WriteLine($"[ImgsToPDFCore] Failed to decode password from GUI: {ex.Message}");
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 在终端/控制台提示用户输入密码。
+        /// 若处于非重定向的交互式控制台，支持 '*' 掩码输入、退格修正及 Enter 提交。
+        /// 若输入被重定向（如自动化脚本/管道），回退到 Console.ReadLine()。
+        /// </summary>
+        private static string PromptConsolePassword(string archivePath) {
+            CSGlobal.ThrowIfCancelled();
+            string archiveName = Path.GetFileName(archivePath);
+
+            if (Console.IsInputRedirected) {
+                Console.Error.WriteLine($"[ImgsToPDFCore] Reading password for '{archiveName}' from redirected standard input...");
+                return Console.ReadLine();
+            }
+
+            Console.Write($"Enter password for '{archiveName}': ");
+            var sb = new StringBuilder();
+            while (true) {
+                CSGlobal.ThrowIfCancelled();
+                ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: true);
+                if (keyInfo.Key == ConsoleKey.Enter) {
+                    Console.WriteLine();
+                    break;
+                }
+                if (keyInfo.Key == ConsoleKey.Escape) {
+                    Console.WriteLine();
+                    return null; // 用户取消
+                }
+                if (keyInfo.Key == ConsoleKey.Backspace) {
+                    if (sb.Length > 0) {
+                        sb.Length--;
+                        Console.Write("\b \b");
+                    }
+                }
+                else if (!char.IsControl(keyInfo.KeyChar)) {
+                    sb.Append(keyInfo.KeyChar);
+                    Console.Write("*");
+                }
+            }
+            return sb.ToString();
         }
     }
 }

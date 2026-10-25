@@ -11,7 +11,6 @@ local iPageSize = CS.iTextSharp.text.PageSize
 local iRectangle = CS.iTextSharp.text.Rectangle
 local commonUtils = CS.ImgsToPDFCore.CommonUtils
 local PDFWrapper = CS.ImgsToPDFCore.PDFWrapper
-local interaction = CS.Microsoft.VisualBasic.Interaction
 
 -- add your local funcs below
 -- 建议在这个部分添加你自己要用到的函数
@@ -198,7 +197,12 @@ function Config:PreProcess(...)
             commonUtils.ReportFailure("Failed to extract the archive; no PDF was generated: " .. tostring(path))
             return
         end
-        local password = interaction.InputBox("Input password:", "Encrypted Compress File")
+        local password = commonUtils.PromptPassword(path)
+        if common.isEmpty(password) then
+            commonUtils.ReportFailure(
+                "Extraction cancelled or no password provided; no PDF was generated: " .. tostring(path))
+            return
+        end
         -- 带密码解压这一路同样可能抛异常，不能让它逃逸
         local pwdOk, pwdResult = false, false
         if not common.isEmpty(password) then

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -39,6 +40,7 @@ namespace ImgsToPDF {
                 ReplaceImage(PicInFolder, null);
                 SetFolderOverlay(null);
                 _pathToolTip?.Dispose();
+                _passwordPromptLock?.Dispose();
             };
         }
 
@@ -85,6 +87,11 @@ namespace ImgsToPDF {
         /// 用于在悬停时显示完整路径的 ToolTip，防止长路径被截断后用户无法查看
         /// </summary>
         private readonly ToolTip _pathToolTip = new();
+
+        /// <summary>
+        /// 避免并发 Core 进程同时弹出多个密码输入窗口，将密码输入串行化
+        /// </summary>
+        private readonly SemaphoreSlim _passwordPromptLock = new(1, 1);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
@@ -592,12 +599,13 @@ namespace ImgsToPDF {
             return [.. args];
         }
         /// <summary>
-        /// 运行给定的命令，返回得到的标准输出、标准错误及退出码
+        /// 运行给定的命令，返回得到的标准输出、标准错误及退出码。
+        /// 监听标准输出并拦截密码请求指令（::__REQ_PASSWORD__::），在 UI 线程弹出密码输入框并通过标准输入回传。
         /// </summary>
         /// <param name="fileName">需要运行的指令</param>
         /// <param name="args">命令行参数列表</param>
         /// <returns>元组：(stdout: 标准输出, stderr: 标准错误, exitCode: 进程退出码)</returns>
-        private static async Task<(string stdout, string stderr, int exitCode)> RunProcessAsync(string fileName, string[] args) {
+        private async Task<(string stdout, string stderr, int exitCode)> RunProcessAsync(string fileName, string[] args) {
             for (int i = 0; i < args.Length; i++) {
                 if (args[i].EndsWith(@"\")) {
                     //处理最后若为“\\”，会被转义成“\”，然后变成转义符。
@@ -605,7 +613,7 @@ namespace ImgsToPDF {
                 }
                 args[i] = string.Format("\"{0}\"", args[i]);
             }
-            // 例Process
+            // 实例化Process
             using Process p = new();
             p.StartInfo.FileName = fileName;
             p.StartInfo.Arguments = string.Join(" ", args);
@@ -629,8 +637,46 @@ namespace ImgsToPDF {
 
             p.Start();
 
-            // 同时异步读取 stdout 与 stderr，避免管道缓冲写满时互相阻塞导致死锁
-            var stdoutTask = p.StandardOutput.ReadToEndAsync();
+            // 异步读取 stdout，拦截并处理密码请求指令；普通行追加到 stdoutBuffer
+            var stdoutSb = new StringBuilder();
+            var stdoutTask = Task.Run(async () => {
+                const string reqPrefix = "::__REQ_PASSWORD__::";
+                try {
+                    while (true) {
+                        string line = await p.StandardOutput.ReadLineAsync();
+                        if (line == null) {
+                            break;
+                        }
+                        if (line.StartsWith(reqPrefix, StringComparison.Ordinal)) {
+                            string archivePath = line.Substring(reqPrefix.Length);
+                            string password = await PromptPasswordOnUiAsync(archivePath);
+                            try {
+                                if (password != null) {
+                                    byte[] bytes = Encoding.UTF8.GetBytes(password);
+                                    string base64 = Convert.ToBase64String(bytes);
+                                    await p.StandardInput.WriteLineAsync($"::__RESP_PASSWORD__::{base64}");
+                                    await p.StandardInput.FlushAsync();
+                                }
+                                else {
+                                    await p.StandardInput.WriteLineAsync("::__CANCEL__::");
+                                    await p.StandardInput.FlushAsync();
+                                }
+                            }
+                            catch {
+                                // 进程已退出或管道已关闭
+                            }
+                        }
+                        else {
+                            stdoutSb.AppendLine(line);
+                        }
+                    }
+                }
+                catch {
+                    // 读取异常（如子进程被强制终止导致管道损坏）
+                }
+                return stdoutSb.ToString();
+            });
+
             var stderrTask = p.StandardError.ReadToEndAsync();
 
             var outputs = await Task.WhenAll(stdoutTask, stderrTask);
@@ -639,6 +685,59 @@ namespace ImgsToPDF {
             await Task.Run(() => p.WaitForExit());
 
             return (outputs[0], outputs[1], p.ExitCode);
+        }
+
+        /// <summary>
+        /// 在 UI 线程弹出密码输入对话框并等待用户输入或取消。
+        /// </summary>
+        /// <param name="archivePath">需要解压的压缩包路径</param>
+        /// <returns>用户输入的密码；若用户取消或窗体关闭则返回 null</returns>
+        private async Task<string> PromptPasswordOnUiAsync(string archivePath) {
+            if (_isClosing || this.IsDisposed) {
+                return null;
+            }
+
+            await _passwordPromptLock.WaitAsync();
+            try {
+                if (_isClosing || this.IsDisposed) {
+                    return null;
+                }
+
+                var tcs = new TaskCompletionSource<string>();
+                if (this.InvokeRequired) {
+                    try {
+                        this.BeginInvoke(new Action(() => {
+                            try {
+                                if (_isClosing || this.IsDisposed) {
+                                    tcs.TrySetResult(null);
+                                    return;
+                                }
+                                using var dialog = new PasswordDialog(archivePath);
+                                if (dialog.ShowDialog(this) == DialogResult.OK) {
+                                    tcs.TrySetResult(dialog.Password);
+                                }
+                                else {
+                                    tcs.TrySetResult(null);
+                                }
+                            }
+                            catch (Exception ex) {
+                                tcs.TrySetException(ex);
+                            }
+                        }));
+                        return await tcs.Task;
+                    }
+                    catch (InvalidOperationException) {
+                        return null; // 句柄尚未创建或窗体正在关闭
+                    }
+                }
+                else {
+                    using var dialog = new PasswordDialog(archivePath);
+                    return dialog.ShowDialog(this) == DialogResult.OK ? dialog.Password : null;
+                }
+            }
+            finally {
+                _passwordPromptLock.Release();
+            }
         }
         private void ToolStripMenuExit_Click(object sender, EventArgs e) {
             this.Close();

@@ -27,12 +27,14 @@ namespace ImgsToPDFCore {
             // 此时 Console 默认使用 OEM 代码页，而 GUI 侧按 UTF-8 解码，
             // 导致错误信息里含中文的文件名/文件夹名变成乱码（用户无法辨认是哪张图出错）。
             Console.OutputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            Console.InputEncoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
             // 看门狗只应由 GUI 显式开启，且该标志不能继承给其它进程，因此读完立刻清掉。
             bool watchParent = string.Equals(
                 Environment.GetEnvironmentVariable(WatchParentEnvVar), "1", StringComparison.Ordinal);
             Environment.SetEnvironmentVariable(WatchParentEnvVar, null);
 
+            CSGlobal.IsGuiMode = watchParent;
             StartParentWatchdogIfRequested(watchParent);
 
             Parser.Default.ParseArguments<Options>(args)
@@ -62,14 +64,18 @@ namespace ImgsToPDFCore {
             }
             new Thread(() => {
                 try {
-                    using var stdin = Console.OpenStandardInput();
-                    while (stdin.ReadByte() != -1) { }
+                    string line;
+                    while ((line = Console.ReadLine()) != null) {
+                        CSGlobal.DeliverStdinLine(line);
+                    }
+
                 }
                 catch {
                     // 管道读取异常同样视为父进程已断开
                 }
 
                 CSGlobal.IsCancelled = true;
+                CSGlobal.DeliverStdinLine(null);
 
                 // 给主线程预留 2 秒宽限期以完成栈展开及 finally 清理（删除 .pdf.tmp 与解压目录）；
                 // 若主线程正阻塞在 InputBox 密码弹窗等无法响应取消检查的位置，到期直接终止进程。
