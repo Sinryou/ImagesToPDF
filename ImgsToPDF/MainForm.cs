@@ -52,6 +52,7 @@ namespace ImgsToPDF {
                 englishToolStripMenuItem.Enabled = false;
             }
             FolderImg.BringToFront();
+            PicInFolder.Cursor = SystemHandCursor;
             MsgLabel.ForeColor = Color.Blue;
             generateModeBox.Items.AddRange([
                 Extra.ApplyResource(typeof(Extra), "strSingle"),
@@ -85,6 +86,26 @@ namespace ImgsToPDF {
         /// </summary>
         private readonly ToolTip _pathToolTip = new();
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
+
+        private const int IDC_HAND = 32649;
+
+        /// <summary>
+        /// 获取 Windows 现代系统原生平滑手形光标（IDC_HAND），避免 WinForms 默认 Cursors.Hand 在高分屏下出现锯齿像素化。
+        /// </summary>
+        private static readonly Cursor SystemHandCursor = GetSystemHandCursor();
+
+        private static Cursor GetSystemHandCursor() {
+            try {
+                IntPtr handle = LoadCursor(IntPtr.Zero, IDC_HAND);
+                return handle != IntPtr.Zero ? new Cursor(handle) : Cursors.Hand;
+            }
+            catch {
+                return Cursors.Hand;
+            }
+        }
+
         /// <summary>
         /// 全局设置界面忙碌/就绪状态，锁定用户输入以防止竞态条件
         /// </summary>
@@ -102,6 +123,9 @@ namespace ImgsToPDF {
             toolStripMenuClearChosen.Enabled = !isProcessing;
             languageToolStripMenuItem.Enabled = !isProcessing;
             toolStripMenuConfigFile.Enabled = !isProcessing;
+
+            var clickableCursor = isProcessing ? Cursors.Default : SystemHandCursor;
+            PicInFolder.Cursor = clickableCursor;
         }
 
         private void MainForm_DragEnter(object sender, DragEventArgs e) {

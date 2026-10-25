@@ -78,6 +78,7 @@ namespace ImgsToPDF {
             // 
             // PicInFolder
             // 
+            this.PicInFolder.Cursor = System.Windows.Forms.Cursors.Hand;
             this.PicInFolder.Image = global::ImgsToPDF.Properties.Resources.folder;
             resources.ApplyResources(this.PicInFolder, "PicInFolder");
             this.PicInFolder.Name = "PicInFolder";

@@ -376,13 +376,13 @@
     <value>Exit(&amp;E)</value>
   </data>
   <data name="toolStripMenuFile.Size" type="System.Drawing.Size, System.Drawing">
-    <value>78, 28</value>
+    <value>78, 32</value>
   </data>
   <data name="toolStripMenuFile.Text" xml:space="preserve">
     <value>File(&amp;F)</value>
   </data>
   <data name="toolStripMenuConfigFile.Size" type="System.Drawing.Size, System.Drawing">
-    <value>142, 28</value>
+    <value>142, 32</value>
   </data>
   <data name="toolStripMenuConfigFile.Text" xml:space="preserve">
     <value>Config File(&amp;C)</value>
@@ -400,13 +400,13 @@
     <value>Chinese</value>
   </data>
   <data name="languageToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>132, 28</value>
+    <value>132, 32</value>
   </data>
   <data name="languageToolStripMenuItem.Text" xml:space="preserve">
     <value>Language(&amp;L)</value>
   </data>
   <data name="toolStripMenuAbout.Size" type="System.Drawing.Size, System.Drawing">
-    <value>105, 28</value>
+    <value>105, 32</value>
   </data>
   <data name="toolStripMenuAbout.Text" xml:space="preserve">
     <value>About(&amp;A)</value>
@@ -415,7 +415,7 @@
     <value>0, 0</value>
   </data>
   <data name="menuStripMain.Size" type="System.Drawing.Size, System.Drawing">
-    <value>803, 32</value>
+    <value>803, 36</value>
   </data>
   <data name="menuStripMain.TabIndex" type="System.Int32, mscorlib">
     <value>15</value>
@@ -977,6 +977,9 @@
         et1AoPWhGv2ZevYo5I0kblwLF0SOJZtjGI5s/R/Yt3pmvUSDwTDKsiz+BfHQI7whvFb0lx0gzBN+F6B1
         llBJWCOG+QNsHE9kP3P2iAAAAABJRU5ErkJggg==
 </value>
+  </data>
+  <data name="$this.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>ImgsToPDF</value>
