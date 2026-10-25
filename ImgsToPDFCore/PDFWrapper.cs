@@ -629,6 +629,9 @@ namespace ImgsToPDFCore {
                             var page = pdf.GetImportedPage(reader, i + 1);
                             pdf.AddPage(page);
                         }
+                        // 读完即释放（与 PdfMergeWithDeepOutlines 一致）：让 PdfCopy 尽早写出并
+                        // 释放该文件的已导入页对象，避免一次合并很多大 PDF 时内存峰值持续偏高
+                        pdf.FreeReader(reader);
                     }
                 });
             });
