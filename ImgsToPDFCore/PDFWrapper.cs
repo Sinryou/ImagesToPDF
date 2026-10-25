@@ -87,12 +87,29 @@ namespace ImgsToPDFCore {
         }
 
         /// <summary>
-        /// 只解析元数据读出 EXIF Orientation（不解码像素数据）。
+        /// 只解析元数据读出 EXIF Orientation（纯二进制流扫描，零 GDI+ 实例分配）。
+        /// 优先通过纯二进制扫描 JPEG/WebP/TIFF 结构，未命中时安全降级回 GDI+。
         /// </summary>
         private static ushort ReadExifOrientation(byte[] imageBytes) {
-            using var stream = new MemoryStream(imageBytes, writable: false);
-            using var image = System.Drawing.Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
-            return ReadOrientation(image);
+            try {
+                ushort? orientation = ImageExif.GetImageOrientation(imageBytes);
+                if (orientation.HasValue) {
+                    return orientation.Value;
+                }
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"[ImgsToPDFCore] Pure-byte EXIF parse failed: {ex.Message}");
+            }
+
+            // 极少数格式若未能被二进制扫描命中，安全降级回 GDI+
+            try {
+                using var stream = new MemoryStream(imageBytes, writable: false);
+                using var image = System.Drawing.Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
+                return ReadOrientation(image);
+            }
+            catch {
+                return 1;
+            }
         }
 
         /// <summary>
@@ -556,7 +573,7 @@ namespace ImgsToPDFCore {
                 using var img = System.Drawing.Image.FromStream(stream);
 
                 if (needsExifCheck) {
-                    ushort orientation = ReadOrientation(img);
+                    ushort orientation = ImageExif.GetImageOrientation(rawBytes) ?? ReadOrientation(img);
                     RotateFlipType rotateFlip = GetRotateFlipType(orientation);
 
                     if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
@@ -594,16 +611,22 @@ namespace ImgsToPDFCore {
             var rawWebP = File.ReadAllBytes(imagePath);
             using WebP webp = new();
             var bitmapWebp = webp.Decode(rawWebP);
+            if (bitmapWebp == null) return null;
 
-            ushort? orientation = WebPExif.GetOrientation(rawWebP);
-            if (orientation.HasValue) {
-                RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
-                if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
-                    bitmapWebp.RotateFlip(rotateFlip);
+            try {
+                ushort? orientation = ImageExif.GetOrientation(rawWebP);
+                if (orientation.HasValue) {
+                    RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
+                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                        bitmapWebp.RotateFlip(rotateFlip);
+                    }
                 }
+                return bitmapWebp;
             }
-
-            return bitmapWebp;
+            catch {
+                bitmapWebp.Dispose();
+                throw;
+            }
         }
         /// <summary>
         /// 合并PDF文件

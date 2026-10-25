@@ -24,6 +24,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
 
@@ -31,6 +32,11 @@ namespace WebPWrapper
 {
     public sealed class WebP : IDisposable
     {
+        static WebP()
+        {
+            // 确保首次访问 WebP 类型时触发 UnsafeNativeMethods 静态构造，完成非托管 DLL 路径预载入
+            System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(UnsafeNativeMethods).TypeHandle);
+        }
 
         #region | Public Decode Functions |
         /// <summary>Decode a WebP image</summary>
@@ -38,9 +44,13 @@ namespace WebPWrapper
         /// <returns>Bitmap with the WebP image</returns>
         public Bitmap Decode(byte[] rawWebP)
         {
+            if (rawWebP == null || rawWebP.Length == 0)
+                return null;
+
             Bitmap bmp = null;
             BitmapData bmpData = null;
             GCHandle pinnedWebP = GCHandle.Alloc(rawWebP, GCHandleType.Pinned);
+            bool success = false;
 
             try
             {
@@ -62,14 +72,18 @@ namespace WebPWrapper
                 else
                      UnsafeNativeMethods.WebPDecodeBGRAInto(ptrData, rawWebP.Length, bmpData.Scan0, outputSize, bmpData.Stride);
 
+                success = true;
                 return bmp;
             }
-            catch (Exception) { throw; }
             finally
             {
                 //Unlock the pixels
-                if (bmpData != null)
+                if (bmpData != null && bmp != null)
                     bmp.UnlockBits(bmpData);
+
+                // 解码异常时及时销毁已创建的位图，杜绝 GDI 句柄泄漏
+                if (!success && bmp != null)
+                    bmp.Dispose();
 
                 //Free memory
                 if (pinnedWebP.IsAllocated)
@@ -142,6 +156,28 @@ namespace WebPWrapper
     [SuppressUnmanagedCodeSecurityAttribute]
     internal sealed partial class UnsafeNativeMethods
     {
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr LoadLibrary(string libname);
+
+        static UnsafeNativeMethods()
+        {
+            string dllName = IntPtr.Size == 8 ? "libwebp_x64.dll" : "libwebp_x86.dll";
+
+            // 1. 优先检测 Core 子目录（针对 WinForms GUI 宿主环境：libwebp 位于 Core\ 目录下）
+            string coreDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Core", dllName);
+            if (File.Exists(coreDllPath))
+            {
+                LoadLibrary(coreDllPath);
+                return;
+            }
+
+            // 2. 检测应用程序同级目录（针对 ImgsToPDFCore 独立进程环境）
+            string baseDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, dllName);
+            if (File.Exists(baseDllPath))
+            {
+                LoadLibrary(baseDllPath);
+            }
+        }
 
         private static readonly int WEBP_DECODER_ABI_VERSION = 0x0208;
 
@@ -178,11 +214,11 @@ namespace WebPWrapper
             switch (IntPtr.Size)
             {
                 case 4:
-                    if (WebPDecodeBGRInto_x86(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == null)
+                    if (WebPDecodeBGRInto_x86(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
                         throw new InvalidOperationException("Can not decode WebP");
                     break;
                 case 8:
-                    if (WebPDecodeBGRInto_x64(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == null)
+                    if (WebPDecodeBGRInto_x64(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
                         throw new InvalidOperationException("Can not decode WebP");
                     break;
                 default:
@@ -205,11 +241,11 @@ namespace WebPWrapper
             switch (IntPtr.Size)
             {
                 case 4:
-                    if (WebPDecodeBGRAInto_x86(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == null)
+                    if (WebPDecodeBGRAInto_x86(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
                         throw new InvalidOperationException("Can not decode WebP"); 
                     break;
                 case 8:
-                    if (WebPDecodeBGRAInto_x64(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == null)
+                    if (WebPDecodeBGRAInto_x64(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
                         throw new InvalidOperationException("Can not decode WebP");
                     break;
                 default:

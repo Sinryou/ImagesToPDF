@@ -40,7 +40,7 @@ internal static class CSGlobal {
     /// <summary>
     /// 存储由看门狗读取线程从标准输入分发而来的交互指令行（如 GUI 返回的密码响应）。
     /// </summary>
-    private static readonly BlockingCollection<string> _stdinLineQueue = new();
+    private static readonly BlockingCollection<string> _stdinLineQueue = [];
 
     /// <summary>
     /// 供看门狗或标准输入读取线程投递接收到的行。传入 null 表示 EOF（管道关闭）。

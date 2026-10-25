@@ -92,6 +92,12 @@
     <Compile Include="TransparentOverlayPictureBox.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="..\ImgsToPDFCore\WebPWrapper.cs">
+      <Link>WebPWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\ImgsToPDFCore\ImageExif.cs">
+      <Link>ImageExif.cs</Link>
+    </Compile>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
       <SubType>Designer</SubType>

@@ -13,6 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WebPWrapper;
 
 namespace ImgsToPDF {
     public partial class MainForm : Form {
@@ -66,11 +67,9 @@ namespace ImgsToPDF {
         }
 
         // 使用 HashSet(StringComparer.OrdinalIgnoreCase) 提高查找效率并自动忽略大小写
-        // GDI+ 原生支持解码的图片格式（用于界面缩略图预览）
-        private static readonly HashSet<string> gdiPreviewExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif"];
-        // 核心转换引擎（Core）支持的所有图片格式（含 libwebp 解码的 .webp，用于目录递归扫描判断）
-        private static readonly HashSet<string> coreSupportedExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
-        private static readonly HashSet<string> imageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff"];
+        // 支持的所有图片格式（含经由 libwebp 解码的 .webp）
+        private static readonly HashSet<string> imageExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
+        private static readonly HashSet<string> imageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff", ".webp"];
         private static readonly HashSet<string> compressExtensions = [with(StringComparer.OrdinalIgnoreCase), ".zip", ".rar", ".7z"];
 
         /// <summary>
@@ -216,6 +215,71 @@ namespace ImgsToPDF {
             }
         }
 
+        /// <summary>
+        /// EXIF Orientation 到 RotateFlipType 的映射函数
+        /// </summary>
+        private static RotateFlipType GetRotateFlipType(ushort orientation) => orientation switch {
+            1 => RotateFlipType.RotateNoneFlipNone,
+            2 => RotateFlipType.RotateNoneFlipX,
+            3 => RotateFlipType.Rotate180FlipNone,
+            4 => RotateFlipType.RotateNoneFlipY,
+            5 => RotateFlipType.Rotate90FlipX,
+            6 => RotateFlipType.Rotate90FlipNone,
+            7 => RotateFlipType.Rotate270FlipX,
+            8 => RotateFlipType.Rotate270FlipNone,
+            _ => RotateFlipType.RotateNoneFlipNone
+        };
+
+        /// <summary>
+        /// 加载单张图片用于缩略图预览生成。常规格式通过 GDI+ 流式加载，WebP 格式通过 libwebp + ImageExif 加载并纠正旋转。
+        /// </summary>
+        private static Image LoadPreviewImage(string imagepath) {
+            if (string.Equals(Path.GetExtension(imagepath), ".webp", StringComparison.OrdinalIgnoreCase)) {
+                // 只读一次盘：解码与 EXIF Orientation 解析共用同一份字节，避免同一文件读两遍
+                var rawWebP = File.ReadAllBytes(imagepath);
+                using WebP webp = new();
+                var bitmapWebp = webp.Decode(rawWebP);
+                if (bitmapWebp == null) return null;
+
+                try {
+                    ushort? orientation = ImgsToPDFCore.ImageExif.GetOrientation(rawWebP);
+                    if (orientation.HasValue) {
+                        RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
+                        if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                            bitmapWebp.RotateFlip(rotateFlip);
+                        }
+                    }
+                    return bitmapWebp;
+                }
+                catch {
+                    bitmapWebp.Dispose();
+                    throw;
+                }
+            }
+
+            // 从 Stream 加载可避免文件被 GDI+ 长期占用/锁定
+            using var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var img = Image.FromStream(stream);
+
+            if (imageExtensionsEXIFOrientation.Contains(Path.GetExtension(imagepath))) {
+                const int OrientationId = 0x0112;
+
+                // Array.IndexOf 比 Contains(PropertyIdList) 性能略高，减少不必要的数组遍历
+                if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
+                    var property = img.GetPropertyItem(OrientationId);
+                    ushort orientation = BitConverter.ToUInt16(property.Value, 0);
+
+                    RotateFlipType rotateFlip = GetRotateFlipType(orientation);
+
+                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                        img.RotateFlip(rotateFlip);
+                        img.RemovePropertyItem(OrientationId);
+                    }
+                }
+            }
+            return img;
+        }
+
         private void ChooseFileAction(string directoryPath) {
             PathLabel.Text = directoryPath;
             _pathToolTip.SetToolTip(PathLabel, directoryPath);
@@ -229,40 +293,12 @@ namespace ImgsToPDF {
             if (Directory.Exists(directoryPath)) {
                 Bitmap preview = null;
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
-                    .Where(p => gdiPreviewExtensions.Contains(Path.GetExtension(p)));
+                    .Where(p => imageExtensions.Contains(Path.GetExtension(p)));
                 foreach (var imagepath in imagepaths) {
                     try {
-                        // 2. 从 Stream 加载可避免文件被 GDI+ 长期占用/锁定
-                        using var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        using var img = Image.FromStream(stream);
-
-                        if (imageExtensionsEXIFOrientation.Contains(Path.GetExtension(imagepath))) {
-                            const int OrientationId = 0x0112;
-
-                            // 3. Array.IndexOf 比 Contains(PropertyIdList) 性能略高，减少不必要的数组遍历
-                            if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
-                                var property = img.GetPropertyItem(OrientationId);
-                                ushort orientation = BitConverter.ToUInt16(property.Value, 0);
-
-                                RotateFlipType rotateFlip = orientation switch {
-                                    1 => RotateFlipType.RotateNoneFlipNone,
-                                    2 => RotateFlipType.RotateNoneFlipX,
-                                    3 => RotateFlipType.Rotate180FlipNone,
-                                    4 => RotateFlipType.RotateNoneFlipY,
-                                    5 => RotateFlipType.Rotate90FlipX,
-                                    6 => RotateFlipType.Rotate90FlipNone,
-                                    7 => RotateFlipType.Rotate270FlipX,
-                                    8 => RotateFlipType.Rotate270FlipNone,
-                                    _ => RotateFlipType.RotateNoneFlipNone
-                                };
-
-                                if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
-                                    img.RotateFlip(rotateFlip);
-
-                                    // 4. 旋转后需要重置/移除 Orientation 标记，防止后续重复旋转或绘制异常
-                                    img.RemovePropertyItem(OrientationId);
-                                }
-                            }
+                        using var img = LoadPreviewImage(imagepath);
+                        if (img == null) {
+                            continue;
                         }
 
                         // 按预览控件两倍尺寸（适配高DPI且保证清晰度）生成缩略图，避免几十上百MB大图常驻内存
@@ -387,7 +423,7 @@ namespace ImgsToPDF {
         private static bool ContainsSupportedImage(string directoryPath) {
             try {
                 return Directory.EnumerateFiles(directoryPath)
-                    .Any(f => coreSupportedExtensions.Contains(Path.GetExtension(f)));
+                    .Any(f => imageExtensions.Contains(Path.GetExtension(f)));
             }
             catch (Exception ex) {
                 Debug.WriteLine($"[ImgsToPDF] Failed to enumerate files in '{directoryPath}': {ex.Message}");
