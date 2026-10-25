@@ -775,7 +775,11 @@ namespace ImgsToPDF {
                 "https://github.com/Sinryou/ImagesToPDF"
             );
         }
-        private void ToolStripMenuOpenFolder_Click(object sender, EventArgs e) {
+        /// <summary>
+        /// 弹出文件夹选择对话框，把选中的路径交给 ChooseFileAction 处理。
+        /// PicInFolder_Click 与 ToolStripMenuOpenFolder_Click 的共用实现。
+        /// </summary>
+        private void PickFolderAndChoose() {
             if (_isProcessing) return;
 
             using FolderBrowserDialog dialog = new() {
@@ -784,8 +788,11 @@ namespace ImgsToPDF {
             if (dialog.ShowDialog() == DialogResult.Cancel) {
                 return;
             }
-            string directoryPath = dialog.SelectedPath.Trim();
-            ChooseFileAction(directoryPath);
+            ChooseFileAction(dialog.SelectedPath.Trim());
+        }
+
+        private void ToolStripMenuOpenFolder_Click(object sender, EventArgs e) {
+            PickFolderAndChoose();
         }
         private void ToolStripMenuClearChosen_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
@@ -801,14 +808,19 @@ namespace ImgsToPDF {
             MsgLabel.Text = Extra.ApplyResource(this.GetType(), "MsgLabel.Text");
         }
 
-        private void EnglishToolStripMenuItem_Click(object sender, EventArgs e) {
+        /// <summary>
+        /// 保存语言设置并立即重启生效。提示文案按"目标语言"显示而不是取当前 resx：
+        /// 此刻 CurrentUICulture 还是旧语言，弹出的确认框必须让用户看懂即将切换成什么，
+        /// 因此由调用方按目标语言直接传入文案。
+        /// </summary>
+        private void SwitchLanguageAndRestart(string language, string noticeText, string noticeTitle) {
             if (_isProcessing) return;
 
-            Properties.Settings.Default.DefaultLanguage = "en-US";
+            Properties.Settings.Default.DefaultLanguage = language;
             Properties.Settings.Default.Save();
             MessageBox.Show(
-                "Application will restart immediately to take effect your language setting.",
-                "Notice",
+                noticeText,
+                noticeTitle,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information
             );
@@ -816,19 +828,20 @@ namespace ImgsToPDF {
             Application.Restart();
         }
 
-        private void ChineseToolStripMenuItem_Click(object sender, EventArgs e) {
-            if (_isProcessing) return;
-
-            Properties.Settings.Default.DefaultLanguage = "zh-CN";
-            Properties.Settings.Default.Save();
-            MessageBox.Show(
-                "程序将立即重启以生效你的语言设置。",
-                "注意",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information
+        private void EnglishToolStripMenuItem_Click(object sender, EventArgs e) {
+            SwitchLanguageAndRestart(
+                "en-US",
+                "Application will restart immediately to take effect your language setting.",
+                "Notice"
             );
-            this.Close();
-            Application.Restart();
+        }
+
+        private void ChineseToolStripMenuItem_Click(object sender, EventArgs e) {
+            SwitchLanguageAndRestart(
+                "zh-CN",
+                "程序将立即重启以生效你的语言设置。",
+                "注意"
+            );
         }
 
         private void Recursive_CheckedChanged(object sender, EventArgs e) {
@@ -875,16 +888,7 @@ namespace ImgsToPDF {
         }
 
         private void PicInFolder_Click(object sender, EventArgs e) {
-            if (_isProcessing) return;
-
-            using FolderBrowserDialog dialog = new() {
-                Description = Extra.ApplyResource(typeof(Extra), "strSelectIMGFolder")
-            };
-            if (dialog.ShowDialog() == DialogResult.Cancel) {
-                return;
-            }
-            string directoryPath = dialog.SelectedPath.Trim();
-            ChooseFileAction(directoryPath);
+            PickFolderAndChoose();
         }
     }
 }
