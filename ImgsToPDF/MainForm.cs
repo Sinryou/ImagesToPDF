@@ -37,7 +37,7 @@ namespace ImgsToPDF {
 
             this.Disposed += (s, e) => {
                 ReplaceImage(PicInFolder, null);
-                ReplaceImage(FolderImg, null);
+                SetFolderOverlay(null);
                 _pathToolTip?.Dispose();
             };
         }
@@ -149,6 +149,14 @@ namespace ImgsToPDF {
         }
 
         /// <summary>
+        /// 切换文件夹角标的显示与隐藏，避免无角标时透明控件覆盖底层导致穿透失效或拦截点击。
+        /// </summary>
+        private void SetFolderOverlay(Image image) {
+            ReplaceImage(FolderImg, image);
+            FolderImg.Visible = image != null;
+        }
+
+        /// <summary>
         /// 按目标最大宽高限制生成高质量缩略图，避免巨幅大图常驻内存造成内存暴涨
         /// </summary>
         private static Bitmap CreateThumbnail(Image source, int maxWidth, int maxHeight) {
@@ -239,15 +247,15 @@ namespace ImgsToPDF {
                     }
                 }
                 ReplaceImage(PicInFolder, preview ?? Properties.Resources.no_photo);
-                ReplaceImage(FolderImg, Properties.Resources.folder);
+                SetFolderOverlay(Properties.Resources.folder);
             }
             else if (compressExtensions.Contains(Path.GetExtension(directoryPath))) {
                 ReplaceImage(PicInFolder, Properties.Resources.compressedFile);
-                ReplaceImage(FolderImg, null);
+                SetFolderOverlay(null);
             }
             else {
                 ReplaceImage(PicInFolder, Properties.Resources.no_photo);
-                ReplaceImage(FolderImg, null);
+                SetFolderOverlay(null);
                 MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strInvalidPath");
                 return;
             }
@@ -660,7 +668,7 @@ namespace ImgsToPDF {
             if (_isProcessing) return;
 
             ReplaceImage(PicInFolder, Properties.Resources.folder);
-            ReplaceImage(FolderImg, null);
+            SetFolderOverlay(null);
             PathLabel.Text = null;
             PathLabel.TextAlign = ContentAlignment.MiddleCenter;
             _pathToolTip.SetToolTip(PathLabel, null);
