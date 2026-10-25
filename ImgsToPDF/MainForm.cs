@@ -69,7 +69,7 @@ namespace ImgsToPDF {
         // 使用 HashSet(StringComparer.OrdinalIgnoreCase) 提高查找效率并自动忽略大小写
         // 支持的所有图片格式（含经由 libwebp 解码的 .webp）
         private static readonly HashSet<string> imageExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
-        private static readonly HashSet<string> imageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff", ".webp"];
+        private static readonly HashSet<string> imageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff"];
         private static readonly HashSet<string> compressExtensions = [with(StringComparer.OrdinalIgnoreCase), ".zip", ".rar", ".7z"];
 
         /// <summary>
@@ -324,6 +324,9 @@ namespace ImgsToPDF {
                 ReplaceImage(PicInFolder, Properties.Resources.no_photo);
                 SetFolderOverlay(null);
                 MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strInvalidPath");
+                // PathLabel 已更新为无效路径，必须同步禁用开始按钮：
+                // 按钮的可用状态可能还是上一次有效选择留下的，否则点击后会把无效路径传给 Core
+                StartButton.Enabled = false;
                 return;
             }
 
