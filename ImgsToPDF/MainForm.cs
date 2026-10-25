@@ -486,9 +486,9 @@ namespace ImgsToPDF {
                 targetPathForCore = manifestPath;
             }
 
-            bool recursive = isImageMerge ? false : Recursive.Checked;
+            bool recursive = !isImageMerge && Recursive.Checked;
             bool fastMode = FastMode.Checked;
-            bool merge = isImageMerge ? false : Merge.Checked;
+            bool merge = !isImageMerge && Merge.Checked;
             int layoutIndex = generateModeBox.SelectedIndex;
 
             MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strPDFIsGenerating");
