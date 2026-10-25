@@ -640,10 +640,10 @@ namespace ImgsToPDF {
 
             return (outputs[0], outputs[1], p.ExitCode);
         }
-        private void toolStripMenuExit_Click(object sender, EventArgs e) {
+        private void ToolStripMenuExit_Click(object sender, EventArgs e) {
             this.Close();
         }
-        private void toolStripMenuConfigFile_Click(object sender, EventArgs e) {
+        private void ToolStripMenuConfigFile_Click(object sender, EventArgs e) {
             try {
                 // 不用 using：Process.Start 返回后记事本仍在运行，立即 Dispose 语义不正确；
                 // 且文件不存在或未关联打开程序时会抛 Win32Exception，需要提示而不是崩溃
@@ -658,7 +658,7 @@ namespace ImgsToPDF {
                 );
             }
         }
-        private void toolStripMenuAbout_Click(object sender, EventArgs e) {
+        private void ToolStripMenuAbout_Click(object sender, EventArgs e) {
             var assembly = Assembly.GetExecutingAssembly();
             string aboutText = "ImagesToPDF v" + assembly.GetName().Version;
             // 用 GetCustomAttribute 并按判空处理，避免特性缺失时抛 IndexOutOfRangeException
@@ -676,7 +676,7 @@ namespace ImgsToPDF {
                 "https://github.com/Sinryou/ImagesToPDF"
             );
         }
-        private void toolStripMenuOpenFolder_Click(object sender, EventArgs e) {
+        private void ToolStripMenuOpenFolder_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
 
             using FolderBrowserDialog dialog = new() {
@@ -688,7 +688,7 @@ namespace ImgsToPDF {
             string directoryPath = dialog.SelectedPath.Trim();
             ChooseFileAction(directoryPath);
         }
-        private void toolStripMenuClearChosen_Click(object sender, EventArgs e) {
+        private void ToolStripMenuClearChosen_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
 
             ReplaceImage(PicInFolder, Properties.Resources.folder);
@@ -702,7 +702,7 @@ namespace ImgsToPDF {
             MsgLabel.Text = Extra.ApplyResource(this.GetType(), "MsgLabel.Text");
         }
 
-        private void englishToolStripMenuItem_Click(object sender, EventArgs e) {
+        private void EnglishToolStripMenuItem_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
 
             Properties.Settings.Default.DefaultLanguage = "en-US";
@@ -717,7 +717,7 @@ namespace ImgsToPDF {
             Application.Restart();
         }
 
-        private void chineseToolStripMenuItem_Click(object sender, EventArgs e) {
+        private void ChineseToolStripMenuItem_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
 
             Properties.Settings.Default.DefaultLanguage = "zh-CN";
@@ -741,7 +741,7 @@ namespace ImgsToPDF {
             }
         }
 
-        private void toolStripMenuItemOpenArchive_Click(object sender, EventArgs e) {
+        private void ToolStripMenuItemOpenArchive_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
 
             using OpenFileDialog openFileDialog = new();

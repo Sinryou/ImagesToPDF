@@ -130,19 +130,19 @@ namespace ImgsToPDF {
             // 
             this.toolStripMenuOpenFolder.Name = "toolStripMenuOpenFolder";
             resources.ApplyResources(this.toolStripMenuOpenFolder, "toolStripMenuOpenFolder");
-            this.toolStripMenuOpenFolder.Click += new System.EventHandler(this.toolStripMenuOpenFolder_Click);
+            this.toolStripMenuOpenFolder.Click += new System.EventHandler(this.ToolStripMenuOpenFolder_Click);
             // 
             // toolStripMenuItemOpenArchive
             // 
             this.toolStripMenuItemOpenArchive.Name = "toolStripMenuItemOpenArchive";
             resources.ApplyResources(this.toolStripMenuItemOpenArchive, "toolStripMenuItemOpenArchive");
-            this.toolStripMenuItemOpenArchive.Click += new System.EventHandler(this.toolStripMenuItemOpenArchive_Click);
+            this.toolStripMenuItemOpenArchive.Click += new System.EventHandler(this.ToolStripMenuItemOpenArchive_Click);
             // 
             // toolStripMenuClearChosen
             // 
             this.toolStripMenuClearChosen.Name = "toolStripMenuClearChosen";
             resources.ApplyResources(this.toolStripMenuClearChosen, "toolStripMenuClearChosen");
-            this.toolStripMenuClearChosen.Click += new System.EventHandler(this.toolStripMenuClearChosen_Click);
+            this.toolStripMenuClearChosen.Click += new System.EventHandler(this.ToolStripMenuClearChosen_Click);
             // 
             // toolStripSeparator1
             // 
@@ -153,13 +153,13 @@ namespace ImgsToPDF {
             // 
             this.toolStripMenuExit.Name = "toolStripMenuExit";
             resources.ApplyResources(this.toolStripMenuExit, "toolStripMenuExit");
-            this.toolStripMenuExit.Click += new System.EventHandler(this.toolStripMenuExit_Click);
+            this.toolStripMenuExit.Click += new System.EventHandler(this.ToolStripMenuExit_Click);
             // 
             // toolStripMenuConfigFile
             // 
             this.toolStripMenuConfigFile.Name = "toolStripMenuConfigFile";
             resources.ApplyResources(this.toolStripMenuConfigFile, "toolStripMenuConfigFile");
-            this.toolStripMenuConfigFile.Click += new System.EventHandler(this.toolStripMenuConfigFile_Click);
+            this.toolStripMenuConfigFile.Click += new System.EventHandler(this.ToolStripMenuConfigFile_Click);
             // 
             // languageToolStripMenuItem
             // 
@@ -173,19 +173,19 @@ namespace ImgsToPDF {
             // 
             this.englishToolStripMenuItem.Name = "englishToolStripMenuItem";
             resources.ApplyResources(this.englishToolStripMenuItem, "englishToolStripMenuItem");
-            this.englishToolStripMenuItem.Click += new System.EventHandler(this.englishToolStripMenuItem_Click);
+            this.englishToolStripMenuItem.Click += new System.EventHandler(this.EnglishToolStripMenuItem_Click);
             // 
             // chineseToolStripMenuItem
             // 
             this.chineseToolStripMenuItem.Name = "chineseToolStripMenuItem";
             resources.ApplyResources(this.chineseToolStripMenuItem, "chineseToolStripMenuItem");
-            this.chineseToolStripMenuItem.Click += new System.EventHandler(this.chineseToolStripMenuItem_Click);
+            this.chineseToolStripMenuItem.Click += new System.EventHandler(this.ChineseToolStripMenuItem_Click);
             // 
             // toolStripMenuAbout
             // 
             this.toolStripMenuAbout.Name = "toolStripMenuAbout";
             resources.ApplyResources(this.toolStripMenuAbout, "toolStripMenuAbout");
-            this.toolStripMenuAbout.Click += new System.EventHandler(this.toolStripMenuAbout_Click);
+            this.toolStripMenuAbout.Click += new System.EventHandler(this.ToolStripMenuAbout_Click);
             // 
             // Recursive
             // 
