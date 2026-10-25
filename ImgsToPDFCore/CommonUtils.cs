@@ -278,5 +278,94 @@ namespace ImgsToPDFCore
             }
             return sb.ToString();
         }
+
+        /// <summary>
+        /// 图片清单解析结果
+        /// </summary>
+        public class ManifestData {
+            public string OutputDir { get; set; }
+            public string PdfFileName { get; set; }
+            public string[] ImagePaths { get; set; }
+        }
+
+        /// <summary>
+        /// 检查指定路径是否为图片清单文件（.txt 或 .list 格式且文件存在）
+        /// </summary>
+        public static bool IsManifestFile(string path) {
+            if (string.IsNullOrEmpty(path)) return false;
+            try {
+                if (!File.Exists(path)) return false;
+                string ext = Path.GetExtension(path);
+                return string.Equals(ext, ".txt", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(ext, ".list", StringComparison.OrdinalIgnoreCase);
+            }
+            catch {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 解析图片清单文件。
+        /// 支持通过 #OUTPUT: 自定义目标输出 PDF 路径；
+        /// 其余非空、非以 # 开头的行视为图片绝对路径。
+        /// 若未显式指定 #OUTPUT:，则以首张图片所在目录名作为 PDF 文件名。
+        /// </summary>
+        public static ManifestData ParseManifest(string manifestPath) {
+            if (!IsManifestFile(manifestPath)) return null;
+
+            string[] lines;
+            try {
+                lines = File.ReadAllLines(manifestPath, Encoding.UTF8);
+            }
+            catch (Exception ex) {
+                Console.Error.WriteLine($"[ImgsToPDFCore] Failed to read manifest '{manifestPath}': {ex.Message}");
+                return null;
+            }
+
+            string customOutput = null;
+            var images = new List<string>();
+
+            foreach (var rawLine in lines) {
+                var line = rawLine?.Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+
+                if (line.StartsWith("#OUTPUT:", StringComparison.OrdinalIgnoreCase)) {
+                    customOutput = line.Substring("#OUTPUT:".Length).Trim();
+                    continue;
+                }
+                if (line.StartsWith("#")) continue;
+
+                if (File.Exists(line)) {
+                    images.Add(line);
+                }
+                else {
+                    Console.Error.WriteLine($"[ImgsToPDFCore] Manifest image not found, skipped: {line}");
+                }
+            }
+
+            if (images.Count == 0) return null;
+
+            string outputDir;
+            string pdfFileName;
+
+            if (!string.IsNullOrEmpty(customOutput)) {
+                outputDir = Path.GetDirectoryName(customOutput);
+                pdfFileName = Path.GetFileNameWithoutExtension(customOutput);
+            }
+            else {
+                string firstImg = images[0];
+                outputDir = Path.GetDirectoryName(firstImg);
+                pdfFileName = Path.GetFileName(outputDir);
+                if (string.IsNullOrEmpty(pdfFileName)) {
+                    pdfFileName = Path.GetFileNameWithoutExtension(firstImg);
+                }
+            }
+
+            return new ManifestData {
+                OutputDir = outputDir,
+                PdfFileName = pdfFileName,
+                ImagePaths = [.. images]
+            };
+        }
     }
 }

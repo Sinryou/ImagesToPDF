@@ -171,4 +171,7 @@
   <data name="strNoImagesFound" xml:space="preserve">
     <value>在所选文件夹及其子文件夹中未找到受支持的图片文件。</value>
   </data>
+  <data name="strSelectedImagesCount" xml:space="preserve">
+    <value>[{0} 张图片] {1}</value>
+  </data>
 </root>

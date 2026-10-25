@@ -81,6 +81,7 @@ local Config = {}
 local pdfFileName
 local outputDir
 function Config.PathToSave()
+    if not outputDir or not pdfFileName then return nil end
     return table.concat({ outputDir, "/", pdfFileName, ".pdf" })
 end
 
@@ -168,6 +169,19 @@ function Config:PreProcess(...)
         pdfFileName = pathUtil.dirName(path)
         outputDir = path
         PDFWrapper.ImagesToPDF(path, layout, fastFlag)
+        return
+    elseif commonUtils.IsManifestFile(path) then
+        local manifestData = commonUtils.ParseManifest(path)
+        if not manifestData or not manifestData.ImagePaths or manifestData.ImagePaths.Length == 0 then
+            commonUtils.ReportFailure("No valid images found in the manifest file: " .. tostring(path))
+            return
+        end
+        outputDir = manifestData.OutputDir
+        pdfFileName = manifestData.PdfFileName
+        local pages = PDFWrapper.ImagesToPDFFromImageFiles(manifestData.ImagePaths, layout, fastFlag)
+        if pages == 0 and not commonUtils.FailureReported then
+            commonUtils.ReportFailure("Failed to write images to PDF: " .. tostring(path))
+        end
         return
     elseif not common.hasVal(compressSuffix, (pathUtil.getExtension(path) or ""):lower()) then
         -- 不以压缩格式结尾 不做动作；必须上报，否则上层会把"什么都没生成"当成生成成功

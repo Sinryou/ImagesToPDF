@@ -72,6 +72,25 @@ namespace ImgsToPDF {
         private static readonly HashSet<string> imageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff"];
         private static readonly HashSet<string> compressExtensions = [with(StringComparer.OrdinalIgnoreCase), ".zip", ".rar", ".7z"];
 
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern int StrCmpLogicalW(string psz1, string psz2);
+
+        private sealed class NaturalPathComparer : IComparer<string> {
+            public static readonly NaturalPathComparer Instance = new();
+            public int Compare(string x, string y) {
+                if (ReferenceEquals(x, y)) return 0;
+                if (x == null) return -1;
+                if (y == null) return 1;
+                return StrCmpLogicalW(x, y);
+            }
+        }
+
+        /// <summary>
+        /// 当前选中的离散图片文件列表（处于图片合并模式时非空）。
+        /// 若为 null 则表示当前处于目录/压缩包模式。
+        /// </summary>
+        private List<string> _chosenImageFiles;
+
         /// <summary>
         /// 当前是否正在后台生成 PDF，用于全局锁定界面交互并防止竞态操作
         /// </summary>
@@ -121,8 +140,9 @@ namespace ImgsToPDF {
             StartButton.Enabled = !isProcessing && !string.IsNullOrEmpty(PathLabel.Text);
             generateModeBox.Enabled = !isProcessing;
             FastMode.Enabled = !isProcessing;
-            Recursive.Enabled = !isProcessing;
-            Merge.Enabled = !isProcessing && Recursive.Checked;
+            bool isImageMergeMode = _chosenImageFiles != null && _chosenImageFiles.Count > 0;
+            Recursive.Enabled = !isProcessing && !isImageMergeMode;
+            Merge.Enabled = !isProcessing && !isImageMergeMode && Recursive.Checked;
 
             toolStripMenuOpenFolder.Enabled = !isProcessing;
             toolStripMenuItemOpenArchive.Enabled = !isProcessing;
@@ -151,13 +171,12 @@ namespace ImgsToPDF {
                     e.Effect = DragDropEffects.None;
                     return;
                 }
-                string filePath = files[0];
-                if (Directory.Exists(filePath) || compressExtensions.Contains(Path.GetExtension(filePath))) {
-                    e.Effect = DragDropEffects.All;
-                }
-                else {
-                    e.Effect = DragDropEffects.None;
-                }
+                bool hasSupportedItem = files.Any(f =>
+                    Directory.Exists(f) ||
+                    compressExtensions.Contains(Path.GetExtension(f)) ||
+                    imageExtensions.Contains(Path.GetExtension(f))
+                );
+                e.Effect = hasSupportedItem ? DragDropEffects.All : DragDropEffects.None;
             }
             catch (Exception) {
                 // 某些程序拖入的是虚拟文件，取路径可能失败，直接拒绝
@@ -281,6 +300,10 @@ namespace ImgsToPDF {
         }
 
         private void ChooseFileAction(string directoryPath) {
+            _chosenImageFiles = null;
+            Recursive.Enabled = !_isProcessing;
+            Merge.Enabled = !_isProcessing && Recursive.Checked;
+
             PathLabel.Text = directoryPath;
             _pathToolTip.SetToolTip(PathLabel, directoryPath);
 
@@ -333,16 +356,100 @@ namespace ImgsToPDF {
             StartButton.Enabled = !_isProcessing;
             MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
         }
+        /// <summary>
+        /// 选中一组离散图片文件，进入图片合并为一个 PDF 的模式。
+        /// </summary>
+        private void ChooseImagesAction(List<string> imageFiles) {
+            if (imageFiles == null || imageFiles.Count == 0) return;
+
+            // 自然排序（与 Windows 资源管理器文件排序规则一致）
+            imageFiles.Sort(NaturalPathComparer.Instance);
+            _chosenImageFiles = imageFiles;
+
+            // 获取第一张可读图片生成高清缩略图
+            Bitmap preview = null;
+            foreach (var imagepath in imageFiles) {
+                try {
+                    using var img = LoadPreviewImage(imagepath);
+                    if (img == null) continue;
+
+                    int maxThumbW = Math.Max(PicInFolder.Width * 2, 400);
+                    int maxThumbH = Math.Max(PicInFolder.Height * 2, 600);
+                    preview = CreateThumbnail(img, maxThumbW, maxThumbH);
+                    break;
+                }
+                catch (Exception ex) {
+                    Debug.WriteLine($"[ImgsToPDF] Skipped invalid image '{imagepath}': {ex.Message}");
+                }
+            }
+
+            ReplaceImage(PicInFolder, preview ?? Properties.Resources.no_photo);
+            SetFolderOverlay(null); // 图片合并模式不需要文件夹角标
+
+            string firstFile = imageFiles[0];
+            string dir = Path.GetDirectoryName(firstFile);
+            string dirName = Path.GetFileName(dir);
+
+            if (imageFiles.Count == 1) {
+                PathLabel.Text = firstFile;
+                _pathToolTip.SetToolTip(PathLabel, firstFile);
+            }
+            else {
+                string countPattern = Extra.ApplyResource(typeof(Extra), "strSelectedImagesCount");
+                if (string.IsNullOrEmpty(countPattern)) {
+                    countPattern = "[{0} Images] {1}";
+                }
+                string displayDir = string.IsNullOrEmpty(dirName) ? firstFile : dirName;
+                PathLabel.Text = string.Format(countPattern, imageFiles.Count, displayDir);
+                _pathToolTip.SetToolTip(PathLabel, string.Format(
+                    "Selected {0} image(s)\nDirectory: {1}\nFirst file: {2}",
+                    imageFiles.Count,
+                    dir,
+                    Path.GetFileName(firstFile)
+                ));
+            }
+
+            int textWidth = TextRenderer.MeasureText(PathLabel.Text, PathLabel.Font).Width;
+            PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
+
+            // 图片合并模式下，递归子目录与合并子目录不适用，禁用并取消勾选
+            Recursive.Checked = false;
+            Recursive.Enabled = false;
+            Merge.Checked = false;
+            Merge.Enabled = false;
+
+            StartButton.Enabled = !_isProcessing;
+            MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
+        }
+
         private void MainForm_DragDrop(object sender, DragEventArgs e) {
             if (_isProcessing) {
                 return;
             }
 
-            //获得路径
+            // 获得路径
             if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0) {
                 return;
             }
-            ChooseFileAction(files[0]);   // 只处理第一个拖入项
+
+            // 提取所有有效的图片文件
+            var imageFiles = files
+                .Where(f => File.Exists(f) && imageExtensions.Contains(Path.GetExtension(f)))
+                .ToList();
+
+            // 提取所有容器（文件夹或压缩包）
+            var containerFiles = files
+                .Where(f => Directory.Exists(f) || compressExtensions.Contains(Path.GetExtension(f)))
+                .ToList();
+
+            // 纯图片拖入：进入图片合并模式
+            if (imageFiles.Count > 0 && containerFiles.Count == 0) {
+                ChooseImagesAction(imageFiles);
+            }
+            else {
+                // 现阶段其他情况保持原有行为：处理第一个项
+                ChooseFileAction(files[0]);
+            }
         }
         private async void StartButton_Click(object sender, EventArgs e) {
             if (_isProcessing) {
@@ -356,9 +463,32 @@ namespace ImgsToPDF {
                 return;
             }
 
-            bool recursive = Recursive.Checked;
+            bool isImageMerge = _chosenImageFiles != null && _chosenImageFiles.Count > 0;
+            string manifestPath = null;
+            string targetPathForCore = directoryPath;
+            string displayTargetPath = directoryPath;
+
+            if (isImageMerge) {
+                string firstImg = _chosenImageFiles[0];
+                string outDir = Path.GetDirectoryName(firstImg);
+                string pdfName = Path.GetFileName(outDir);
+                if (string.IsNullOrEmpty(pdfName)) {
+                    pdfName = Path.GetFileNameWithoutExtension(firstImg);
+                }
+                displayTargetPath = Path.Combine(outDir, $"{pdfName}.pdf");
+
+                manifestPath = Path.Combine(Path.GetTempPath(), $"imgstopdf_{Guid.NewGuid():N}.txt");
+                var lines = new List<string> {
+                    "#OUTPUT:" + displayTargetPath
+                };
+                lines.AddRange(_chosenImageFiles);
+                File.WriteAllLines(manifestPath, lines, new UTF8Encoding(false));
+                targetPathForCore = manifestPath;
+            }
+
+            bool recursive = isImageMerge ? false : Recursive.Checked;
             bool fastMode = FastMode.Checked;
-            bool merge = Merge.Checked;
+            bool merge = isImageMerge ? false : Merge.Checked;
             int layoutIndex = generateModeBox.SelectedIndex;
 
             MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strPDFIsGenerating");
@@ -369,7 +499,7 @@ namespace ImgsToPDF {
             SetUiState(true);
 
             try {
-                var (failures, warnings) = await ButtonClickActionAsync(directoryPath, recursive, fastMode, merge, layoutIndex);
+                var (failures, warnings) = await ButtonClickActionAsync(targetPathForCore, recursive, fastMode, merge, layoutIndex, displayTargetPath);
                 if (_isClosing || IsDisposed) return;
 
                 progressBar.Value = 100;
@@ -413,6 +543,17 @@ namespace ImgsToPDF {
                 );
             }
             finally {
+                if (manifestPath != null) {
+                    try {
+                        if (File.Exists(manifestPath)) {
+                            File.Delete(manifestPath);
+                        }
+                    }
+                    catch (Exception ex) {
+                        Debug.WriteLine($"[ImgsToPDF] Failed to delete temp manifest '{manifestPath}': {ex.Message}");
+                    }
+                }
+
                 if (!_isClosing && !IsDisposed) {
                     // 无论成功还是出错，都恢复界面交互可用状态，避免界面卡死
                     SetUiState(false);
@@ -560,10 +701,11 @@ namespace ImgsToPDF {
         /// 判定标准：Core 进程退出码非 0 才算失败；退出码为 0 但 stderr 有内容
         /// （例如个别图片无法解码被跳过）只算警告，不再把成功当成失败上报。
         /// </summary>
-        private async Task<(List<string> failures, List<string> warnings)> ButtonClickActionAsync(string directoryPath, bool recursive, bool fastMode, bool merge, int layoutIndex) {
+        private async Task<(List<string> failures, List<string> warnings)> ButtonClickActionAsync(string directoryPath, bool recursive, bool fastMode, bool merge, int layoutIndex, string displayTargetPath = null) {
             var fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
             var failureQueue = new ConcurrentQueue<string>();
             var warningQueue = new ConcurrentQueue<string>();
+            string reportedTarget = displayTargetPath ?? directoryPath;
 
             if (recursive && Directory.Exists(directoryPath)) {
                 // 递归收集子目录可能较慢（大量文件夹），放到后台执行
@@ -602,7 +744,7 @@ namespace ImgsToPDF {
             }
             else if (!_isClosing) {
                 var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode, layoutIndex));
-                CollectProcessResult(directoryPath, stderr, exitCode, failureQueue, warningQueue);
+                CollectProcessResult(reportedTarget, stderr, exitCode, failureQueue, warningQueue);
             }
             return ([.. failureQueue], [.. warningQueue]);
         }
@@ -835,6 +977,12 @@ namespace ImgsToPDF {
         }
         private void ToolStripMenuClearChosen_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
+
+            _chosenImageFiles = null;
+            Recursive.Enabled = !_isProcessing;
+            Recursive.Checked = false;
+            Merge.Enabled = false;
+            Merge.Checked = false;
 
             ReplaceImage(PicInFolder, Properties.Resources.folder);
             SetFolderOverlay(null);

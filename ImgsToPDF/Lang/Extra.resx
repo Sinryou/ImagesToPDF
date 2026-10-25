@@ -171,4 +171,7 @@
   <data name="strNoImagesFound" xml:space="preserve">
     <value>No supported images were found in the selected folder or its subfolders.</value>
   </data>
+  <data name="strSelectedImagesCount" xml:space="preserve">
+    <value>[{0} Images] {1}</value>
+  </data>
 </root>

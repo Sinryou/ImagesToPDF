@@ -366,6 +366,23 @@ namespace ImgsToPDFCore {
         }
 
         /// <summary>
+        /// 把指定的图片文件列表写入同一个 PDF，返回实际写入的页数。
+        /// </summary>
+        public static int ImagesToPDFFromImageFiles(string[] imageFiles, Layout layout = Layout.Single, bool fastFlag = false) {
+            CSGlobal.ThrowIfCancelled();
+            if (imageFiles == null || imageFiles.Length == 0) {
+                CommonUtils.ReportFailure("No image file was provided; no PDF was generated.");
+                return 0;
+            }
+            var validImages = imageFiles.Where(File.Exists).ToList();
+            if (validImages.Count == 0) {
+                CommonUtils.ReportFailure("No valid existing image file was found; no PDF was generated.");
+                return 0;
+            }
+            return WriteDocument(CSGlobal.luaConfig.PathToSave(), layout, fastFlag, [validImages], blankPageWhenEmpty: false);
+        }
+
+        /// <summary>
         /// 写出一份 PDF 并返回写入的页数（失败返回 0）。
         /// folders 的每个元素是一个文件夹内已排好序的图片列表，按顺序逐页写入。
         /// </summary>
