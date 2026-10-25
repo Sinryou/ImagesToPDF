@@ -64,11 +64,11 @@ namespace ImgsToPDF {
 
         // 使用 HashSet(StringComparer.OrdinalIgnoreCase) 提高查找效率并自动忽略大小写
         // GDI+ 原生支持解码的图片格式（用于界面缩略图预览）
-        private static readonly HashSet<string> gdiPreviewExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif" };
+        private static readonly HashSet<string> gdiPreviewExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif"];
         // 核心转换引擎（Core）支持的所有图片格式（含 libwebp 解码的 .webp，用于目录递归扫描判断）
-        private static readonly HashSet<string> coreSupportedExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
-        private static readonly HashSet<string> imageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
-        private static readonly HashSet<string> compressExtensions = new(StringComparer.OrdinalIgnoreCase) { ".zip", ".rar", ".7z" };
+        private static readonly HashSet<string> coreSupportedExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
+        private static readonly HashSet<string> imageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff"];
+        private static readonly HashSet<string> compressExtensions = [with(StringComparer.OrdinalIgnoreCase), ".zip", ".rar", ".7z"];
 
         /// <summary>
         /// 当前是否正在后台生成 PDF，用于全局锁定界面交互并防止竞态操作

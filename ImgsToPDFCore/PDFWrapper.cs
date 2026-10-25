@@ -24,8 +24,8 @@ namespace ImgsToPDFCore {
         /// <summary>EXIF 中 Orientation 标签的 ID。</summary>
         private const int OrientationId = 0x0112;
 
-        private static readonly HashSet<string> imageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
-        private static readonly HashSet<string> imageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
+        private static readonly HashSet<string> imageExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
+        private static readonly HashSet<string> imageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff"];
 
         /// <summary>
         /// 待排入 PDF 的一张图片：iTextSharp 图像对象 + 仍需在排版期应用的 EXIF 方向。

@@ -19,7 +19,7 @@ namespace ImgsToPDFCore {
         private const uint ExifFourCC = 0x46495845; // "EXIF"
 
         // EXIF 数据可能带有的固定前缀 "Exif\0\0"
-        private static readonly byte[] ExifPrefix = { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0 };
+        private static readonly byte[] ExifPrefix = [(byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0];
 
         /// <summary>
         /// 从文件读取 WebP 的 Orientation 信息（EXIF 方向）。
