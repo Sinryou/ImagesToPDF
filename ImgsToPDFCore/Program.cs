@@ -85,6 +85,11 @@ namespace ImgsToPDFCore {
                     }
                     Thread.Sleep(100);
                 }
+
+                // 宽限期已到但主线程仍在写文件：临时文件是以 FileShare.Delete 打开的，
+                // 这里删除会把文件标记为“删除待完成”，进程退出、句柄关闭时系统即完成删除，
+                // 从而避免在用户图片目录留下 *.pdf.tmp。
+                AtomicFileWriter.CleanupActiveTempFiles();
                 Environment.Exit(1);
             }) {
                 IsBackground = true,

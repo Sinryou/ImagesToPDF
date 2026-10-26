@@ -29,10 +29,34 @@ namespace ImgsToPDF {
                 return;
             }
 
+            // 语言等用户设置保存在“按程序集版本分目录”的 user.config 里，
+            // 升级到新版本后读取到的是默认值。这里在升级后的首次启动做一次迁移。
+            UpgradeUserSettings();
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
             Application.Run(new MainForm());
+        }
+
+        /// <summary>
+        /// 迁移上一个版本的用户设置（例如语言）。
+        /// 只在新版本首次启动时执行一次：UpgradeRequired 标志本身也保存在设置里，
+        /// 否则每次启动都会拿旧版本的值覆盖用户在当前版本改过的设置。
+        /// </summary>
+        private static void UpgradeUserSettings() {
+            try {
+                if (!Properties.Settings.Default.UpgradeRequired) {
+                    return;
+                }
+                Properties.Settings.Default.Upgrade();
+                Properties.Settings.Default.UpgradeRequired = false;
+                Properties.Settings.Default.Save();
+            }
+            catch (Exception ex) {
+                // 配置损坏/无写权限时不能阻止程序启动：本次用默认值，下次启动再尝试迁移
+                Debug.WriteLine($"[ImgsToPDF] Failed to upgrade user settings: {ex.Message}");
+            }
         }
 
         private static void ActivateExistingInstance() {
