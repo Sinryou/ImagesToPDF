@@ -74,6 +74,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CoreProcessRunner.cs" />
+    <Compile Include="FolderScanner.cs" />
+    <Compile Include="ImagePreviewHelper.cs" />
+    <Compile Include="NativeMethods.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>

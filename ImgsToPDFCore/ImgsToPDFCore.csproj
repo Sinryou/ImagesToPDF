@@ -70,7 +70,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AtomicFileWriter.cs" />
     <Compile Include="CSGlobal.cs" />
+    <Compile Include="PdfComposer.cs" />
+    <Compile Include="PdfImagePipeline.cs" />
+    <Compile Include="PdfMerger.cs" />
     <Compile Include="IConfig.cs" />
     <Compile Include="PDFWrapper.cs" />
     <Compile Include="Program.cs" />
