@@ -23,23 +23,28 @@ namespace ImgsToPDFCore {
             // 2. 调用 Sort 方法并传入比较器
             inFiles.Sort(comparer);
             AtomicFileWriter.WriteToFile(outFile, stream => {
-                using var doc = new Document();
-                using var pdf = new PdfCopy(doc, stream);
+                var doc = new Document();
+                var pdf = new PdfCopy(doc, stream);
                 doc.Open();
-                inFiles.ForEach(file => {
-                    CSGlobal.ThrowIfCancelled();
-                    if (File.Exists(file)) {
-                        using var reader = new PdfReader(file);
-                        for (int i = 0; i < reader.NumberOfPages; i++) {
-                            CSGlobal.ThrowIfCancelled();
-                            var page = pdf.GetImportedPage(reader, i + 1);
-                            pdf.AddPage(page);
+                try {
+                    inFiles.ForEach(file => {
+                        CSGlobal.ThrowIfCancelled();
+                        if (File.Exists(file)) {
+                            using var reader = new PdfReader(file);
+                            for (int i = 0; i < reader.NumberOfPages; i++) {
+                                CSGlobal.ThrowIfCancelled();
+                                var page = pdf.GetImportedPage(reader, i + 1);
+                                pdf.AddPage(page);
+                            }
+                            // 读完即释放（与 PdfMergeWithDeepOutlines 一致）：让 PdfCopy 尽早写出并
+                            // 释放该文件的已导入页对象，避免一次合并很多大 PDF 时内存峰值持续偏高
+                            pdf.FreeReader(reader);
                         }
-                        // 读完即释放（与 PdfMergeWithDeepOutlines 一致）：让 PdfCopy 尽早写出并
-                        // 释放该文件的已导入页对象，避免一次合并很多大 PDF 时内存峰值持续偏高
-                        pdf.FreeReader(reader);
-                    }
-                });
+                    });
+                }
+                finally {
+                    doc.Close();
+                }
             });
         }
 
@@ -53,11 +58,11 @@ namespace ImgsToPDFCore {
             var folderOutlineCache = new Dictionary<string, PdfOutline>();
 
             AtomicFileWriter.WriteToFile(outFile, stream => {
-                using var doc = new Document();
-                using var pdf = new PdfCopy(doc, stream);
+                var doc = new Document();
+                var pdf = new PdfCopy(doc, stream);
                 doc.Open();
-
-                int currentPage = 1;
+                try {
+                    int currentPage = 1;
                 PdfOutline root = pdf.RootOutline;
 
                 foreach (var file in inFiles) {
@@ -108,6 +113,10 @@ namespace ImgsToPDFCore {
 
                     currentPage += pageCount;
                     pdf.FreeReader(reader);
+                }
+                }
+                finally {
+                    doc.Close();
                 }
             });
         }
@@ -223,11 +232,11 @@ namespace ImgsToPDFCore {
 
             // 3. 写文件：先建书签树，再按顺序拷贝页面
             AtomicFileWriter.WriteToFile(outFile, stream => {
-                using var doc = new Document();
-                using var pdf = new PdfCopy(doc, stream);
+                var doc = new Document();
+                var pdf = new PdfCopy(doc, stream);
                 doc.Open();
-
-                // 按"所在文件夹"分组，便于按页面顺序递归建树
+                try {
+                    // 按"所在文件夹"分组，便于按页面顺序递归建树
                 var filesByDir = plan
                     .GroupBy(p => NormalizeDir(Path.GetDirectoryName(p.File)), StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(g => g.Key, g => g.OrderBy(p => p.StartPage).ToList(), StringComparer.OrdinalIgnoreCase);
@@ -293,6 +302,10 @@ namespace ImgsToPDFCore {
                         }
                         pdf.FreeReader(reader);
                     }
+                }
+                }
+                finally {
+                    doc.Close();
                 }
             });
         }
