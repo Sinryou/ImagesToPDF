@@ -82,6 +82,32 @@ namespace ImgsToPDFCore {
         }
 
         /// <summary>
+        /// 只解析元数据读出 EXIF Orientation（纯文件流/头部扫描，零整图加载，避免 LOH 分配）。
+        /// 优先通过纯二进制扫描文件前几 KB，未命中时安全降级回 GDI+。
+        /// </summary>
+        public static ushort ReadExifOrientation(string imagePath) {
+            try {
+                ushort? orientation = ImageExif.GetOrientation(imagePath);
+                if (orientation.HasValue) {
+                    return orientation.Value;
+                }
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"[ImgsToPDFCore] Pure-byte EXIF parse failed: {ex.Message}");
+            }
+
+            // 极少数格式若未能被二进制扫描命中，安全降级回 GDI+ 流式加载
+            try {
+                using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096);
+                using var image = System.Drawing.Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
+                return ReadOrientation(image);
+            }
+            catch {
+                return 1;
+            }
+        }
+
+        /// <summary>
         /// 只解析元数据读出 EXIF Orientation（纯二进制流扫描，零 GDI+ 实例分配）。
         /// 优先通过纯二进制扫描 JPEG/WebP/TIFF 结构，未命中时安全降级回 GDI+。
         /// </summary>
@@ -203,13 +229,13 @@ namespace ImgsToPDFCore {
             if (fastFlag) {
                 long quality = GetFastJpegQuality();
 
-                // 常规格式（JPG, PNG, GIF, BMP, TIFF 等）：读入后处理 EXIF 旋转，再压缩为目标质量 JPEG
-                var rawBytes = File.ReadAllBytes(imagePath);
-                using var stream = new MemoryStream(rawBytes);
-                using var img = System.Drawing.Image.FromStream(stream);
+                // 常规格式（JPG, PNG, GIF, BMP, TIFF 等）：流式读入后处理 EXIF 旋转，再压缩为目标质量 JPEG
+                // 采用缓冲流逐块读取，避免 File.ReadAllBytes 导致大图进入大对象堆 (LOH)
+                using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536);
+                using var img = System.Drawing.Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
 
                 if (needsExifCheck) {
-                    ushort orientation = ImageExif.GetImageOrientation(rawBytes) ?? ReadOrientation(img);
+                    ushort orientation = ImageExif.GetOrientation(imagePath) ?? ReadOrientation(img);
                     RotateFlipType rotateFlip = GetRotateFlipType(orientation);
 
                     if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
@@ -223,18 +249,15 @@ namespace ImgsToPDFCore {
             }
 
             // --- 未开启 fastFlag：无损直通方案 ---
-            // 原生支持格式（JPG, PNG, GIF, BMP, TIFF 等）：直接读取原始字节，避免占用磁盘句柄
-            var normalBytes = File.ReadAllBytes(imagePath);
-
-            // 只解析元数据取方向（不解码像素），旋转交给排版期的变换矩阵，
-            // 这样带 EXIF 方向的 JPEG 同样保持原始字节直通
-            ushort exifOrientation = needsExifCheck ? ReadExifOrientation(normalBytes) : (ushort)1;
+            // 只解析头部元数据取方向（不解码像素），旋转交给排版期的变换矩阵；
+            // 直接传递路径由 iTextSharp 流式直通嵌入，彻底消除托管内存中的巨幅 byte[] 分配
+            ushort exifOrientation = needsExifCheck ? ReadExifOrientation(imagePath) : (ushort)1;
 
             // JPEG 为字节直通（DCTDecode），源文件与 PDF 内嵌流逐字节一致，真正 0 损耗；
             // PNG/GIF/BMP/TIFF 会被解码后用 Deflate 重新压缩（FlateDecode），同样无损（像素不变），
             // 但不是字节直通，需要一次解码 + 一次重编码，因此只有 JPEG 走的是"极速嵌入"路径。
             return new PageImage {
-                Image = iTextSharp.text.Image.GetInstance(normalBytes),
+                Image = iTextSharp.text.Image.GetInstance(imagePath),
                 Orientation = exifOrientation
             };
         }
