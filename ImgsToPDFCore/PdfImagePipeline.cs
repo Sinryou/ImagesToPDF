@@ -16,8 +16,8 @@ namespace ImgsToPDFCore {
         /// <summary>EXIF 中 Orientation 标签的 ID。</summary>
         public const int OrientationId = 0x0112;
 
-        public static readonly HashSet<string> ImageExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
-        public static readonly HashSet<string> ImageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff"];
+        public static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
+        public static readonly HashSet<string> ImageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
 
         private static readonly ImageCodecInfo JpegCodec = ImageCodecInfo.GetImageEncoders()
             .FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);

@@ -15,17 +15,17 @@ namespace ImgsToPDF {
         /// <summary>
         /// 支持的所有图片格式扩展名（含经由 libwebp 解码的 .webp）
         /// </summary>
-        public static readonly HashSet<string> ImageExtensions = [with(StringComparer.OrdinalIgnoreCase), ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp"];
+        public static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
 
         /// <summary>
         /// 可能含有 EXIF Orientation 信息的图片格式扩展名
         /// </summary>
-        public static readonly HashSet<string> ImageExtensionsEXIFOrientation = [with(StringComparer.OrdinalIgnoreCase), ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff"];
+        public static readonly HashSet<string> ImageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
 
         /// <summary>
         /// 支持的压缩包格式扩展名
         /// </summary>
-        public static readonly HashSet<string> CompressExtensions = [with(StringComparer.OrdinalIgnoreCase), ".zip", ".rar", ".7z"];
+        public static readonly HashSet<string> CompressExtensions = new(StringComparer.OrdinalIgnoreCase) { ".zip", ".rar", ".7z" };
 
         /// <summary>
         /// 遵循 Windows 资源管理器自然排序规范的字符串比较器

@@ -110,7 +110,7 @@ namespace WebPWrapper
             {
                 IntPtr ptrRawWebP = pinnedWebP.AddrOfPinnedObject();
 
-                WebPBitstreamFeatures features = new WebPBitstreamFeatures();
+                WebPBitstreamFeatures features = new();
                 result = UnsafeNativeMethods.WebPGetFeatures(ptrRawWebP, rawWebP.Length, ref features);
 
                 if (result != 0)
@@ -120,18 +120,11 @@ namespace WebPWrapper
                 height = features.Height;
                 if (features.Has_alpha == 1) has_alpha = true; else has_alpha = false;
                 if (features.Has_animation == 1) has_animation = true; else has_animation = false;
-                switch (features.Format)
-                {
-                    case 1:
-                        format = "lossy";
-                        break;
-                    case 2:
-                        format = "lossless";
-                        break;
-                    default:
-                        format = "undefined";
-                        break;
-                }
+                format = features.Format switch {
+                    1 => "lossy",
+                    2 => "lossless",
+                    _ => "undefined",
+                };
             }
             catch (Exception ex) { throw new Exception(ex.Message + "\r\nIn WebP.GetInfo"); }
             finally
@@ -188,15 +181,11 @@ namespace WebPWrapper
         /// <returns>VP8StatusCode</returns>
         internal static VP8StatusCode WebPGetFeatures(IntPtr rawWebP, int data_size, ref WebPBitstreamFeatures features)
         {
-            switch (IntPtr.Size)
-            {
-                case 4:
-                    return WebPGetFeaturesInternal_x86(rawWebP, (UIntPtr)data_size, ref features, WEBP_DECODER_ABI_VERSION);
-                case 8:
-                    return WebPGetFeaturesInternal_x64(rawWebP, (UIntPtr)data_size, ref features, WEBP_DECODER_ABI_VERSION);
-                default:
-                    throw new InvalidOperationException("Invalid platform. Can not find proper function");
-            }
+            return IntPtr.Size switch {
+                4 => WebPGetFeaturesInternal_x86(rawWebP, (UIntPtr)data_size, ref features, WEBP_DECODER_ABI_VERSION),
+                8 => WebPGetFeaturesInternal_x64(rawWebP, (UIntPtr)data_size, ref features, WEBP_DECODER_ABI_VERSION),
+                _ => throw new InvalidOperationException("Invalid platform. Can not find proper function"),
+            };
         }
         [DllImport("libwebp_x86.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPGetFeaturesInternal")]
         private static extern VP8StatusCode WebPGetFeaturesInternal_x86([InAttribute()] IntPtr rawWebP, UIntPtr data_size, ref WebPBitstreamFeatures features, int WEBP_DECODER_ABI_VERSION);
