@@ -7,10 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace ImgsToPDFCore
-{
-    internal class CommonUtils
-    {
+namespace ImgsToPDFCore {
+    internal class CommonUtils {
         /// <summary>
         /// 本次是否已经上报过失败。供 Program 的结果校验使用：
         /// 已经给出具体原因时就不必再补一条笼统的"没有生成 PDF"。

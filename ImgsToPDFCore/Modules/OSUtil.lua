@@ -11,11 +11,11 @@ OSUtil.DESKTOP = OSUtil.HOME .. "/Desktop"
 OSUtil.TMPDIR = (OSUtil.IS_WINDOWS and os.getenv("temp")) or os.getenv("TMPDIR") or os.getenv("TMP") or "/tmp"
 
 if OSUtil.IS_WINDOWS then
-    ffi.cdef[[
+    ffi.cdef [[
         void Sleep(unsigned long ms);
     ]]
 else
-    ffi.cdef[[
+    ffi.cdef [[
         struct pollfd {
             int fd;
             short events;

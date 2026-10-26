@@ -19,18 +19,19 @@ local PDFWrapper = CS.ImgsToPDFCore.PDFWrapper
 local function mergePdfs(path)
     local pdf2MergeList = {}
     if path and pathUtil.dirExist(u2a(path)) then
-        pdf2MergeList = pathUtil.listSubfolders(u2a(path),function(p) return a2u(p.."/"..pathUtil.dirName(p) .. ".pdf") end)
+        pdf2MergeList = pathUtil.listSubfolders(u2a(path),
+            function(p) return a2u(p .. "/" .. pathUtil.dirName(p) .. ".pdf") end)
     end
-    table.insert(pdf2MergeList, path.."/"..pathUtil.dirName(path) ..".pdf")
+    table.insert(pdf2MergeList, path .. "/" .. pathUtil.dirName(path) .. ".pdf")
     -- PDFWrapper.PdfMerge(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf")
     -- PDFWrapper.PdfMergeWithHierarchicalOutlines(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf")
-    PDFWrapper.PdfMergeWithDeepOutlines(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf", path)
+    PDFWrapper.PdfMergeWithDeepOutlines(pdf2MergeList, path .. "/" .. pathUtil.dirName(path) .. "_Merged.pdf", path)
 end
 
 -- 排序辅助缓存：排序过程中同一个路径会被比较 O(log n) 次，
 -- 原实现每次都重新做字符串匹配和版本号解析，这里缓存结果避免重复计算。
-local pathNameCache = {}   -- 完整路径 -> 去扩展名的文件名
-local versionCache = {}    -- 文件名 -> 版本号数组（false 表示没有版本号）
+local pathNameCache = {} -- 完整路径 -> 去扩展名的文件名
+local versionCache = {}  -- 文件名 -> 版本号数组（false 表示没有版本号）
 
 local function getBaseName(filePath)
     local name = pathNameCache[filePath]
@@ -111,8 +112,10 @@ function Config:FilePathComparer(filePath1, filePath2)
     if not v1 and not v2 then
         if filePath1 == filePath2 then return 0 end
         return filePath1 < filePath2 and -1 or 1
-    elseif not v1 then return -1
-    elseif not v2 then return 1
+    elseif not v1 then
+        return -1
+    elseif not v2 then
+        return 1
     end
 
     -- 核心逻辑：按位比较数组
@@ -120,7 +123,7 @@ function Config:FilePathComparer(filePath1, filePath2)
     for i = 1, maxLen do
         local n1 = v1[i] or 0 -- 如果长度不足，补0比较（例如 1.1 和 1.1.1）
         local n2 = v2[i] or 0
-        
+
         if n1 < n2 then return -1 end
         if n1 > n2 then return 1 end
     end

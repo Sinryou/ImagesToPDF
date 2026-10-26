@@ -63,57 +63,57 @@ namespace ImgsToPDFCore {
                 doc.Open();
                 try {
                     int currentPage = 1;
-                PdfOutline root = pdf.RootOutline;
+                    PdfOutline root = pdf.RootOutline;
 
-                foreach (var file in inFiles) {
-                    CSGlobal.ThrowIfCancelled();
-                    if (!File.Exists(file)) continue;
-
-                    using var reader = new PdfReader(file);
-                    int pageCount = reader.NumberOfPages;
-
-                    // --- 核心逻辑：处理层级书签 ---
-
-                    // 获取父文件夹名称 (例如 "第1话")
-                    string folderName = Path.GetFileName(Path.GetDirectoryName(file));
-                    // 获取文件名 (例如 "第1话.pdf")
-                    string fileName = Path.GetFileNameWithoutExtension(file);
-
-                    // 每个书签使用独立的 PdfAction（iTextSharp 的 action 实例不应被多个 outline 共享，
-                    // 共享实例存在被重复注册/页码解析异常的风险）
-                    PdfOutline parentNode = root;
-
-                    // 如果文件夹名有效且不是根目录，则创建/获取一级书签
-                    if (!string.IsNullOrEmpty(folderName)) {
-                        if (!folderOutlineCache.ContainsKey(folderName)) {
-                            // 创建一级目录节点，跳转到该文件夹第一个文件的第一页
-                            var folderAction = PdfAction.GotoLocalPage(currentPage,
-                                               new PdfDestination(PdfDestination.FITH), pdf);
-                            var folderNode = new PdfOutline(root, folderAction, folderName);
-                            folderOutlineCache[folderName] = folderNode;
-                        }
-                        parentNode = folderOutlineCache[folderName];
-                    }
-
-                    // 在父节点下创建具体文件的二级书签
-                    // 如果文件名和文件夹名完全一样，可以考虑跳过这一级，直接用文件夹书签指向它
-                    if (fileName != folderName) {
-                        var fileAction = PdfAction.GotoLocalPage(currentPage,
-                                           new PdfDestination(PdfDestination.FITH), pdf);
-                        new PdfOutline(parentNode, fileAction, fileName);
-                    }
-
-                    // --- 书签逻辑结束 ---
-
-                    // 复制页面
-                    for (int i = 1; i <= pageCount; i++) {
+                    foreach (var file in inFiles) {
                         CSGlobal.ThrowIfCancelled();
-                        pdf.AddPage(pdf.GetImportedPage(reader, i));
-                    }
+                        if (!File.Exists(file)) continue;
 
-                    currentPage += pageCount;
-                    pdf.FreeReader(reader);
-                }
+                        using var reader = new PdfReader(file);
+                        int pageCount = reader.NumberOfPages;
+
+                        // --- 核心逻辑：处理层级书签 ---
+
+                        // 获取父文件夹名称 (例如 "第1话")
+                        string folderName = Path.GetFileName(Path.GetDirectoryName(file));
+                        // 获取文件名 (例如 "第1话.pdf")
+                        string fileName = Path.GetFileNameWithoutExtension(file);
+
+                        // 每个书签使用独立的 PdfAction（iTextSharp 的 action 实例不应被多个 outline 共享，
+                        // 共享实例存在被重复注册/页码解析异常的风险）
+                        PdfOutline parentNode = root;
+
+                        // 如果文件夹名有效且不是根目录，则创建/获取一级书签
+                        if (!string.IsNullOrEmpty(folderName)) {
+                            if (!folderOutlineCache.ContainsKey(folderName)) {
+                                // 创建一级目录节点，跳转到该文件夹第一个文件的第一页
+                                var folderAction = PdfAction.GotoLocalPage(currentPage,
+                                                   new PdfDestination(PdfDestination.FITH), pdf);
+                                var folderNode = new PdfOutline(root, folderAction, folderName);
+                                folderOutlineCache[folderName] = folderNode;
+                            }
+                            parentNode = folderOutlineCache[folderName];
+                        }
+
+                        // 在父节点下创建具体文件的二级书签
+                        // 如果文件名和文件夹名完全一样，可以考虑跳过这一级，直接用文件夹书签指向它
+                        if (fileName != folderName) {
+                            var fileAction = PdfAction.GotoLocalPage(currentPage,
+                                               new PdfDestination(PdfDestination.FITH), pdf);
+                            new PdfOutline(parentNode, fileAction, fileName);
+                        }
+
+                        // --- 书签逻辑结束 ---
+
+                        // 复制页面
+                        for (int i = 1; i <= pageCount; i++) {
+                            CSGlobal.ThrowIfCancelled();
+                            pdf.AddPage(pdf.GetImportedPage(reader, i));
+                        }
+
+                        currentPage += pageCount;
+                        pdf.FreeReader(reader);
+                    }
                 }
                 finally {
                     doc.Close();
@@ -237,72 +237,72 @@ namespace ImgsToPDFCore {
                 doc.Open();
                 try {
                     // 按"所在文件夹"分组，便于按页面顺序递归建树
-                var filesByDir = plan
-                    .GroupBy(p => NormalizeDir(Path.GetDirectoryName(p.File)), StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(g => g.Key, g => g.OrderBy(p => p.StartPage).ToList(), StringComparer.OrdinalIgnoreCase);
-                var subFoldersByDir = folderAnchor.Keys
-                    .Where(f => !string.Equals(f, root, StringComparison.OrdinalIgnoreCase))
-                    .GroupBy(f => NormalizeDir(Path.GetDirectoryName(f)), StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+                    var filesByDir = plan
+                        .GroupBy(p => NormalizeDir(Path.GetDirectoryName(p.File)), StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.OrderBy(p => p.StartPage).ToList(), StringComparer.OrdinalIgnoreCase);
+                    var subFoldersByDir = folderAnchor.Keys
+                        .Where(f => !string.Equals(f, root, StringComparison.OrdinalIgnoreCase))
+                        .GroupBy(f => NormalizeDir(Path.GetDirectoryName(f)), StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
-                PdfOutline CreateOutline(PdfOutline parent, int page, string title) {
-                    // 页码来自预扫描，一定 >= 1；GotoLocalPage 会预分配页引用，
-                    // 因此可以在拷贝页面之前先把整棵书签树建好
-                    PdfAction action = PdfAction.GotoLocalPage(Math.Max(1, page), new PdfDestination(PdfDestination.FITH), pdf);
-                    return new PdfOutline(parent, action, title);
-                }
-
-                // 同一层内按锚点页排序建节点，书签面板的顺序就与正文顺序一致；
-                // 递归进入子文件夹只会往子节点里加内容，不会打乱本层的顺序
-                void BuildTree(PdfOutline parentNode, string dir) {
-                    bool isRootLevel = string.Equals(dir, root, StringComparison.OrdinalIgnoreCase);
-                    var entries = new List<(int Page, bool IsFolder, string Path)>();
-                    if (subFoldersByDir.TryGetValue(dir, out var subFolders)) {
-                        foreach (var folder in subFolders) {
-                            entries.Add((folderAnchor[folder], true, folder));
-                        }
+                    PdfOutline CreateOutline(PdfOutline parent, int page, string title) {
+                        // 页码来自预扫描，一定 >= 1；GotoLocalPage 会预分配页引用，
+                        // 因此可以在拷贝页面之前先把整棵书签树建好
+                        PdfAction action = PdfAction.GotoLocalPage(Math.Max(1, page), new PdfDestination(PdfDestination.FITH), pdf);
+                        return new PdfOutline(parent, action, title);
                     }
-                    if (filesByDir.TryGetValue(dir, out var files)) {
-                        foreach (var (file, startPage, _) in files) {
-                            // 文件名与所在文件夹同名时不再单独建文件书签：该文件夹书签已指向本文件首页
-                            if (!isRootLevel &&
-                                string.Equals(Path.GetFileNameWithoutExtension(file), Path.GetFileName(dir), StringComparison.OrdinalIgnoreCase)) {
-                                continue;
+
+                    // 同一层内按锚点页排序建节点，书签面板的顺序就与正文顺序一致；
+                    // 递归进入子文件夹只会往子节点里加内容，不会打乱本层的顺序
+                    void BuildTree(PdfOutline parentNode, string dir) {
+                        bool isRootLevel = string.Equals(dir, root, StringComparison.OrdinalIgnoreCase);
+                        var entries = new List<(int Page, bool IsFolder, string Path)>();
+                        if (subFoldersByDir.TryGetValue(dir, out var subFolders)) {
+                            foreach (var folder in subFolders) {
+                                entries.Add((folderAnchor[folder], true, folder));
                             }
-                            entries.Add((startPage, false, file));
+                        }
+                        if (filesByDir.TryGetValue(dir, out var files)) {
+                            foreach (var (file, startPage, _) in files) {
+                                // 文件名与所在文件夹同名时不再单独建文件书签：该文件夹书签已指向本文件首页
+                                if (!isRootLevel &&
+                                    string.Equals(Path.GetFileNameWithoutExtension(file), Path.GetFileName(dir), StringComparison.OrdinalIgnoreCase)) {
+                                    continue;
+                                }
+                                entries.Add((startPage, false, file));
+                            }
+                        }
+                        foreach (var entry in entries.OrderBy(e => e.Page)) {
+                            if (entry.IsFolder) {
+                                BuildTree(CreateOutline(parentNode, entry.Page, Path.GetFileName(entry.Path)), entry.Path);
+                            }
+                            else {
+                                CreateOutline(parentNode, entry.Page, Path.GetFileNameWithoutExtension(entry.Path));
+                            }
                         }
                     }
-                    foreach (var entry in entries.OrderBy(e => e.Page)) {
-                        if (entry.IsFolder) {
-                            BuildTree(CreateOutline(parentNode, entry.Page, Path.GetFileName(entry.Path)), entry.Path);
-                        }
-                        else {
-                            CreateOutline(parentNode, entry.Page, Path.GetFileNameWithoutExtension(entry.Path));
-                        }
-                    }
-                }
 
-                BuildTree(pdf.RootOutline, root);
+                    BuildTree(pdf.RootOutline, root);
 
-                // 拷贝页面
-                foreach (var (file, _, pageCount) in plan) {
-                    CSGlobal.ThrowIfCancelled();
-                    PdfReader reader;
-                    try {
-                        reader = new PdfReader(file);
-                    }
-                    catch (Exception ex) {
-                        // 预扫描之后文件才出问题：页码已经排好，继续写会得到错位的书签，直接中止并丢弃临时文件
-                        throw new InvalidOperationException($"Failed to reopen '{file}' while merging: {ex.Message}", ex);
-                    }
-                    using (reader) {
-                        for (int i = 1; i <= pageCount; i++) {
-                            CSGlobal.ThrowIfCancelled();
-                            pdf.AddPage(pdf.GetImportedPage(reader, i));
+                    // 拷贝页面
+                    foreach (var (file, _, pageCount) in plan) {
+                        CSGlobal.ThrowIfCancelled();
+                        PdfReader reader;
+                        try {
+                            reader = new PdfReader(file);
                         }
-                        pdf.FreeReader(reader);
+                        catch (Exception ex) {
+                            // 预扫描之后文件才出问题：页码已经排好，继续写会得到错位的书签，直接中止并丢弃临时文件
+                            throw new InvalidOperationException($"Failed to reopen '{file}' while merging: {ex.Message}", ex);
+                        }
+                        using (reader) {
+                            for (int i = 1; i <= pageCount; i++) {
+                                CSGlobal.ThrowIfCancelled();
+                                pdf.AddPage(pdf.GetImportedPage(reader, i));
+                            }
+                            pdf.FreeReader(reader);
+                        }
                     }
-                }
                 }
                 finally {
                     doc.Close();
