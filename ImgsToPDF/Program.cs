@@ -1,22 +1,10 @@
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
 namespace ImgsToPDF {
     internal static class Program {
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
-
-        [DllImport("user32.dll")]
-        private static extern bool IsIconic(IntPtr hWnd);
-
-        private const int SW_RESTORE = 9;
-
         /// <summary>
         /// 应用程序的主入口点。
         /// </summary>
@@ -68,10 +56,10 @@ namespace ImgsToPDF {
                             continue;
                         IntPtr hWnd = process.MainWindowHandle;
                         if (hWnd != IntPtr.Zero) {
-                            if (IsIconic(hWnd)) {
-                                ShowWindowAsync(hWnd, SW_RESTORE);
+                            if (NativeMethods.IsIconic(hWnd)) {
+                                NativeMethods.ShowWindowAsync(hWnd, NativeMethods.SW_RESTORE);
                             }
-                            SetForegroundWindow(hWnd);
+                            NativeMethods.SetForegroundWindow(hWnd);
                             break;
                         }
                     }
