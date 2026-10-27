@@ -28,12 +28,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace WebPWrapper
-{
-    public sealed class WebP : IDisposable
-    {
-        static WebP()
-        {
+namespace WebPWrapper {
+    public sealed class WebP : IDisposable {
+        static WebP() {
             // 确保首次访问 WebP 类型时触发 UnsafeNativeMethods 静态构造，完成非托管 DLL 路径预载入
             System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(UnsafeNativeMethods).TypeHandle);
         }
@@ -42,8 +39,7 @@ namespace WebPWrapper
         /// <summary>Decode a WebP image</summary>
         /// <param name="rawWebP">The data to uncompress</param>
         /// <returns>Bitmap with the WebP image</returns>
-        public Bitmap Decode(byte[] rawWebP)
-        {
+        public Bitmap Decode(byte[] rawWebP) {
             if (rawWebP == null || rawWebP.Length == 0)
                 return null;
 
@@ -52,8 +48,7 @@ namespace WebPWrapper
             GCHandle pinnedWebP = GCHandle.Alloc(rawWebP, GCHandleType.Pinned);
             bool success = false;
 
-            try
-            {
+            try {
                 //Get image width and height
                 GetInfo(rawWebP, out int imgWidth, out int imgHeight, out bool hasAlpha, out bool hasAnimation, out string format);
 
@@ -68,15 +63,14 @@ namespace WebPWrapper
                 int outputSize = bmpData.Stride * imgHeight;
                 IntPtr ptrData = pinnedWebP.AddrOfPinnedObject();
                 if (bmp.PixelFormat == PixelFormat.Format24bppRgb)
-                     UnsafeNativeMethods.WebPDecodeBGRInto(ptrData, rawWebP.Length, bmpData.Scan0, outputSize, bmpData.Stride);
+                    UnsafeNativeMethods.WebPDecodeBGRInto(ptrData, rawWebP.Length, bmpData.Scan0, outputSize, bmpData.Stride);
                 else
-                     UnsafeNativeMethods.WebPDecodeBGRAInto(ptrData, rawWebP.Length, bmpData.Scan0, outputSize, bmpData.Stride);
+                    UnsafeNativeMethods.WebPDecodeBGRAInto(ptrData, rawWebP.Length, bmpData.Scan0, outputSize, bmpData.Stride);
 
                 success = true;
                 return bmp;
             }
-            finally
-            {
+            finally {
                 //Unlock the pixels
                 if (bmpData != null && bmp != null)
                     bmp.UnlockBits(bmpData);
@@ -101,13 +95,11 @@ namespace WebPWrapper
         /// <param name="has_alpha">Image has alpha channel</param>
         /// <param name="has_animation">Image is a animation</param>
         /// <param name="format">Format of image: 0 = undefined (/mixed), 1 = lossy, 2 = lossless</param>
-        public void GetInfo(byte[] rawWebP, out int width, out int height, out bool has_alpha, out bool has_animation, out string format)
-        {
+        public void GetInfo(byte[] rawWebP, out int width, out int height, out bool has_alpha, out bool has_animation, out string format) {
             VP8StatusCode result;
             GCHandle pinnedWebP = GCHandle.Alloc(rawWebP, GCHandleType.Pinned);
 
-            try
-            {
+            try {
                 IntPtr ptrRawWebP = pinnedWebP.AddrOfPinnedObject();
 
                 WebPBitstreamFeatures features = new();
@@ -127,8 +119,7 @@ namespace WebPWrapper
                 };
             }
             catch (Exception ex) { throw new Exception(ex.Message + "\r\nIn WebP.GetInfo"); }
-            finally
-            {
+            finally {
                 //Free memory
                 if (pinnedWebP.IsAllocated)
                     pinnedWebP.Free();
@@ -138,8 +129,7 @@ namespace WebPWrapper
 
         #region | Destruction |
         /// <summary>Free memory</summary>
-        public void Dispose()
-        {
+        public void Dispose() {
             GC.SuppressFinalize(this);
         }
         #endregion
@@ -147,27 +137,23 @@ namespace WebPWrapper
 
     #region | Import libwebp functions |
     [SuppressUnmanagedCodeSecurityAttribute]
-    internal sealed partial class UnsafeNativeMethods
-    {
+    internal sealed partial class UnsafeNativeMethods {
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr LoadLibrary(string libname);
 
-        static UnsafeNativeMethods()
-        {
+        static UnsafeNativeMethods() {
             string dllName = IntPtr.Size == 8 ? "libwebp_x64.dll" : "libwebp_x86.dll";
 
             // 1. 优先检测 Core 子目录（针对 WinForms GUI 宿主环境：libwebp 位于 Core\ 目录下）
             string coreDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Core", dllName);
-            if (File.Exists(coreDllPath))
-            {
+            if (File.Exists(coreDllPath)) {
                 LoadLibrary(coreDllPath);
                 return;
             }
 
             // 2. 检测应用程序同级目录（针对 ImgsToPDFCore 独立进程环境）
             string baseDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, dllName);
-            if (File.Exists(baseDllPath))
-            {
+            if (File.Exists(baseDllPath)) {
                 LoadLibrary(baseDllPath);
             }
         }
@@ -179,8 +165,7 @@ namespace WebPWrapper
         /// <param name="data_size">Size of rawWebP</param>
         /// <param name="features">Features of WebP image</param>
         /// <returns>VP8StatusCode</returns>
-        internal static VP8StatusCode WebPGetFeatures(IntPtr rawWebP, int data_size, ref WebPBitstreamFeatures features)
-        {
+        internal static VP8StatusCode WebPGetFeatures(IntPtr rawWebP, int data_size, ref WebPBitstreamFeatures features) {
             return IntPtr.Size switch {
                 4 => WebPGetFeaturesInternal_x86(rawWebP, (UIntPtr)data_size, ref features, WEBP_DECODER_ABI_VERSION),
                 8 => WebPGetFeaturesInternal_x64(rawWebP, (UIntPtr)data_size, ref features, WEBP_DECODER_ABI_VERSION),
@@ -198,10 +183,8 @@ namespace WebPWrapper
         /// <param name="output_buffer">Pointer to decoded WebP image</param>
         /// <param name="output_buffer_size">Size of allocated buffer</param>
         /// <param name="output_stride">Specifies the distance between scan lines</param>
-        internal static void WebPDecodeBGRInto(IntPtr data, int data_size, IntPtr output_buffer, int output_buffer_size, int output_stride)
-        {
-            switch (IntPtr.Size)
-            {
+        internal static void WebPDecodeBGRInto(IntPtr data, int data_size, IntPtr output_buffer, int output_buffer_size, int output_stride) {
+            switch (IntPtr.Size) {
                 case 4:
                     if (WebPDecodeBGRInto_x86(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
                         throw new InvalidOperationException("Can not decode WebP");
@@ -225,13 +208,11 @@ namespace WebPWrapper
         /// <param name="output_buffer">Pointer to decoded WebP image</param>
         /// <param name="output_buffer_size">Size of allocated buffer</param>
         /// <param name="output_stride">Specifies the distance between scan lines</param>
-        internal static void WebPDecodeBGRAInto(IntPtr data, int data_size, IntPtr output_buffer, int output_buffer_size, int output_stride)
-        {
-            switch (IntPtr.Size)
-            {
+        internal static void WebPDecodeBGRAInto(IntPtr data, int data_size, IntPtr output_buffer, int output_buffer_size, int output_stride) {
+            switch (IntPtr.Size) {
                 case 4:
                     if (WebPDecodeBGRAInto_x86(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
-                        throw new InvalidOperationException("Can not decode WebP"); 
+                        throw new InvalidOperationException("Can not decode WebP");
                     break;
                 case 8:
                     if (WebPDecodeBGRAInto_x64(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
@@ -251,8 +232,7 @@ namespace WebPWrapper
     #region | Predefined |
 
     /// <summary>Enumeration of the status codes</summary>
-    internal enum VP8StatusCode
-    {
+    internal enum VP8StatusCode {
         /// <summary>No error</summary>
         VP8_STATUS_OK = 0,
         /// <summary>Memory error allocating objects</summary>
@@ -272,8 +252,7 @@ namespace WebPWrapper
     #region | libwebp structs |
     /// <summary>Features gathered from the bit stream</summary>
     [StructLayoutAttribute(LayoutKind.Sequential)]
-    internal struct WebPBitstreamFeatures
-    {
+    internal struct WebPBitstreamFeatures {
         /// <summary>Width in pixels, as read from the bit stream</summary>
         public int Width;
         /// <summary>Height in pixels, as read from the bit stream</summary>

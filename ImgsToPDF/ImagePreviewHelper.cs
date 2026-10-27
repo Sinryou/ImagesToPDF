@@ -58,7 +58,10 @@ namespace ImgsToPDF {
         /// 加载单张图片用于缩略图预览生成。常规格式通过 GDI+ 流式加载，WebP 格式通过 libwebp + ImageExif 加载并纠正旋转。
         /// </summary>
         public static Image LoadPreviewImage(string imagepath) {
-            if (string.Equals(Path.GetExtension(imagepath), ".webp", StringComparison.OrdinalIgnoreCase)) {
+            // 提取扩展名局部变量，避免多次解析路径字符串
+            string ext = Path.GetExtension(imagepath);
+
+            if (string.Equals(ext, ".webp", StringComparison.OrdinalIgnoreCase)) {
                 // 只读一次盘：解码与 EXIF Orientation 解析共用同一份字节，避免同一文件读两遍
                 var rawWebP = File.ReadAllBytes(imagepath);
                 using WebP webp = new();
@@ -85,7 +88,7 @@ namespace ImgsToPDF {
             using var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read);
             var img = Image.FromStream(stream);
 
-            if (FolderScanner.ImageExtensionsEXIFOrientation.Contains(Path.GetExtension(imagepath))) {
+            if (FolderScanner.ImageExtensionsEXIFOrientation.Contains(ext)) {
                 const int OrientationId = 0x0112;
 
                 // Array.IndexOf 比 Contains(PropertyIdList) 性能略高，减少不必要的数组遍历

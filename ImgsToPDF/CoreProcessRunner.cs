@@ -150,17 +150,9 @@ namespace ImgsToPDF {
             string[] args,
             Func<string, Task<string>> promptPasswordAsync) {
 
-            for (int i = 0; i < args.Length; i++) {
-                if (args[i].EndsWith(@"\")) {
-                    // 处理最后若为"\"，会被转义成"\"，然后变成转义符
-                    args[i] += @"\";
-                }
-                args[i] = string.Format("\"{0}\"", args[i]);
-            }
-
             using Process p = new();
             p.StartInfo.FileName = fileName;
-            p.StartInfo.Arguments = string.Join(" ", args);
+            p.StartInfo.SetArguments(args);
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardInput = true;
             p.StartInfo.RedirectStandardOutput = true;
