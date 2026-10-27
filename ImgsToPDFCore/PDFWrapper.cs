@@ -42,6 +42,13 @@ namespace ImgsToPDF.Core {
         }
 
         /// <summary>
+        /// 基础合并 PDF 文件（兼容数组入参）
+        /// </summary>
+        public static void PdfMerge(string[] inFiles, string outFile) {
+            PdfMerger.PdfMerge([.. inFiles], outFile);
+        }
+
+        /// <summary>
         /// 带单层级文件夹书签的 PDF 合并
         /// </summary>
         public static void PdfMergeWithHierarchicalOutlines(List<string> inFiles, string outFile) {

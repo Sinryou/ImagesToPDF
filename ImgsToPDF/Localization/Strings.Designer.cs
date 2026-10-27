@@ -205,6 +205,15 @@ namespace ImgsToPDF.Localization {
         }
         
         /// <summary>
+        ///   查找类似 [{0} PDFs] {1} 的本地化字符串。
+        /// </summary>
+        internal static string SelectedPdfsCount {
+            get {
+                return ResourceManager.GetString("SelectedPdfsCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Please select the folder where the images are located. 的本地化字符串。
         /// </summary>
         internal static string SelectIMGFolder {

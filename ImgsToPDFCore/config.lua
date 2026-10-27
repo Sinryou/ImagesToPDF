@@ -176,11 +176,20 @@ function Config:PreProcess(...)
     elseif commonUtils.IsManifestFile(path) then
         local manifestData = commonUtils.ParseManifest(path)
         if not manifestData or not manifestData.ImagePaths or manifestData.ImagePaths.Length == 0 then
-            commonUtils.ReportFailure("No valid images found in the manifest file: " .. tostring(path))
+            commonUtils.ReportFailure("No valid files found in the manifest file: " .. tostring(path))
             return
         end
         outputDir = manifestData.OutputDir
         pdfFileName = manifestData.PdfFileName
+        -- 检查清单首项是否为 PDF 文件；若是则执行多个 PDF 合并逻辑（调用最基础的普通合并 PdfMerge）
+        local firstFile = manifestData.ImagePaths[0] or manifestData.ImagePaths[1]
+        local isPdf = firstFile and (pathUtil.getExtension(firstFile) or ""):lower() == ".pdf"
+
+        if isPdf then
+            local outputPath = Config.PathToSave()
+            PDFWrapper.PdfMerge(manifestData.ImagePaths, outputPath)
+            return
+        end
         local pages = PDFWrapper.ImagesToPDFFromImageFiles(manifestData.ImagePaths, layout, fastFlag)
         if pages == 0 and not commonUtils.FailureReported then
             commonUtils.ReportFailure("Failed to write images to PDF: " .. tostring(path))

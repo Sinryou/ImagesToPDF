@@ -177,4 +177,7 @@
   <data name="MsgLabelDefault" xml:space="preserve">
     <value>Drop your folder or archive here</value>
   </data>
+  <data name="SelectedPdfsCount" xml:space="preserve">
+    <value>[{0} PDFs] {1}</value>
+  </data>
 </root>

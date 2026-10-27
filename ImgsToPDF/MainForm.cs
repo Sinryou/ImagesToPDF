@@ -68,6 +68,7 @@ namespace ImgsToPDF {
         /// 若为 null 则表示当前处于目录/压缩包模式。
         /// </summary>
         private List<string> _chosenImageFiles;
+        private List<string> _chosenPdfFiles;
 
         /// <summary>
         /// 当前是否正在后台生成 PDF，用于全局锁定界面交互并防止竞态操作
@@ -95,12 +96,14 @@ namespace ImgsToPDF {
         private void SetUiState(bool isProcessing) {
             _isProcessing = isProcessing;
 
-            StartButton.Enabled = !isProcessing && !string.IsNullOrEmpty(PathLabel.Text);
-            generateModeBox.Enabled = !isProcessing;
-            FastMode.Enabled = !isProcessing;
             bool isImageMergeMode = _chosenImageFiles != null && _chosenImageFiles.Count > 0;
-            Recursive.Enabled = !isProcessing && !isImageMergeMode;
-            Merge.Enabled = !isProcessing && !isImageMergeMode && Recursive.Checked;
+            bool isPdfMergeMode = _chosenPdfFiles != null && _chosenPdfFiles.Count > 0;
+
+            StartButton.Enabled = !isProcessing && !string.IsNullOrEmpty(PathLabel.Text);
+            generateModeBox.Enabled = !isProcessing && !isPdfMergeMode;
+            FastMode.Enabled = !isProcessing && !isPdfMergeMode;
+            Recursive.Enabled = !isProcessing && !isImageMergeMode && !isPdfMergeMode;
+            Merge.Enabled = !isProcessing && !isImageMergeMode && !isPdfMergeMode && Recursive.Checked;
 
             toolStripMenuOpenFolder.Enabled = !isProcessing;
             toolStripMenuItemOpenArchive.Enabled = !isProcessing;
@@ -132,7 +135,8 @@ namespace ImgsToPDF {
                 bool hasSupportedItem = files.Any(f =>
                     Directory.Exists(f) ||
                     FolderScanner.CompressExtensions.Contains(Path.GetExtension(f)) ||
-                    FolderScanner.ImageExtensions.Contains(Path.GetExtension(f))
+                    FolderScanner.ImageExtensions.Contains(Path.GetExtension(f)) ||
+                    string.Equals(Path.GetExtension(f), ".pdf", StringComparison.OrdinalIgnoreCase)
                 );
                 e.Effect = hasSupportedItem ? DragDropEffects.All : DragDropEffects.None;
             }
@@ -152,6 +156,9 @@ namespace ImgsToPDF {
 
         private void ChooseFileAction(string directoryPath) {
             _chosenImageFiles = null;
+            _chosenPdfFiles = null;
+            generateModeBox.Enabled = !_isProcessing;
+            FastMode.Enabled = !_isProcessing;
             Recursive.Enabled = !_isProcessing;
             Merge.Enabled = !_isProcessing && Recursive.Checked;
 
@@ -216,6 +223,9 @@ namespace ImgsToPDF {
             // 自然排序（与 Windows 资源管理器文件排序规则一致）
             imageFiles.Sort(FolderScanner.NaturalPathComparer.Instance);
             _chosenImageFiles = imageFiles;
+            _chosenPdfFiles = null;
+            generateModeBox.Enabled = !_isProcessing;
+            FastMode.Enabled = !_isProcessing;
 
             // 获取第一张可读图片生成高清缩略图
             Bitmap preview = null;
@@ -273,6 +283,58 @@ namespace ImgsToPDF {
             MsgLabel.Text = Strings.ClickToStart;
         }
 
+        /// <summary>
+        /// 选中一组离散 PDF 文件，进入多个 PDF 合并为一个 PDF 的模式。
+        /// </summary>
+        private void ChoosePdfsAction(List<string> pdfFiles) {
+            if (pdfFiles == null || pdfFiles.Count == 0) return;
+
+            // 自然排序（与 Windows 资源管理器文件排序规则一致）
+            pdfFiles.Sort(FolderScanner.NaturalPathComparer.Instance);
+            _chosenPdfFiles = pdfFiles;
+            _chosenImageFiles = null;
+
+            ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.pdf);
+            SetFolderOverlay(null); // PDF 合并模式不需要文件夹角标
+
+            string firstFile = pdfFiles[0];
+            string dir = Path.GetDirectoryName(firstFile);
+            string dirName = Path.GetFileName(dir);
+
+            if (pdfFiles.Count == 1) {
+                PathLabel.Text = firstFile;
+                _pathToolTip.SetToolTip(PathLabel, firstFile);
+            }
+            else {
+                string countPattern = Strings.SelectedPdfsCount;
+                if (string.IsNullOrEmpty(countPattern)) {
+                    countPattern = "[{0} PDFs] {1}";
+                }
+                string displayDir = string.IsNullOrEmpty(dirName) ? firstFile : dirName;
+                PathLabel.Text = string.Format(countPattern, pdfFiles.Count, displayDir);
+                _pathToolTip.SetToolTip(PathLabel, string.Format(
+                    "Selected {0} PDF(s)\nDirectory: {1}\nFirst file: {2}",
+                    pdfFiles.Count,
+                    dir,
+                    Path.GetFileName(firstFile)
+                ));
+            }
+
+            int textWidth = TextRenderer.MeasureText(PathLabel.Text, PathLabel.Font).Width;
+            PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
+
+            // PDF 合并模式下，版式布局、快速压缩、递归子目录与合并子目录均不适用，禁用并取消勾选
+            generateModeBox.Enabled = false;
+            FastMode.Enabled = false;
+            Recursive.Checked = false;
+            Recursive.Enabled = false;
+            Merge.Checked = false;
+            Merge.Enabled = false;
+
+            StartButton.Enabled = !_isProcessing;
+            MsgLabel.Text = Strings.ClickToStart;
+        }
+
         private void MainForm_DragDrop(object sender, DragEventArgs e) {
             if (_isProcessing) {
                 return;
@@ -293,8 +355,17 @@ namespace ImgsToPDF {
                 .Where(f => Directory.Exists(f) || FolderScanner.CompressExtensions.Contains(Path.GetExtension(f)))
                 .ToList();
 
+            // 提取所有有效的 PDF 文件
+            var pdfFiles = files
+                .Where(f => File.Exists(f) && string.Equals(Path.GetExtension(f), ".pdf", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            // 纯 PDF 拖入：进入 PDF 合并模式
+            if (pdfFiles.Count > 0 && imageFiles.Count == 0 && containerFiles.Count == 0) {
+                ChoosePdfsAction(pdfFiles);
+            }
             // 纯图片拖入：进入图片合并模式
-            if (imageFiles.Count > 0 && containerFiles.Count == 0) {
+            else if (imageFiles.Count > 0 && containerFiles.Count == 0) {
                 ChooseImagesAction(imageFiles);
             }
             else {
@@ -315,6 +386,7 @@ namespace ImgsToPDF {
             }
 
             bool isImageMerge = _chosenImageFiles != null && _chosenImageFiles.Count > 0;
+            bool isPdfMerge = _chosenPdfFiles != null && _chosenPdfFiles.Count > 0;
             string manifestPath = null;
             string targetPathForCore = directoryPath;
             string displayTargetPath = directoryPath;
@@ -336,11 +408,28 @@ namespace ImgsToPDF {
                 File.WriteAllLines(manifestPath, lines, new UTF8Encoding(false));
                 targetPathForCore = manifestPath;
             }
+            else if (isPdfMerge) {
+                string firstPdf = _chosenPdfFiles[0];
+                string outDir = Path.GetDirectoryName(firstPdf);
+                string dirName = Path.GetFileName(outDir);
+                if (string.IsNullOrEmpty(dirName)) {
+                    dirName = Path.GetFileNameWithoutExtension(firstPdf);
+                }
+                displayTargetPath = Path.Combine(outDir, $"{dirName}_Merged.pdf");
 
-            bool recursive = !isImageMerge && Recursive.Checked;
-            bool fastMode = FastMode.Checked;
-            bool merge = !isImageMerge && Merge.Checked;
-            int layoutIndex = generateModeBox.SelectedIndex;
+                manifestPath = Path.Combine(Path.GetTempPath(), $"imgstopdf_{Guid.NewGuid():N}.txt");
+                var lines = new List<string> {
+                    IpcContracts.ManifestOutputPrefix + displayTargetPath
+                };
+                lines.AddRange(_chosenPdfFiles);
+                File.WriteAllLines(manifestPath, lines, new UTF8Encoding(false));
+                targetPathForCore = manifestPath;
+            }
+
+            bool recursive = !isImageMerge && !isPdfMerge && Recursive.Checked;
+            bool fastMode = !isPdfMerge && FastMode.Checked;
+            bool merge = !isImageMerge && !isPdfMerge && Merge.Checked;
+            int layoutIndex = isPdfMerge ? 0 : generateModeBox.SelectedIndex;
 
             MsgLabel.Text = Strings.PDFIsGenerating;
             progressBar.Visible = true;
@@ -534,6 +623,9 @@ namespace ImgsToPDF {
             if (_isProcessing) return;
 
             _chosenImageFiles = null;
+            _chosenPdfFiles = null;
+            generateModeBox.Enabled = !_isProcessing;
+            FastMode.Enabled = !_isProcessing;
             Recursive.Enabled = !_isProcessing;
             Recursive.Checked = false;
             Merge.Enabled = false;

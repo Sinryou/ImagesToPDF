@@ -177,4 +177,7 @@
   <data name="MsgLabelDefault" xml:space="preserve">
     <value>拖入包含图片的文件夹或压缩包</value>
   </data>
+  <data name="SelectedPdfsCount" xml:space="preserve">
+    <value>[{0} 个 PDF] {1}</value>
+  </data>
 </root>
