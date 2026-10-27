@@ -50,10 +50,6 @@
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
-  <!-- 单独构建本项目（不经过 .slnx）时 SolutionDir 未定义，PostBuildEvent 需要它定位 UI 项目的 Core 目录 -->
-  <PropertyGroup>
-    <SolutionDir Condition="'$(SolutionDir)'==''">$(MSBuildProjectDirectory)\..\</SolutionDir>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -162,15 +158,4 @@
     </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
-  </PropertyGroup>
-  <PropertyGroup>
-    <!-- robocopy /MIR 与 xcopy 不同：会删除目标中已不存在的旧文件，避免切换 Debug/Release 或 Core 删文件后残留 -->
-    <!-- robocopy 退出码 0-7 均为成功，8 以上才是错误；PostBuildEvent 对非零返回即判构建失败，故需映射 -->
-    <PostBuildEvent>robocopy "$(TargetDir)\" "$(SolutionDir)ImgsToPDF\Core" /MIR
-if %25ERRORLEVEL%25 LEQ 7 exit /b 0
-exit /b %25ERRORLEVEL%25</PostBuildEvent>
-  </PropertyGroup>
 </Project>

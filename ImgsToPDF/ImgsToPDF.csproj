@@ -174,12 +174,16 @@
     </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <!-- robocopy /MIR 会清理目标中已不存在的旧文件；退出码 0-7 均为成功，8 以上才视为构建失败 -->
-    <PostBuildEvent>robocopy "$(ProjectDir)Core" "$(TargetDir)Core" /MIR
-
-if %25ERRORLEVEL%25 LEQ 7 exit /b 0
-
-exit /b %25ERRORLEVEL%25</PostBuildEvent>
-  </PropertyGroup>
+  <!-- 在 UI 构建完成后，直接将 Core 编译产物镜像同步至输出目录的 Core 子目录下，
+       彻底避免将二进制文件写入并污染源码工作区（如 ImgsToPDF\Core） -->
+  <Target Name="SyncCorePayload" AfterTargets="Build">
+    <PropertyGroup>
+      <CoreOutputDir>..\ImgsToPDFCore\bin\$(Platform)\$(Configuration)</CoreOutputDir>
+      <TargetCoreDir>$(TargetDir)Core</TargetCoreDir>
+    </PropertyGroup>
+    <Exec Command="robocopy &quot;$(CoreOutputDir)&quot; &quot;$(TargetCoreDir)&quot; /MIR&#xD;&#xA;if %ERRORLEVEL% LEQ 7 exit /b 0&#xD;&#xA;exit /b %ERRORLEVEL%" />
+  </Target>
+  <Target Name="CleanCorePayload" AfterTargets="Clean">
+    <RemoveDir Directories="$(TargetDir)Core" Condition="Exists('$(TargetDir)Core')" />
+  </Target>
 </Project>

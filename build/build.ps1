@@ -209,6 +209,7 @@ if ($Clean) {
     $dirsToClean = @(
         (Join-Path $repoRoot "ImgsToPDF\bin"),
         (Join-Path $repoRoot "ImgsToPDF\obj"),
+        (Join-Path $repoRoot "ImgsToPDF\Core"),
         (Join-Path $repoRoot "ImgsToPDFCore\bin"),
         (Join-Path $repoRoot "ImgsToPDFCore\obj"),
         $OutputDir,
