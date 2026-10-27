@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Core {
     public enum Layout {
         Single,
         DuplexLeftToRight,

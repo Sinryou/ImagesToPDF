@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Core {
     /// <summary>
     /// PDF 页面排版与文档生成引擎。
     /// 负责按单页或双页（小说模式）对图片进行几何变换、页面缩放、中缝处理并输出为 PDF 文档。

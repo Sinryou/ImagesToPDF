@@ -2,7 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Core {
     /// <summary>
     /// 事务性 / 原子文件写出机制：
     /// 先写同目录下的临时文件（.tmp），全部成功后再原子替换目标文件，失败则自动清理临时文件。

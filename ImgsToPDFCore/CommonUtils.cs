@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Core {
     internal class CommonUtils {
         /// <summary>
         /// 本次是否已经上报过失败。供 Program 的结果校验使用：

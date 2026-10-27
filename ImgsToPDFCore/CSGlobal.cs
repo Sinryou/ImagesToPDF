@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using ImgsToPDFCore;
+using ImgsToPDF.Core;
 using XLua;
 
 /// <summary>

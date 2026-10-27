@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <ProjectGuid>{F8DFA59F-F04B-4BDE-93DA-3BDE68C1AE0E}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>ImgsToPDFCore</RootNamespace>
+    <RootNamespace>ImgsToPDF.Core</RootNamespace>
     <AssemblyName>ImgsToPDFCore</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

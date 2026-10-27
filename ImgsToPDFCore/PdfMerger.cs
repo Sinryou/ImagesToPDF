@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Core {
     /// <summary>
     /// PDF 文件合并与书签树生成引擎。
     /// 支持基础合并、单层级书签合并及基于目录结构的多层级深度书签树合并。

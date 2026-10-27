@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Shared {
     internal static class ImageExif {
         // TIFF 中 Orientation 标签的 ID
         private const ushort OrientationTag = 0x0112;

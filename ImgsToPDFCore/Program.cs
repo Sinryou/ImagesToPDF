@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading;
 using XLua;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Core {
     internal class Program {
         /// <summary>
         /// 程序的所有命令行参数类型

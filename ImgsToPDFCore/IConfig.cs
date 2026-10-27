@@ -1,6 +1,6 @@
 using XLua;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Core {
     /// <summary>
     /// Lua内定义的配置属性及方法
     /// </summary>

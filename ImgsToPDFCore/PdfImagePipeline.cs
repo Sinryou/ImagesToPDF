@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using iTextSharp.text;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.IO;
 using System.Linq;
 using WebPWrapper;
 
-namespace ImgsToPDFCore {
+namespace ImgsToPDF.Core {
     /// <summary>
     /// 图像加载、解码、EXIF 校正与 PDF 格式重编码管道。
     /// 负责将磁盘文件安全转换为适合写入 PDF 的 PageImage 对象。

@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using System;
 using System.Drawing;
 using System.IO;
@@ -69,7 +70,7 @@ namespace ImgsToPDF {
                 if (bitmapWebp == null) return null;
 
                 try {
-                    ushort? orientation = ImgsToPDFCore.ImageExif.GetOrientation(rawWebP);
+                    ushort? orientation = ImageExif.GetOrientation(rawWebP);
                     if (orientation.HasValue) {
                         RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
                         if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
