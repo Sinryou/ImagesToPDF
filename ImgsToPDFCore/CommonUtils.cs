@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Readers;
@@ -258,20 +259,20 @@ namespace ImgsToPDF.Core {
             }
 
             // GUI 模式：向标准输出写入约定的密码请求指令
-            Console.WriteLine($"::__REQ_PASSWORD__::{archivePath}");
+            Console.WriteLine($"{IpcContracts.ReqPasswordPrefix}{archivePath}");
             Console.Out.Flush();
 
             // 等待 GUI 回传（最长等待 10 分钟）
             string response = CSGlobal.WaitForStdinLine(TimeSpan.FromMinutes(10));
             CSGlobal.ThrowIfCancelled();
 
-            if (string.IsNullOrEmpty(response) || response == "::__CANCEL__::") {
+            if (string.IsNullOrEmpty(response) || response == IpcContracts.CancelToken) {
                 return null;
             }
 
-            const string prefix = "::__RESP_PASSWORD__::";
-            if (response.StartsWith(prefix)) {
-                string base64 = response.Substring(prefix.Length);
+            
+            if (response.StartsWith(IpcContracts.RespPasswordPrefix, StringComparison.Ordinal)) {
+                string base64 = response.Substring(IpcContracts.RespPasswordPrefix.Length);
                 try {
                     byte[] bytes = Convert.FromBase64String(base64);
                     return Encoding.UTF8.GetString(bytes);
@@ -376,8 +377,8 @@ namespace ImgsToPDF.Core {
                 var line = rawLine?.Trim();
                 if (string.IsNullOrEmpty(line)) continue;
 
-                if (line.StartsWith("#OUTPUT:", StringComparison.OrdinalIgnoreCase)) {
-                    customOutput = line.Substring("#OUTPUT:".Length).Trim();
+                if (line.StartsWith(IpcContracts.ManifestOutputPrefix, StringComparison.OrdinalIgnoreCase)) {
+                    customOutput = line.Substring(IpcContracts.ManifestOutputPrefix.Length).Trim();
                     continue;
                 }
                 if (line.StartsWith("#")) continue;

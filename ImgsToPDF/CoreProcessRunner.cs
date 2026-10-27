@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using ImgsToPDF.Localization;
 using System;
 using System.Collections.Concurrent;
@@ -169,32 +170,32 @@ namespace ImgsToPDF {
             // 显式告知 Core「我是 GUI 拉起的」，它才会开启父进程看门狗：
             // 该看门狗把 stdin 当作父进程存活管道，一旦读到 EOF 就取消任务并在宽限期后自毁，
             // 避免 GUI 退出后残留孤儿进程。
-            p.StartInfo.EnvironmentVariables["IMGTSPDF_WATCH_PARENT"] = "1";
+            p.StartInfo.EnvironmentVariables[IpcContracts.WatchParentEnvVar] = "1";
 
             p.Start();
 
             // 异步读取 stdout，拦截并处理密码请求指令；普通行追加到 stdoutBuffer
             var stdoutSb = new StringBuilder();
             var stdoutTask = Task.Run(async () => {
-                const string reqPrefix = "::__REQ_PASSWORD__::";
+                
                 try {
                     while (true) {
                         string line = await p.StandardOutput.ReadLineAsync();
                         if (line == null) {
                             break;
                         }
-                        if (line.StartsWith(reqPrefix, StringComparison.Ordinal)) {
-                            string archivePath = line.Substring(reqPrefix.Length);
+                        if (line.StartsWith(IpcContracts.ReqPasswordPrefix, StringComparison.Ordinal)) {
+                            string archivePath = line.Substring(IpcContracts.ReqPasswordPrefix.Length);
                             string password = promptPasswordAsync != null ? await promptPasswordAsync(archivePath) : null;
                             try {
                                 if (password != null) {
                                     byte[] bytes = Encoding.UTF8.GetBytes(password);
                                     string base64 = Convert.ToBase64String(bytes);
-                                    await p.StandardInput.WriteLineAsync($"::__RESP_PASSWORD__::{base64}");
+                                    await p.StandardInput.WriteLineAsync($"{IpcContracts.RespPasswordPrefix}{base64}");
                                     await p.StandardInput.FlushAsync();
                                 }
                                 else {
-                                    await p.StandardInput.WriteLineAsync("::__CANCEL__::");
+                                    await p.StandardInput.WriteLineAsync(IpcContracts.CancelToken);
                                     await p.StandardInput.FlushAsync();
                                 }
                             }

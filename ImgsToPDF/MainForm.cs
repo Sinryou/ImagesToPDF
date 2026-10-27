@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using ImgsToPDF.Localization;
 using System;
 using System.Collections.Generic;
@@ -329,7 +330,7 @@ namespace ImgsToPDF {
 
                 manifestPath = Path.Combine(Path.GetTempPath(), $"imgstopdf_{Guid.NewGuid():N}.txt");
                 var lines = new List<string> {
-                    "#OUTPUT:" + displayTargetPath
+                    IpcContracts.ManifestOutputPrefix + displayTargetPath
                 };
                 lines.AddRange(_chosenImageFiles);
                 File.WriteAllLines(manifestPath, lines, new UTF8Encoding(false));

@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using CommandLine;
 using System;
 using System.IO;
@@ -31,8 +32,8 @@ namespace ImgsToPDF.Core {
 
             // 看门狗只应由 GUI 显式开启，且该标志不能继承给其它进程，因此读完立刻清掉。
             bool watchParent = string.Equals(
-                Environment.GetEnvironmentVariable(WatchParentEnvVar), "1", StringComparison.Ordinal);
-            Environment.SetEnvironmentVariable(WatchParentEnvVar, null);
+                Environment.GetEnvironmentVariable(IpcContracts.WatchParentEnvVar), "1", StringComparison.Ordinal);
+            Environment.SetEnvironmentVariable(IpcContracts.WatchParentEnvVar, null);
 
             CSGlobal.IsGuiMode = watchParent;
             StartParentWatchdogIfRequested(watchParent);
@@ -49,10 +50,10 @@ namespace ImgsToPDF.Core {
         /// 命令行/脚本调用不会设置它，因此 stdin 被重定向（管道、cmd 的 &lt; NUL、CI 等）
         /// 不会被误当成「父进程已退出」而自杀。
         /// </summary>
-        private const string WatchParentEnvVar = "IMGTSPDF_WATCH_PARENT";
+        
 
         /// <summary>
-        /// 父进程看门狗：由 GUI 拉起时（见 <see cref="WatchParentEnvVar"/>），后台监听 Stdin 管道。
+        /// 父进程看门狗：由 GUI 拉起时（见 <see cref="IpcContracts.WatchParentEnvVar"/>），后台监听 Stdin 管道。
         /// 一旦父进程关闭或异常崩溃，OS 会自动关闭管道写端，ReadByte() 立即返回 -1。
         /// 先置取消标志让主线程走 finally 清理临时文件与解压目录，超时未退才强制自毁。
         /// 注意：这里刻意不用 Console.IsInputRedirected 作为判据——它无法区分

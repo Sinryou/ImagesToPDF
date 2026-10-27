@@ -107,6 +107,9 @@
     <Compile Include="..\ImgsToPDFCore\ImageExif.cs">
       <Link>ImageExif.cs</Link>
     </Compile>
+    <Compile Include="..\ImgsToPDFCore\IpcContracts.cs">
+      <Link>IpcContracts.cs</Link>
+    </Compile>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
       <SubType>Designer</SubType>
