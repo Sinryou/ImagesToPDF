@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Text;
 
 namespace System {
-    internal static class PasteArguments {
+    internal static partial class PasteArguments {
         /// <summary>
         /// .NET Framework 下 ProcessStartInfo.ArgumentList 的等价扩展方法
         /// </summary>
