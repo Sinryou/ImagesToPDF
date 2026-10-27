@@ -117,61 +117,64 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="strArchiveFile" xml:space="preserve">
-    <value>Archive File</value>
+  <data name="ArchiveFile" xml:space="preserve">
+    <value>压缩文件</value>
   </data>
-  <data name="strClickToStart" xml:space="preserve">
-    <value>Click Start Button to Generate PDF file</value>
+  <data name="ClickToStart" xml:space="preserve">
+    <value>点击开始按钮开始PDF文件生成</value>
   </data>
-  <data name="strDuplex" xml:space="preserve">
-    <value>Duplex</value>
+  <data name="Duplex" xml:space="preserve">
+    <value>双页</value>
   </data>
-  <data name="strDuplexRightToLeft" xml:space="preserve">
-    <value>DuplexRightToLeft</value>
+  <data name="DuplexRightToLeft" xml:space="preserve">
+    <value>双页右至左</value>
   </data>
-  <data name="strPDFGenerationSuccess" xml:space="preserve">
-    <value>PDF file has been output to your folder!</value>
+  <data name="PDFGenerationSuccess" xml:space="preserve">
+    <value>PDF文件已经输出到你的指定路径！</value>
   </data>
-  <data name="strPDFIsGenerating" xml:space="preserve">
-    <value>PDF is Generating......</value>
+  <data name="PDFIsGenerating" xml:space="preserve">
+    <value>PDF生成中......</value>
   </data>
-  <data name="strSelectArchive" xml:space="preserve">
-    <value>Please select the archive file</value>
+  <data name="SelectArchive" xml:space="preserve">
+    <value>请选择包含图片的压缩包</value>
   </data>
-  <data name="strSelectIMGFolder" xml:space="preserve">
-    <value>Please select the folder where the images are located.</value>
+  <data name="SelectIMGFolder" xml:space="preserve">
+    <value>请选择需要合并为PDF的图片文件所在的文件夹。</value>
   </data>
-  <data name="strSingle" xml:space="preserve">
-    <value>Single</value>
+  <data name="Single" xml:space="preserve">
+    <value>单页</value>
   </data>
-  <data name="strErrorTitle" xml:space="preserve">
-    <value>Error</value>
+  <data name="ErrorTitle" xml:space="preserve">
+    <value>错误</value>
   </data>
-  <data name="strPDFGeneratedWithErrors" xml:space="preserve">
-    <value>PDF generated, but {0} error(s) occurred.</value>
+  <data name="PDFGeneratedWithErrors" xml:space="preserve">
+    <value>PDF已生成，但有 {0} 个错误发生。</value>
   </data>
-  <data name="strPDFGenerationFailed" xml:space="preserve">
-    <value>PDF generation failed: {0}</value>
+  <data name="PDFGenerationFailed" xml:space="preserve">
+    <value>PDF生成失败：{0}</value>
   </data>
-  <data name="strInvalidPath" xml:space="preserve">
-    <value>Invalid directory path</value>
+  <data name="InvalidPath" xml:space="preserve">
+    <value>无效的文件夹路径</value>
   </data>
-  <data name="strWarningTitle" xml:space="preserve">
-    <value>Warning</value>
+  <data name="WarningTitle" xml:space="preserve">
+    <value>提示</value>
   </data>
-  <data name="strPDFGeneratedWithSkipped" xml:space="preserve">
-    <value>PDF generated, but {0} item(s) reported problems (see the list below).</value>
+  <data name="PDFGeneratedWithSkipped" xml:space="preserve">
+    <value>PDF已生成，但有 {0} 项报告了问题（详见下方列表）。</value>
   </data>
-  <data name="strNoErrorOutput" xml:space="preserve">
-    <value>The core process exited with code {0} but produced no error message.</value>
+  <data name="NoErrorOutput" xml:space="preserve">
+    <value>Core 进程退出码为 {0}，但没有输出任何错误信息。</value>
   </data>
-  <data name="strWarnGenerating" xml:space="preserve">
-    <value>PDF generation is in progress. Are you sure you want to exit?</value>
+  <data name="WarnGenerating" xml:space="preserve">
+    <value>PDF 正在生成中，确定要退出程序吗？</value>
   </data>
-  <data name="strNoImagesFound" xml:space="preserve">
-    <value>No supported images were found in the selected folder or its subfolders.</value>
+  <data name="NoImagesFound" xml:space="preserve">
+    <value>在所选文件夹及其子文件夹中未找到受支持的图片文件。</value>
   </data>
-  <data name="strSelectedImagesCount" xml:space="preserve">
-    <value>[{0} Images] {1}</value>
+  <data name="SelectedImagesCount" xml:space="preserve">
+    <value>[{0} 张图片] {1}</value>
+  </data>
+  <data name="MsgLabelDefault" xml:space="preserve">
+    <value>拖入包含图片的文件夹或压缩包</value>
   </data>
 </root>

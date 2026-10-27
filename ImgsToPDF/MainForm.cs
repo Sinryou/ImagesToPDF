@@ -1,4 +1,4 @@
-using ImgsToPDF.Lang;
+using ImgsToPDF.Localization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -54,9 +54,9 @@ namespace ImgsToPDF {
             PicInFolder.Cursor = NativeMethods.SystemHandCursor;
             MsgLabel.ForeColor = Color.Blue;
             generateModeBox.Items.AddRange([
-                Extra.ApplyResource(typeof(Extra), "strSingle"),
-                Extra.ApplyResource(typeof(Extra), "strDuplex"),
-                Extra.ApplyResource(typeof(Extra), "strDuplexRightToLeft")
+                Strings.Single,
+                Strings.Duplex,
+                Strings.DuplexRightToLeft
             ]);
             generateModeBox.SelectedIndex = 0;
             Merge.Enabled = false;
@@ -196,14 +196,14 @@ namespace ImgsToPDF {
             else {
                 ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.no_photo);
                 SetFolderOverlay(null);
-                MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strInvalidPath");
+                MsgLabel.Text = Strings.InvalidPath;
                 // 按钮的可用状态可能还是上一次有效选择留下的，否则点击后会把无效路径传给 Core
                 StartButton.Enabled = false;
                 return;
             }
 
             StartButton.Enabled = !_isProcessing;
-            MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
+            MsgLabel.Text = Strings.ClickToStart;
         }
 
         /// <summary>
@@ -245,7 +245,7 @@ namespace ImgsToPDF {
                 _pathToolTip.SetToolTip(PathLabel, firstFile);
             }
             else {
-                string countPattern = Extra.ApplyResource(typeof(Extra), "strSelectedImagesCount");
+                string countPattern = Strings.SelectedImagesCount;
                 if (string.IsNullOrEmpty(countPattern)) {
                     countPattern = "[{0} Images] {1}";
                 }
@@ -269,7 +269,7 @@ namespace ImgsToPDF {
             Merge.Enabled = false;
 
             StartButton.Enabled = !_isProcessing;
-            MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strClickToStart");
+            MsgLabel.Text = Strings.ClickToStart;
         }
 
         private void MainForm_DragDrop(object sender, DragEventArgs e) {
@@ -341,7 +341,7 @@ namespace ImgsToPDF {
             bool merge = !isImageMerge && Merge.Checked;
             int layoutIndex = generateModeBox.SelectedIndex;
 
-            MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strPDFIsGenerating");
+            MsgLabel.Text = Strings.PDFIsGenerating;
             progressBar.Visible = true;
             progressBar.Maximum = 100;
             progressBar.Value = 50;
@@ -363,38 +363,38 @@ namespace ImgsToPDF {
 
                 progressBar.Value = 100;
                 if (failures.Count > 0) {
-                    MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGeneratedWithErrors"), failures.Count);
+                    MsgLabel.Text = string.Format(Strings.PDFGeneratedWithErrors, failures.Count);
                     MessageBox.Show(
                         this,
                         string.Join(Environment.NewLine + Environment.NewLine, failures),
-                        Extra.ApplyResource(typeof(Extra), "strErrorTitle"),
+                        Strings.ErrorTitle,
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Warning
                     );
                 }
                 else if (warnings.Count > 0) {
-                    MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGeneratedWithSkipped"), warnings.Count);
+                    MsgLabel.Text = string.Format(Strings.PDFGeneratedWithSkipped, warnings.Count);
                     MessageBox.Show(
                         this,
                         string.Join(Environment.NewLine + Environment.NewLine, warnings),
-                        Extra.ApplyResource(typeof(Extra), "strWarningTitle"),
+                        Strings.WarningTitle,
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information
                     );
                 }
                 else {
-                    MsgLabel.Text = Extra.ApplyResource(typeof(Extra), "strPDFGenerationSuccess");
+                    MsgLabel.Text = Strings.PDFGenerationSuccess;
                 }
             }
             catch (Exception ex) {
                 if (_isClosing || IsDisposed) return;
 
                 progressBar.Value = 100;
-                MsgLabel.Text = string.Format(Extra.ApplyResource(typeof(Extra), "strPDFGenerationFailed"), ex.Message);
+                MsgLabel.Text = string.Format(Strings.PDFGenerationFailed, ex.Message);
                 MessageBox.Show(
                     this,
                     ex.Message,
-                    Extra.ApplyResource(typeof(Extra), "strErrorTitle"),
+                    Strings.ErrorTitle,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );
@@ -483,7 +483,7 @@ namespace ImgsToPDF {
             catch (Exception ex) {
                 MessageBox.Show(
                     ex.Message,
-                    Extra.ApplyResource(typeof(Extra), "strErrorTitle"),
+                    Strings.ErrorTitle,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning
                 );
@@ -517,7 +517,7 @@ namespace ImgsToPDF {
             if (_isProcessing) return;
 
             using FolderBrowserDialog dialog = new() {
-                Description = Extra.ApplyResource(typeof(Extra), "strSelectIMGFolder")
+                Description = Strings.SelectIMGFolder
             };
             if (dialog.ShowDialog() == DialogResult.Cancel) {
                 return;
@@ -546,7 +546,7 @@ namespace ImgsToPDF {
             progressBar.Visible = false;
             progressBar.Value = 0;
             StartButton.Enabled = false;
-            MsgLabel.Text = Extra.ApplyResource(this.GetType(), "MsgLabel.Text");
+            MsgLabel.Text = Strings.MsgLabelDefault;
         }
 
         /// <summary>
@@ -598,8 +598,8 @@ namespace ImgsToPDF {
             if (_isProcessing) return;
 
             using OpenFileDialog openFileDialog = new();
-            openFileDialog.Title = Extra.ApplyResource(typeof(Extra), "strSelectArchive");
-            openFileDialog.Filter = Extra.ApplyResource(typeof(Extra), "strArchiveFile") + "|*.zip;*.rar;*.7z";
+            openFileDialog.Title = Strings.SelectArchive;
+            openFileDialog.Filter = Strings.ArchiveFile + "|*.zip;*.rar;*.7z";
             // 默认选中第一个筛选器（压缩文件）
             openFileDialog.FilterIndex = 1;
             // 不允许选择多个文件
@@ -613,8 +613,8 @@ namespace ImgsToPDF {
 
         protected override void OnFormClosing(FormClosingEventArgs e) {
             if (_isProcessing) {
-                string msg = Extra.ApplyResource(typeof(Extra), "strWarnGenerating");
-                string title = Extra.ApplyResource(typeof(Extra), "strWarningTitle");
+                string msg = Strings.WarnGenerating;
+                string title = Strings.WarningTitle;
                 if (MessageBox.Show(this, msg, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No) {
                     e.Cancel = true;
                     return;

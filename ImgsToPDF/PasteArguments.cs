@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace ImgsToPDF {
+namespace System {
     internal static class PasteArguments {
         /// <summary>
         /// .NET Framework 下 ProcessStartInfo.ArgumentList 的等价扩展方法

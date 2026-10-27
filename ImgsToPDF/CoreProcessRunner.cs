@@ -1,4 +1,4 @@
-using ImgsToPDF.Lang;
+using ImgsToPDF.Localization;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -73,7 +73,7 @@ namespace ImgsToPDF {
             string detail = stderr == null ? string.Empty : stderr.Trim();
             if (exitCode != 0) {
                 if (detail.Length == 0) {
-                    detail = string.Format(Extra.ApplyResource(typeof(Extra), "strNoErrorOutput"), exitCode);
+                    detail = string.Format(Strings.NoErrorOutput, exitCode);
                 }
                 failureQueue.Enqueue(targetPath + Environment.NewLine + detail);
             }
@@ -106,7 +106,7 @@ namespace ImgsToPDF {
                 // 递归收集子目录可能较慢（大量文件夹），放到后台执行
                 var dirs = await Task.Run(() => FolderScanner.RecursiveFolder(directoryPath));
                 if (dirs.Count == 0) {
-                    failureQueue.Enqueue(directoryPath + Environment.NewLine + Extra.ApplyResource(typeof(Extra), "strNoImagesFound"));
+                    failureQueue.Enqueue(directoryPath + Environment.NewLine + Strings.NoImagesFound);
                     return ([.. failureQueue], [.. warningQueue]);
                 }
 
