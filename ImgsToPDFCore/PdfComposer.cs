@@ -145,7 +145,7 @@ namespace ImgsToPDFCore {
             try {
                 result.AddRange(Directory.EnumerateFiles(directoryPath)
                     .Where(p => PdfImagePipeline.ImageExtensions.Contains(Path.GetExtension(p)))
-                    .OrderBy(p => p, new StringLenComparer()));
+                    .OrderBy(p => p, StringLenComparer.Instance));
             }
             catch (Exception ex) {
                 Console.Error.WriteLine($"[ImgsToPDFCore] Failed to enumerate '{directoryPath}': {ex.GetType().Name}: {ex.Message}");
@@ -319,6 +319,10 @@ namespace ImgsToPDFCore {
     /// 给文件名排序的方法，不使用默认的排序方法，委托在 Lua (config.lua) 里实现
     /// </summary>
     internal sealed class StringLenComparer : IComparer<string> {
+        public static readonly StringLenComparer Instance = new();
+
+        private StringLenComparer() { }
+
         public int Compare(string x, string y) {
             return CSGlobal.luaConfig.FilePathComparer(x, y);
         }

@@ -18,10 +18,7 @@ namespace ImgsToPDFCore {
         /// <param name="outFile">合并生成的文件名称</param>
         public static void PdfMerge(List<string> inFiles, string outFile) {
             CSGlobal.ThrowIfCancelled();
-            // 1. 实例化比较器
-            var comparer = new StringLenComparer();
-            // 2. 调用 Sort 方法并传入比较器
-            inFiles.Sort(comparer);
+            inFiles.Sort(StringLenComparer.Instance);
             AtomicFileWriter.WriteToFile(outFile, stream => {
                 var doc = new Document();
                 var pdf = new PdfCopy(doc, stream);
@@ -50,9 +47,7 @@ namespace ImgsToPDFCore {
 
         public static void PdfMergeWithHierarchicalOutlines(List<string> inFiles, string outFile) {
             CSGlobal.ThrowIfCancelled();
-            // 1. 排序逻辑
-            var comparer = new StringLenComparer();
-            inFiles.Sort(comparer);
+            inFiles.Sort(StringLenComparer.Instance);
 
             // 用于缓存已经创建过的文件夹书签，避免重复创建
             var folderOutlineCache = new Dictionary<string, PdfOutline>();
@@ -186,7 +181,7 @@ namespace ImgsToPDFCore {
         /// </summary>
         public static void PdfMergeWithDeepOutlines(List<string> inFiles, string outFile, string rootPath) {
             CSGlobal.ThrowIfCancelled();
-            inFiles.Sort(new StringLenComparer());
+            inFiles.Sort(StringLenComparer.Instance);
             string root = NormalizeDir(rootPath);
 
             // 1. 预扫描：算出每个源文件在合并结果中的起始页；读不出来的 PDF 直接跳过（单个坏文件不该毁掉整次合并）
