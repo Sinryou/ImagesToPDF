@@ -84,27 +84,45 @@ namespace ImgsToPDF {
                 }
             }
 
-            // 从 Stream 加载可避免文件被 GDI+ 长期占用/锁定
-            using var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var img = Image.FromStream(stream);
+            // 采用只读文件流加载，并在流保持打开时将其完整克隆脱钩为纯内存 Bitmap
+            // 避免直接使用 Image.FromFile 导致的底层文件长期被 GDI+ 锁定占用
+            RotateFlipType exifRotateFlip = RotateFlipType.RotateNoneFlipNone;
+            Bitmap detachedImg;
 
-            if (FolderScanner.ImageExtensionsEXIFOrientation.Contains(ext)) {
-                const int OrientationId = 0x0112;
+            using (var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var rawImg = Image.FromStream(stream, false, false)) {
+                if (FolderScanner.ImageExtensionsEXIFOrientation.Contains(ext)) {
+                    const int OrientationId = 0x0112;
 
-                // Array.IndexOf 比 Contains(PropertyIdList) 性能略高，减少不必要的数组遍历
-                if (Array.IndexOf(img.PropertyIdList, OrientationId) != -1) {
-                    var property = img.GetPropertyItem(OrientationId);
-                    ushort orientation = BitConverter.ToUInt16(property.Value, 0);
-
-                    RotateFlipType rotateFlip = GetRotateFlipType(orientation);
-
-                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
-                        img.RotateFlip(rotateFlip);
-                        img.RemovePropertyItem(OrientationId);
+                    // 在流保持可用期间读取 EXIF 元数据
+                    if (Array.IndexOf(rawImg.PropertyIdList, OrientationId) != -1) {
+                        var property = rawImg.GetPropertyItem(OrientationId);
+                        ushort orientation = BitConverter.ToUInt16(property.Value, 0);
+                        exifRotateFlip = GetRotateFlipType(orientation);
                     }
                 }
+
+                try {
+                    detachedImg = new Bitmap(rawImg);
+                }
+                catch {
+                    // 兼容少数极端颜色格式（如部分特定调色板/CMYK格式），通过新位图绘制保底完成像素脱钩
+                    detachedImg = new Bitmap(rawImg.Width, rawImg.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                    using var g = Graphics.FromImage(detachedImg);
+                    g.DrawImage(rawImg, 0, 0, rawImg.Width, rawImg.Height);
+                }
             }
-            return img;
+
+            try {
+                if (exifRotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                    detachedImg.RotateFlip(exifRotateFlip);
+                }
+                return detachedImg;
+            }
+            catch {
+                detachedImg.Dispose();
+                throw;
+            }
         }
 
         /// <summary>
