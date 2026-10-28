@@ -270,14 +270,10 @@ namespace ImgsToPDF.Core {
             // 只读一次盘：解码与 EXIF Orientation 解析共用同一份字节，避免同一文件读两遍
             var rawWebP = File.ReadAllBytes(imagePath);
             using WebP webp = new();
-            var bitmapWebp = webp.Decode(rawWebP);
             // Decode 仅在字节为空（0 字节文件）时返回 null，正常解码失败会直接抛异常。
             // 此时若把 null 传下去，GetImageInstance 会解引用成毫无线索的 NullReferenceException；
             // 在这里抛出可被 WriteFolderPages 捕获、按图片路径上报的真实原因。
-            if (bitmapWebp == null) {
-                throw new InvalidDataException("The file is empty or not a valid WebP image.");
-            }
-
+            var bitmapWebp = webp.Decode(rawWebP) ?? throw new InvalidDataException("The file is empty or not a valid WebP image.");
             try {
                 ushort? orientation = ImageExif.GetOrientation(rawWebP);
                 if (orientation.HasValue) {

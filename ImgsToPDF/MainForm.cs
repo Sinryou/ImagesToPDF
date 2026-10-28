@@ -568,7 +568,7 @@ namespace ImgsToPDF {
         private void ToolStripMenuConfigFile_Click(object sender, EventArgs e) {
             try {
                 // 不用 using：Process.Start 返回后记事本仍在运行，立即 Dispose 语义不正确
-                Process.Start(AppDomain.CurrentDomain.BaseDirectory + "/Core/config.lua");
+                Process.Start(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Core", "config.lua"));
             }
             catch (Exception ex) {
                 MessageBox.Show(
