@@ -158,7 +158,7 @@ namespace WebPWrapper {
             }
         }
 
-        private static readonly int WEBP_DECODER_ABI_VERSION = 0x0208;
+        private static readonly int WEBP_DECODER_ABI_VERSION = 0x0210;
 
         /// <summary>Get info of WepP image</summary>
         /// <param name="rawWebP">Bytes[] of WebP image</param>
