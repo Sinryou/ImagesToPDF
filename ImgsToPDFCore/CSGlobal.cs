@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using XLua;
 
 namespace ImgsToPDF.Core {
@@ -16,6 +17,10 @@ namespace ImgsToPDF.Core {
             typeof(iTextSharp.text.Rectangle),
             typeof(CommonUtils),
             typeof(PDFWrapper),
+            typeof(File),
+            typeof(Path),
+            typeof(Directory),
+            typeof(SearchOption),
         ];
         public static readonly LuaEnv luaEnv = new();
         #endregion

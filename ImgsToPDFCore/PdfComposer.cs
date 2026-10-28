@@ -176,6 +176,7 @@ namespace ImgsToPDF.Core {
         /// </summary>
         public static int ImagesToPDFFromFolders(string[] directoryPaths, Layout layout = Layout.Single, bool fastFlag = false) {
             CSGlobal.ThrowIfCancelled();
+            Array.Sort(directoryPaths, StringLenComparer.Instance);
             if (directoryPaths == null || directoryPaths.Length == 0) {
                 CommonUtils.ReportFailure("No source folder was provided; no PDF was generated.");
                 return 0;
@@ -203,7 +204,7 @@ namespace ImgsToPDF.Core {
                 CommonUtils.ReportFailure("No image file was provided; no PDF was generated.");
                 return 0;
             }
-            var validImages = imageFiles.Where(File.Exists).ToList();
+            var validImages = imageFiles.Where(File.Exists).OrderBy(p => p, StringLenComparer.Instance).ToList();
             if (validImages.Count == 0) {
                 CommonUtils.ReportFailure("No valid existing image file was found; no PDF was generated.");
                 return 0;

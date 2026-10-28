@@ -1,31 +1,33 @@
-local lfs = require("lfs")
-
 local common = require("Modules.Common")
-local pathUtil = require("Modules.PathUtil")
-local unicode = require("Modules.unicode")
-local osUtil = require("Modules.OSUtil")
-local u2a = unicode.u2a
-local a2u = unicode.a2u
 
 local iPageSize = CS.iTextSharp.text.PageSize
 local iRectangle = CS.iTextSharp.text.Rectangle
 local commonUtils = CS.ImgsToPDF.Core.CommonUtils
 local PDFWrapper = CS.ImgsToPDF.Core.PDFWrapper
-
--- add your local funcs below
--- 建议在这个部分添加你自己要用到的函数
+local csFile = CS.System.IO.File
+local csPath = CS.System.IO.Path
+local csDirectory = CS.System.IO.Directory
+local csSearchOption = CS.System.IO.SearchOption
 
 -- 合并pdf
 local function mergePdfs(path)
+    path = (path or ""):gsub("[/\\]+$", "")
+
+    if not csDirectory.Exists(path) then return end
+
     local pdf2MergeList = {}
-    if path and pathUtil.dirExist(u2a(path)) then
-        pdf2MergeList = pathUtil.listSubfolders(u2a(path),
-            function(p) return a2u(p .. "/" .. pathUtil.dirName(p) .. ".pdf") end)
+    local subDirs = csDirectory.GetDirectories(path, "*", csSearchOption.AllDirectories)
+    for i = 0, subDirs.Length - 1 do
+        local p = subDirs[i]
+        local dirName = csPath.GetFileName(p)
+        table.insert(pdf2MergeList, p .. "/" .. dirName .. ".pdf")
     end
-    table.insert(pdf2MergeList, path .. "/" .. pathUtil.dirName(path) .. ".pdf")
-    -- PDFWrapper.PdfMerge(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf")
-    -- PDFWrapper.PdfMergeWithHierarchicalOutlines(pdf2MergeList, path.."/"..pathUtil.dirName(path) .."_Merged.pdf")
-    PDFWrapper.PdfMergeWithDeepOutlines(pdf2MergeList, path .. "/" .. pathUtil.dirName(path) .. "_Merged.pdf", path)
+
+    local rootDirName = csPath.GetFileName(path)
+    table.insert(pdf2MergeList, path .. "/" .. rootDirName .. ".pdf")
+    -- PDFWrapper.PdfMerge(pdf2MergeList, path.."/"..rootDirName .."_Merged.pdf")
+    -- PDFWrapper.PdfMergeWithHierarchicalOutlines(pdf2MergeList, path.."/"..rootDirName .."_Merged.pdf")
+    PDFWrapper.PdfMergeWithDeepOutlines(pdf2MergeList, path .. "/" .. rootDirName .. "_Merged.pdf", path)
 end
 
 -- 排序辅助缓存：排序过程中同一个路径会被比较 O(log n) 次，
@@ -36,7 +38,11 @@ local versionCache = {}  -- 文件名 -> 版本号数组（false 表示没有版
 local function getBaseName(filePath)
     local name = pathNameCache[filePath]
     if name == nil then
-        name = pathUtil.fileNameWithoutExtension(filePath) or ""
+        if not filePath or filePath == "" then
+            name = ""
+        else
+            name = csPath.GetFileNameWithoutExtension(filePath) or ""
+        end
         pathNameCache[filePath] = name
     end
     return name
@@ -132,20 +138,15 @@ function Config:FilePathComparer(filePath1, filePath2)
     return filePath1 == filePath2 and 0 or (filePath1 < filePath2 and -1 or 1)
 end
 
--- 递归收集子文件夹：同级目录按 Config:FilePathComparer 排序，父目录先于子目录。
--- 顺序稳定的意义：压缩包里的多个章节目录会按同一套规则合并进同一个 PDF，
--- chap1 / chap2 / chap10 这类目录不会被字符串顺序排成 chap1、chap10、chap2。
+-- 递归收集子文件夹
 local function collectSubfolders(rootPath, out)
-    local entries = pathUtil.listDirContents(rootPath)
-    if not entries then return end
+    if not rootPath or not csDirectory.Exists(rootPath) then return end
+    local ok, dirsCs = pcall(csDirectory.GetDirectories, rootPath)
+    if not ok or not dirsCs then return end
     local subDirs = {}
-    for i = 1, #entries do
-        local full = rootPath .. "/" .. entries[i]
-        if pathUtil.dirExist(full) then
-            table.insert(subDirs, full)
-        end
+    for i = 0, dirsCs.Length - 1 do
+        table.insert(subDirs, dirsCs[i])
     end
-    table.sort(subDirs, function(a, b) return Config:FilePathComparer(a, b) < 0 end)
     for i = 1, #subDirs do
         table.insert(out, subDirs[i])
         collectSubfolders(subDirs[i], out)
@@ -161,16 +162,16 @@ function Config:PreProcess(...)
     pathNameCache = {}
     versionCache = {}
     local compressSuffix = { ".zip", ".rar", ".7z" }
-    if pathUtil.dirExist(u2a(path)) then -- 如果是文件夹
+    if path and csDirectory.Exists(path) then -- 如果是文件夹
+        path = path:gsub("[/\\]+$", "")
+        pdfFileName = csPath.GetFileName(path) or "Output"
+        outputDir = path
         if merge then
             -- 合并分支也要把"预期输出路径"填好：Program 用它校验本次是否真的产出了 PDF，
             -- 命名与 mergePdfs 写出的文件保持一致
-            pdfFileName = (pathUtil.dirName(path) or "Output") .. "_Merged"
-            outputDir = path
+            pdfFileName = pdfFileName .. "_Merged"
             return mergePdfs(path)
         end
-        pdfFileName = pathUtil.dirName(path)
-        outputDir = path
         PDFWrapper.ImagesToPDF(path, layout, fastFlag)
         return
     elseif commonUtils.IsManifestFile(path) then
@@ -183,7 +184,8 @@ function Config:PreProcess(...)
         pdfFileName = manifestData.PdfFileName
         -- 检查清单首项是否为 PDF 文件；若是则执行多个 PDF 合并逻辑（调用最基础的普通合并 PdfMerge）
         local firstFile = manifestData.ImagePaths[0] or manifestData.ImagePaths[1]
-        local isPdf = firstFile and (pathUtil.getExtension(firstFile) or ""):lower() == ".pdf"
+        local ext = firstFile and csPath.GetExtension(firstFile)
+        local isPdf = ext and ext:lower() == ".pdf"
 
         if isPdf then
             local outputPath = Config.PathToSave()
@@ -195,34 +197,38 @@ function Config:PreProcess(...)
             commonUtils.ReportFailure("Failed to write images to PDF: " .. tostring(path))
         end
         return
-    elseif not common.hasVal(compressSuffix, (pathUtil.getExtension(path) or ""):lower()) then
+    elseif not common.hasVal(compressSuffix, (csPath.GetExtension(path) or ""):lower()) then
         -- 不以压缩格式结尾 不做动作；必须上报，否则上层会把"什么都没生成"当成生成成功
         commonUtils.ReportFailure("Not a folder or a supported archive; no PDF was generated: " .. tostring(path))
         return
     end
 
-    pdfFileName = pathUtil.fileNameWithoutExtension(path) or "Output"
-    outputDir = pathUtil.dirPath(path)
+    local baseName = csPath.GetFileNameWithoutExtension(path)
+    pdfFileName = (baseName and baseName ~= "") and baseName or "Output"
+    local dir = csPath.GetDirectoryName(path)
+    outputDir = (dir and dir ~= "") and dir or "."
     tempExtraPath = outputDir .. "/" .. pdfFileName .. os.date("%Y%m%d%H%M%S")
-    -- pcall 的返回值是 (ok, ...)。必须同时检查 ok：C# 抛出的异常会被 XLua 转成
-    -- 一个"字符串"错误对象返回，而字符串在 Lua 里为真——只看第二个返回值会把
-    -- "解压抛异常"误判成"解压成功"，然后继续在空目录上跑，最后报成"压缩包里没有图片"，
-    -- 真正的原因（磁盘错误、父进程退出等）反而被埋掉，解压目录也不会被清理。
-    local ok, result = pcall(commonUtils.Decompress, path, tempExtraPath)
-    if not ok then
-        commonUtils.ReportFailure("Failed to extract the archive: " .. tostring(result))
+
+    -- 只有确实是加密包才去问密码。否则把解压失败的真实原因（条目非法、磁盘错误等）
+    -- 直接上报，免得像以前那样一律提示"密码为空或错误"，用户输多少次密码都没用。
+    -- IsArchiveEncrypted 同样可能抛异常（例如压缩包被截断），这里一并兜住，
+    -- 抛异常时按"判断不出来"处理，直接上报失败而不是让错误逃逸成 LuaException。
+    local encryptedOk, encrypted = pcall(commonUtils.IsArchiveEncrypted, path)
+    if not encryptedOk then
+        commonUtils.ReportFailure("Failed to extract the archive; no PDF was generated: " .. tostring(path))
         return
     end
-    if not result then
-        -- 只有确实是加密包才去问密码。否则把解压失败的真实原因（条目非法、磁盘错误等）
-        -- 直接上报，免得像以前那样一律提示"密码为空或错误"，用户输多少次密码都没用。
-        -- IsArchiveEncrypted 同样可能抛异常（例如压缩包被截断），这里一并兜住，
-        -- 抛异常时按"判断不出来"处理，直接上报失败而不是让错误逃逸成 LuaException。
-        local encryptedOk, encrypted = pcall(commonUtils.IsArchiveEncrypted, path)
-        if not encryptedOk or not encrypted then
-            commonUtils.ReportFailure("Failed to extract the archive; no PDF was generated: " .. tostring(path))
+    if not encrypted then
+        -- pcall 的返回值是 (ok, ...)。必须同时检查 ok：C# 抛出的异常会被 XLua 转成
+        -- 一个"字符串"错误对象返回，而字符串在 Lua 里为真——只看第二个返回值会把
+        -- "解压抛异常"误判成"解压成功"，然后继续在空目录上跑，最后报成"压缩包里没有图片"，
+        -- 真正的原因（磁盘错误、父进程退出等）反而被埋掉，解压目录也不会被清理。
+        local ok, result = pcall(commonUtils.Decompress, path, tempExtraPath)
+        if not ok or not result then
+            commonUtils.ReportFailure("Failed to extract the archive: " .. tostring(result))
             return
         end
+    else
         local password = commonUtils.PromptPassword(path)
         if common.isEmpty(password) then
             commonUtils.ReportFailure(
@@ -245,13 +251,8 @@ function Config:PreProcess(...)
     -- 把解压出来的整棵目录树都交给 Core。
     -- 旧实现只看根目录：根目录有图片就只转根目录，否则只转"第一个子目录"，
     -- 其余目录里的图片会被静默丢掉，却依然上报"生成成功"。
-    -- 顺序：根目录最先，其余子目录按 Config:FilePathComparer 排序（父目录先于子目录）。
-    local ansiFolders = { u2a(tempExtraPath) }
-    collectSubfolders(ansiFolders[1], ansiFolders)
-    local folders = {}
-    for i = 1, #ansiFolders do
-        folders[i] = a2u(ansiFolders[i])
-    end
+    local folders = { tempExtraPath }
+    collectSubfolders(tempExtraPath, folders)
 
     local pages = PDFWrapper.ImagesToPDFFromFolders(folders, layout, fastFlag)
     if pages == 0 and not commonUtils.FailureReported then
@@ -264,8 +265,8 @@ end
 -- this func will be processed after your pdf generated
 -- 定义结束后要进行的动作
 function Config:PostProcess()
-    if tempExtraPath and pathUtil.dirExist(u2a(tempExtraPath)) then
-        pathUtil.deleteDir(u2a(tempExtraPath))
+    if tempExtraPath and csDirectory.Exists(tempExtraPath) then
+        pcall(csDirectory.Delete, tempExtraPath, true)
     end
 end
 
