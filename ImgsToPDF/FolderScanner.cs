@@ -130,7 +130,7 @@ namespace ImgsToPDF {
             }
 
             // 排序输出
-            imageDirs.Sort(StringComparer.OrdinalIgnoreCase);
+            imageDirs.Sort(NaturalPathComparer.Instance);
             return imageDirs;
         }
     }

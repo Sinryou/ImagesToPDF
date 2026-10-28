@@ -4,10 +4,12 @@ local iPageSize = CS.iTextSharp.text.PageSize
 local iRectangle = CS.iTextSharp.text.Rectangle
 local commonUtils = CS.ImgsToPDF.Core.CommonUtils
 local PDFWrapper = CS.ImgsToPDF.Core.PDFWrapper
-local csFile = CS.System.IO.File
 local csPath = CS.System.IO.Path
 local csDirectory = CS.System.IO.Directory
 local csSearchOption = CS.System.IO.SearchOption
+
+-- add your local funcs below
+-- 建议在这个部分添加你自己要用到的函数
 
 -- 合并pdf
 local function mergePdfs(path)
