@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     ImgsToPDF 构建与打包脚本
 
@@ -334,7 +334,11 @@ if ($Package -or $Installer) {
     Write-Host "  SHA256: $zipHash" -ForegroundColor Gray
     Write-Host "便携版打包完成！" -ForegroundColor Green
 
-    # 6.6 生成 Inno Setup 安装包
+    # 6.6 生成 Inno Setup 安装包（当前项目不发布安装包形式的二进制文件，已注释停用）
+    if ($Installer) {
+        Write-Warning "安装包构建流程已在此版本中注释停用（当前项目仅发布便携版 ZIP 压缩包）。"
+    }
+    <#
     if ($Installer) {
         Write-Host "`n--> 正在生成 Inno Setup 安装包..." -ForegroundColor Cyan
         
@@ -389,6 +393,7 @@ if ($Package -or $Installer) {
             }
         }
     }
+    #>
 
     Write-Host "`n============================================================" -ForegroundColor Green
     Write-Host "打包产物目录: $OutputDir" -ForegroundColor Green

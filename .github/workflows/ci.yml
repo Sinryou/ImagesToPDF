@@ -21,14 +21,16 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Install Inno Setup
-        run: |
-          choco install innosetup --no-progress
+      # 当前项目不发布安装包形式的二进制文件，注释掉 Inno Setup 安装步骤
+      # - name: Install Inno Setup
+      #   run: |
+      #     choco install innosetup --no-progress
 
       - name: Run Build and Packaging Script
         shell: pwsh
         run: |
-          .\build\build.ps1 -Configuration Release -Platform x64 -Package -Installer
+          # 仅打包便携版 ZIP 压缩包，移除 -Installer 参数
+          .\build\build.ps1 -Configuration Release -Platform x64 -Package
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
