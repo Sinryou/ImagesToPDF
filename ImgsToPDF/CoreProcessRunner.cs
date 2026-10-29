@@ -98,7 +98,7 @@ namespace ImgsToPDF {
             Func<string, Task<string>> promptPasswordAsync,
             Func<bool> isCancelled) {
 
-            var fileName = AppDomain.CurrentDomain.BaseDirectory + @"\Core\ImgsToPDFCore.exe";
+            var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Core", "ImgsToPDFCore.exe");
             var failureQueue = new ConcurrentQueue<string>();
             var warningQueue = new ConcurrentQueue<string>();
             string reportedTarget = displayTargetPath ?? directoryPath;
