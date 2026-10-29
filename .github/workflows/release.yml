@@ -50,5 +50,5 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/*.zip
-            # artifacts/*.exe  # 当前项目不发布安装包形式的二进制文件，已注释停用
-            artifacts/*.sha256
+            # artifacts/*.exe     # 当前项目不发布安装包形式的二进制文件，已注释停用
+            # artifacts/*.sha256  # GitHub Releases 自动展示文件校验和，已注释停用

@@ -327,11 +327,11 @@ if ($Package -or $Installer) {
         $false
     )
 
-    # 计算 ZIP SHA256 校验和
-    $zipHash = (Get-FileHash -Path $zipFilePath -Algorithm SHA256).Hash.ToLowerInvariant()
-    $zipHashFile = "$zipFilePath.sha256"
-    "$zipHash  $zipFileName" | Set-Content -Path $zipHashFile -Encoding ascii
-    Write-Host "  SHA256: $zipHash" -ForegroundColor Gray
+    # [已注释] 计算并生成 ZIP SHA256 校验和文件（GitHub Releases 自身已提供校验和显示）
+    # $zipHash = (Get-FileHash -Path $zipFilePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    # $zipHashFile = "$zipFilePath.sha256"
+    # "$zipHash  $zipFileName" | Set-Content -Path $zipHashFile -Encoding ascii
+    # Write-Host "  SHA256: $zipHash" -ForegroundColor Gray
     Write-Host "便携版打包完成！" -ForegroundColor Green
 
     # 6.6 生成 Inno Setup 安装包（当前项目不发布安装包形式的二进制文件，已注释停用）
