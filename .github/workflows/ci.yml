@@ -1,8 +1,10 @@
 name: CI Build & Package
 
 on:
+  # 不再随每次 push 构建，改为随版本 tag（v*）触发；正式发布由 release.yml 负责
   push:
-    branches: [ master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ master ]
   workflow_dispatch:
