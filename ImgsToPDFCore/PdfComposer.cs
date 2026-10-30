@@ -176,11 +176,11 @@ namespace ImgsToPDF.Core {
         /// </summary>
         public static int ImagesToPDFFromFolders(string[] directoryPaths, Layout layout = Layout.Single, bool fastFlag = false) {
             CSGlobal.ThrowIfCancelled();
-            Array.Sort(directoryPaths, StringLenComparer.Instance);
             if (directoryPaths == null || directoryPaths.Length == 0) {
                 CommonUtils.ReportFailure("No source folder was provided; no PDF was generated.");
                 return 0;
             }
+            Array.Sort(directoryPaths, StringLenComparer.Instance);
             var folders = new List<List<string>>();
             foreach (var directoryPath in directoryPaths) {
                 CSGlobal.ThrowIfCancelled();
