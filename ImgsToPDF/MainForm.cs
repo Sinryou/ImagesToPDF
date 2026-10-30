@@ -134,8 +134,8 @@ namespace ImgsToPDF {
                 }
                 bool hasSupportedItem = files.Any(f =>
                     Directory.Exists(f) ||
-                    FolderScanner.CompressExtensions.Contains(Path.GetExtension(f)) ||
-                    FolderScanner.ImageExtensions.Contains(Path.GetExtension(f)) ||
+                    ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(f)) ||
+                    ImageContracts.ImageExtensions.Contains(Path.GetExtension(f)) ||
                     string.Equals(Path.GetExtension(f), ".pdf", StringComparison.OrdinalIgnoreCase)
                 );
                 e.Effect = hasSupportedItem ? DragDropEffects.All : DragDropEffects.None;
@@ -174,7 +174,7 @@ namespace ImgsToPDF {
             if (Directory.Exists(directoryPath)) {
                 Bitmap preview = null;
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
-                    .Where(p => FolderScanner.ImageExtensions.Contains(Path.GetExtension(p)));
+                    .Where(p => ImageContracts.ImageExtensions.Contains(Path.GetExtension(p)));
                 foreach (var imagepath in imagepaths) {
                     try {
                         using var img = ImagePreviewHelper.LoadPreviewImage(imagepath);
@@ -197,7 +197,7 @@ namespace ImgsToPDF {
                 ImagePreviewHelper.ReplaceImage(PicInFolder, preview ?? Properties.Resources.no_photo);
                 SetFolderOverlay(Properties.Resources.folder);
             }
-            else if (FolderScanner.CompressExtensions.Contains(Path.GetExtension(directoryPath))) {
+            else if (ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(directoryPath))) {
                 ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.compressedFile);
                 SetFolderOverlay(null);
             }
@@ -347,12 +347,12 @@ namespace ImgsToPDF {
 
             // 提取所有有效的图片文件
             var imageFiles = files
-                .Where(f => File.Exists(f) && FolderScanner.ImageExtensions.Contains(Path.GetExtension(f)))
+                .Where(f => File.Exists(f) && ImageContracts.ImageExtensions.Contains(Path.GetExtension(f)))
                 .ToList();
 
             // 提取所有容器（文件夹或压缩包）
             var containerFiles = files
-                .Where(f => Directory.Exists(f) || FolderScanner.CompressExtensions.Contains(Path.GetExtension(f)))
+                .Where(f => Directory.Exists(f) || ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(f)))
                 .ToList();
 
             // 提取所有有效的 PDF 文件

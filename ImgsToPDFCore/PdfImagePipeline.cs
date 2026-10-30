@@ -14,12 +14,6 @@ namespace ImgsToPDF.Core {
     /// 负责将磁盘文件安全转换为适合写入 PDF 的 PageImage 对象。
     /// </summary>
     internal static class PdfImagePipeline {
-        /// <summary>EXIF 中 Orientation 标签的 ID。</summary>
-        public const int OrientationId = 0x0112;
-
-        public static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
-        public static readonly HashSet<string> ImageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
-
         private static readonly ImageCodecInfo JpegCodec = ImageCodecInfo.GetImageEncoders()
             .FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);
 
@@ -34,52 +28,10 @@ namespace ImgsToPDF.Core {
             public ushort Orientation = 1;
 
             /// <summary>应用 EXIF 方向之后的显示宽度。</summary>
-            public float Width => ExifSwapsAxes(Orientation) ? Image.PlainHeight : Image.PlainWidth;
+            public float Width => ImageExif.SwapsAxes(Orientation) ? Image.PlainHeight : Image.PlainWidth;
 
             /// <summary>应用 EXIF 方向之后的显示高度。</summary>
-            public float Height => ExifSwapsAxes(Orientation) ? Image.PlainWidth : Image.PlainHeight;
-        }
-
-        /// <summary>
-        /// EXIF Orientation 中 5~8 属于转置类变换，显示时宽高互换。
-        /// </summary>
-        public static bool ExifSwapsAxes(ushort orientation) => orientation is 5 or 6 or 7 or 8;
-
-        /// <summary>
-        /// EXIF Orientation 到 RotateFlipType 的映射函数
-        /// </summary>
-        public static RotateFlipType GetRotateFlipType(ushort orientation) => orientation switch {
-            1 => RotateFlipType.RotateNoneFlipNone,
-            2 => RotateFlipType.RotateNoneFlipX,
-            3 => RotateFlipType.Rotate180FlipNone,
-            4 => RotateFlipType.RotateNoneFlipY,
-            5 => RotateFlipType.Rotate90FlipX,
-            6 => RotateFlipType.Rotate90FlipNone,
-            7 => RotateFlipType.Rotate270FlipX,
-            8 => RotateFlipType.Rotate270FlipNone,
-            _ => RotateFlipType.RotateNoneFlipNone
-        };
-
-        /// <summary>
-        /// 读取已加载图片的 EXIF Orientation；没有标记、元数据异常或取值非法时返回 1（不做变换）。
-        /// </summary>
-        public static ushort ReadOrientation(System.Drawing.Image image) {
-            try {
-                if (Array.IndexOf(image.PropertyIdList, OrientationId) == -1) {
-                    return 1;
-                }
-                var property = image.GetPropertyItem(OrientationId);
-                if (property?.Value == null || property.Value.Length < 2) {
-                    return 1;
-                }
-                ushort orientation = BitConverter.ToUInt16(property.Value, 0);
-                return orientation is >= 1 and <= 8 ? orientation : (ushort)1;
-            }
-            catch (Exception ex) {
-                // 元数据损坏不应导致整张图片被跳过，按“无方向”处理
-                System.Diagnostics.Debug.WriteLine($"[ImgsToPDFCore] Failed to read EXIF orientation: {ex.Message}");
-                return 1;
-            }
+            public float Height => ImageExif.SwapsAxes(Orientation) ? Image.PlainWidth : Image.PlainHeight;
         }
 
         /// <summary>
@@ -101,7 +53,7 @@ namespace ImgsToPDF.Core {
             try {
                 using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096);
                 using var image = System.Drawing.Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
-                return ReadOrientation(image);
+                return ImageExif.ReadOrientation(image);
             }
             catch {
                 return 1;
@@ -127,7 +79,7 @@ namespace ImgsToPDF.Core {
             try {
                 using var stream = new MemoryStream(imageBytes, writable: false);
                 using var image = System.Drawing.Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
-                return ReadOrientation(image);
+                return ImageExif.ReadOrientation(image);
             }
             catch {
                 return 1;
@@ -224,7 +176,7 @@ namespace ImgsToPDF.Core {
         /// </summary>
         public static PageImage LoadPdfImage(string imagePath, bool fastFlag) {
             var fileExt = Path.GetExtension(imagePath);
-            bool needsExifCheck = ImageExtensionsEXIFOrientation.Contains(fileExt);
+            bool needsExifCheck = ImageContracts.ImageExtensionsEXIFOrientation.Contains(fileExt);
 
             // --- 开启 fastFlag：常规格式均压缩为指定质量的 JPEG，最大化减小产物体积 ---
             if (fastFlag) {
@@ -236,12 +188,12 @@ namespace ImgsToPDF.Core {
                 using var img = System.Drawing.Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
 
                 if (needsExifCheck) {
-                    ushort orientation = ImageExif.GetOrientation(imagePath) ?? ReadOrientation(img);
-                    RotateFlipType rotateFlip = GetRotateFlipType(orientation);
+                    ushort orientation = ImageExif.GetOrientation(imagePath) ?? ImageExif.ReadOrientation(img);
+                    RotateFlipType rotateFlip = ImageExif.GetRotateFlipType(orientation);
 
                     if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
                         img.RotateFlip(rotateFlip);
-                        img.RemovePropertyItem(OrientationId);
+                        img.RemovePropertyItem(ImageExif.OrientationId);
                     }
                 }
 
@@ -277,7 +229,7 @@ namespace ImgsToPDF.Core {
             try {
                 ushort? orientation = ImageExif.GetOrientation(rawWebP);
                 if (orientation.HasValue) {
-                    RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
+                    RotateFlipType rotateFlip = ImageExif.GetRotateFlipType(orientation.Value);
                     if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
                         bitmapWebp.RotateFlip(rotateFlip);
                     }

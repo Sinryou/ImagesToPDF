@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,21 +13,6 @@ namespace ImgsToPDF {
     /// 负责按自然排序规则进行路径比较，以非递归 DFS 显式栈遍历文件夹并过滤重解析点与受支持的图片类型。
     /// </summary>
     internal static class FolderScanner {
-        /// <summary>
-        /// 支持的所有图片格式扩展名（含经由 libwebp 解码的 .webp）
-        /// </summary>
-        public static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".apng", ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".bmp", ".tif", ".tiff", ".gif", ".webp" };
-
-        /// <summary>
-        /// 可能含有 EXIF Orientation 信息的图片格式扩展名
-        /// </summary>
-        public static readonly HashSet<string> ImageExtensionsEXIFOrientation = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp", ".tif", ".tiff" };
-
-        /// <summary>
-        /// 支持的压缩包格式扩展名
-        /// </summary>
-        public static readonly HashSet<string> CompressExtensions = new(StringComparer.OrdinalIgnoreCase) { ".zip", ".rar", ".7z" };
-
         /// <summary>
         /// 遵循 Windows 资源管理器自然排序规范的字符串比较器
         /// </summary>
@@ -47,7 +33,7 @@ namespace ImgsToPDF {
         public static bool ContainsSupportedImage(string directoryPath) {
             try {
                 return Directory.EnumerateFiles(directoryPath)
-                    .Any(f => ImageExtensions.Contains(Path.GetExtension(f)));
+                    .Any(f => ImageContracts.ImageExtensions.Contains(Path.GetExtension(f)));
             }
             catch (Exception ex) {
                 Debug.WriteLine($"[ImgsToPDF] Failed to enumerate files in '{directoryPath}': {ex.Message}");

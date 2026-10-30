@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
 using System;
@@ -144,7 +145,7 @@ namespace ImgsToPDF.Core {
             }
             try {
                 result.AddRange(Directory.EnumerateFiles(directoryPath)
-                    .Where(p => PdfImagePipeline.ImageExtensions.Contains(Path.GetExtension(p)))
+                    .Where(p => ImageContracts.ImageExtensions.Contains(Path.GetExtension(p)))
                     .OrderBy(p => p, StringLenComparer.Instance));
             }
             catch (Exception ex) {

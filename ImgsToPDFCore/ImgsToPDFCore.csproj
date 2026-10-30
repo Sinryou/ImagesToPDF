@@ -76,6 +76,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CommonUtils.cs" />
+    <Compile Include="ImageContracts.cs" />
     <Compile Include="ImageExif.cs" />
     <Compile Include="IpcContracts.cs" />
     <Compile Include="WebPWrapper.cs" />

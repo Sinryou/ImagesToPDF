@@ -1,11 +1,60 @@
 using System;
+using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace ImgsToPDF.Shared {
+    /// <summary>
+    /// EXIF Orientation 的共享语义：既包含 JPEG/WebP/TIFF 的纯字节解析，
+    /// 也包含 GUI 预览与 Core 排版两侧共用的方向常量与旋转变换映射
+    /// </summary>
     internal static class ImageExif {
-        // TIFF 中 Orientation 标签的 ID
-        private const ushort OrientationTag = 0x0112;
+        // TIFF 中 Orientation 标签的 ID（0x0112）
+        public const ushort OrientationId = 0x0112;
+
+        /// <summary>
+        /// EXIF Orientation 中 5~8 属于转置类变换，显示时宽高互换。
+        /// </summary>
+        public static bool SwapsAxes(ushort orientation) => orientation is 5 or 6 or 7 or 8;
+
+        /// <summary>
+        /// EXIF Orientation 到 GDI+ RotateFlipType 的映射。
+        /// </summary>
+        public static RotateFlipType GetRotateFlipType(ushort orientation) => orientation switch {
+            1 => RotateFlipType.RotateNoneFlipNone,
+            2 => RotateFlipType.RotateNoneFlipX,
+            3 => RotateFlipType.Rotate180FlipNone,
+            4 => RotateFlipType.RotateNoneFlipY,
+            5 => RotateFlipType.Rotate90FlipX,
+            6 => RotateFlipType.Rotate90FlipNone,
+            7 => RotateFlipType.Rotate270FlipX,
+            8 => RotateFlipType.Rotate270FlipNone,
+            _ => RotateFlipType.RotateNoneFlipNone
+        };
+
+        /// <summary>
+        /// 读取已加载图片（GDI+ 实例）的 EXIF Orientation；
+        /// 没有标记、元数据异常或取值非法时返回 1（不做变换）。
+        /// </summary>
+        public static ushort ReadOrientation(Image image) {
+            try {
+                if (Array.IndexOf(image.PropertyIdList, OrientationId) == -1) {
+                    return 1;
+                }
+                var property = image.GetPropertyItem(OrientationId);
+                if (property?.Value == null || property.Value.Length < 2) {
+                    return 1;
+                }
+                ushort orientation = BitConverter.ToUInt16(property.Value, 0);
+                return orientation is >= 1 and <= 8 ? orientation : (ushort)1;
+            }
+            catch (Exception ex) {
+                // 元数据损坏不应导致整张图片被跳过，按“无方向”处理
+                Debug.WriteLine($"[ImageExif] Failed to read EXIF orientation: {ex.Message}");
+                return 1;
+            }
+        }
 
         // TIFF 魔数（42）
         private const ushort TiffMagic = 42;
@@ -222,7 +271,7 @@ namespace ImgsToPDF.Shared {
                     return null;
 
                 ushort tag = ReadUInt16(data, entry, littleEndian);
-                if (tag != OrientationTag)
+                if (tag != OrientationId)
                     continue;
 
                 ushort type = ReadUInt16(data, entry + 2, littleEndian);

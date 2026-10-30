@@ -104,6 +104,9 @@
     <Compile Include="..\ImgsToPDFCore\WebPWrapper.cs">
       <Link>WebPWrapper.cs</Link>
     </Compile>
+    <Compile Include="..\ImgsToPDFCore\ImageContracts.cs">
+      <Link>ImageContracts.cs</Link>
+    </Compile>
     <Compile Include="..\ImgsToPDFCore\ImageExif.cs">
       <Link>ImageExif.cs</Link>
     </Compile>

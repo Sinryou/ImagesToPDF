@@ -12,21 +12,6 @@ namespace ImgsToPDF {
     /// </summary>
     internal static class ImagePreviewHelper {
         /// <summary>
-        /// EXIF Orientation 到 RotateFlipType 的映射函数
-        /// </summary>
-        public static RotateFlipType GetRotateFlipType(ushort orientation) => orientation switch {
-            1 => RotateFlipType.RotateNoneFlipNone,
-            2 => RotateFlipType.RotateNoneFlipX,
-            3 => RotateFlipType.Rotate180FlipNone,
-            4 => RotateFlipType.RotateNoneFlipY,
-            5 => RotateFlipType.Rotate90FlipX,
-            6 => RotateFlipType.Rotate90FlipNone,
-            7 => RotateFlipType.Rotate270FlipX,
-            8 => RotateFlipType.Rotate270FlipNone,
-            _ => RotateFlipType.RotateNoneFlipNone
-        };
-
-        /// <summary>
         /// 按目标最大宽高限制生成高质量缩略图，避免巨幅大图常驻内存造成内存暴涨
         /// </summary>
         public static Bitmap CreateThumbnail(Image source, int maxWidth, int maxHeight) {
@@ -72,7 +57,7 @@ namespace ImgsToPDF {
                 try {
                     ushort? orientation = ImageExif.GetOrientation(rawWebP);
                     if (orientation.HasValue) {
-                        RotateFlipType rotateFlip = GetRotateFlipType(orientation.Value);
+                        RotateFlipType rotateFlip = ImageExif.GetRotateFlipType(orientation.Value);
                         if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
                             bitmapWebp.RotateFlip(rotateFlip);
                         }
@@ -92,15 +77,10 @@ namespace ImgsToPDF {
 
             using (var stream = new FileStream(imagepath, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var rawImg = Image.FromStream(stream, false, false)) {
-                if (FolderScanner.ImageExtensionsEXIFOrientation.Contains(ext)) {
-                    const int OrientationId = 0x0112;
-
-                    // 在流保持可用期间读取 EXIF 元数据
-                    if (Array.IndexOf(rawImg.PropertyIdList, OrientationId) != -1) {
-                        var property = rawImg.GetPropertyItem(OrientationId);
-                        ushort orientation = BitConverter.ToUInt16(property.Value, 0);
-                        exifRotateFlip = GetRotateFlipType(orientation);
-                    }
+                if (ImageContracts.ImageExtensionsEXIFOrientation.Contains(ext)) {
+                    // 在流保持可用期间读取 EXIF 元数据（共享实现自带异常兜底与取值校验）
+                    ushort orientation = ImageExif.ReadOrientation(rawImg);
+                    exifRotateFlip = ImageExif.GetRotateFlipType(orientation);
                 }
 
                 try {
