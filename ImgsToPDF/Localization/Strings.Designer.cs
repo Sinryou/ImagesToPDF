@@ -106,6 +106,15 @@ namespace ImgsToPDF.Localization {
         }
         
         /// <summary>
+        ///   查找类似 Image Files 的本地化字符串。
+        /// </summary>
+        internal static string ImageFile {
+            get {
+                return ResourceManager.GetString("ImageFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Invalid directory path 的本地化字符串。
         /// </summary>
         internal static string InvalidPath {
@@ -187,6 +196,15 @@ namespace ImgsToPDF.Localization {
         }
         
         /// <summary>
+        ///   查找类似 PDF Files 的本地化字符串。
+        /// </summary>
+        internal static string PdfFile {
+            get {
+                return ResourceManager.GetString("PdfFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Please select the archive file 的本地化字符串。
         /// </summary>
         internal static string SelectArchive {
@@ -214,11 +232,29 @@ namespace ImgsToPDF.Localization {
         }
         
         /// <summary>
+        ///   查找类似 Please select the image files to combine into one PDF. 的本地化字符串。
+        /// </summary>
+        internal static string SelectImages {
+            get {
+                return ResourceManager.GetString("SelectImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Please select the folder where the images are located. 的本地化字符串。
         /// </summary>
         internal static string SelectIMGFolder {
             get {
                 return ResourceManager.GetString("SelectIMGFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Please select the PDF files to merge into one PDF. 的本地化字符串。
+        /// </summary>
+        internal static string SelectPdfs {
+            get {
+                return ResourceManager.GetString("SelectPdfs", resourceCulture);
             }
         }
         

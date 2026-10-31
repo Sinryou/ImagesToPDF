@@ -107,6 +107,8 @@ namespace ImgsToPDF {
 
             toolStripMenuOpenFolder.Enabled = !isProcessing;
             toolStripMenuItemOpenArchive.Enabled = !isProcessing;
+            chooseImagesToolStripMenuItem.Enabled = !isProcessing;
+            choosePDFsToolStripMenuItem.Enabled = !isProcessing;
             toolStripMenuClearChosen.Enabled = !isProcessing;
             languageToolStripMenuItem.Enabled = !isProcessing;
             toolStripMenuConfigFile.Enabled = !isProcessing;
@@ -719,6 +721,61 @@ namespace ImgsToPDF {
 
         private void PicInFolder_Click(object sender, EventArgs e) {
             PickFolderAndChoose();
+        }
+
+        /// <summary>
+        /// 弹出多选文件对话框并返回用户选中的文件列表；用户取消时返回 null。
+        /// 筛选器用的扩展名由调用方传入（图片侧来自 <see cref="ImageContracts"/>），
+        /// 避免对话框允许选择的类型与 Core 实际支持的类型各自维护、逐渐漂移。
+        /// </summary>
+        private static List<string> PickFiles(string title, string filterLabel, params string[] extensions) {
+            // 排序只是为了筛选器里的通配符顺序稳定，与文件本身的排序无关
+            string pattern = string.Join(";", extensions
+                .OrderBy(ext => ext, StringComparer.OrdinalIgnoreCase)
+                .Select(ext => "*" + ext));
+
+            using OpenFileDialog dialog = new() {
+                Title = title,
+                Filter = filterLabel + "|" + pattern,
+                // 只有一组筛选器，固定选中它
+                FilterIndex = 1,
+                // 离散图片 / PDF 合并模式的前提就是一次选中多个文件
+                Multiselect = true
+            };
+
+            if (dialog.ShowDialog() != DialogResult.OK) {
+                return null;
+            }
+            return [.. dialog.FileNames];
+        }
+
+        /// <summary>
+        /// 选择多个离散图片文件，合并输出为一个 PDF（进入图片合并模式）。
+        /// 输出位置与拖入多张图片时一致：首张图片所在目录下的「目录名.pdf」。
+        /// </summary>
+        private void ChooseImagesToolStripMenuItem_Click(object sender, EventArgs e) {
+            if (_isProcessing) return;
+
+            List<string> files = PickFiles(
+                Strings.SelectImages,
+                Strings.ImageFile,
+                [.. ImageContracts.ImageExtensions]);
+            if (files == null) return;
+
+            ChooseImagesAction(files);
+        }
+
+        /// <summary>
+        /// 选择多个 PDF 文件，按文件名顺序合并为一个 PDF（进入 PDF 合并模式）。
+        /// 输出位置与拖入多个 PDF 时一致：首个 PDF 所在目录下的「目录名_Merged.pdf」。
+        /// </summary>
+        private void ChoosePDFsToolStripMenuItem_Click(object sender, EventArgs e) {
+            if (_isProcessing) return;
+
+            List<string> files = PickFiles(Strings.SelectPdfs, Strings.PdfFile, ".pdf");
+            if (files == null) return;
+
+            ChoosePdfsAction(files);
         }
     }
 }

@@ -180,4 +180,16 @@
   <data name="SelectedPdfsCount" xml:space="preserve">
     <value>[{0} PDFs] {1}</value>
   </data>
+  <data name="SelectImages" xml:space="preserve">
+    <value>Please select the image files to combine into one PDF.</value>
+  </data>
+  <data name="ImageFile" xml:space="preserve">
+    <value>Image Files</value>
+  </data>
+  <data name="SelectPdfs" xml:space="preserve">
+    <value>Please select the PDF files to merge into one PDF.</value>
+  </data>
+  <data name="PdfFile" xml:space="preserve">
+    <value>PDF Files</value>
+  </data>
 </root>

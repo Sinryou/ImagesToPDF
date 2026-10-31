@@ -37,6 +37,8 @@ namespace ImgsToPDF {
             this.toolStripMenuFile = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuOpenFolder = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItemOpenArchive = new System.Windows.Forms.ToolStripMenuItem();
+            this.chooseImagesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.choosePDFsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuClearChosen = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenuExit = new System.Windows.Forms.ToolStripMenuItem();
@@ -72,24 +74,24 @@ namespace ImgsToPDF {
             // 
             // PathLabel
             // 
-            this.PathLabel.AutoEllipsis = true;
             resources.ApplyResources(this.PathLabel, "PathLabel");
+            this.PathLabel.AutoEllipsis = true;
             this.PathLabel.Name = "PathLabel";
             // 
             // PicInFolder
             // 
+            resources.ApplyResources(this.PicInFolder, "PicInFolder");
             this.PicInFolder.Cursor = System.Windows.Forms.Cursors.Hand;
             this.PicInFolder.Image = global::ImgsToPDF.Properties.Resources.folder;
-            resources.ApplyResources(this.PicInFolder, "PicInFolder");
             this.PicInFolder.Name = "PicInFolder";
             this.PicInFolder.TabStop = false;
             this.PicInFolder.Click += new System.EventHandler(this.PicInFolder_Click);
             // 
             // generateModeBox
             // 
+            resources.ApplyResources(this.generateModeBox, "generateModeBox");
             this.generateModeBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.generateModeBox.FormattingEnabled = true;
-            resources.ApplyResources(this.generateModeBox, "generateModeBox");
             this.generateModeBox.Name = "generateModeBox";
             // 
             // labelLayout
@@ -105,6 +107,7 @@ namespace ImgsToPDF {
             // 
             // menuStripMain
             // 
+            resources.ApplyResources(this.menuStripMain, "menuStripMain");
             this.menuStripMain.GripMargin = new System.Windows.Forms.Padding(2, 2, 0, 2);
             this.menuStripMain.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.menuStripMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -112,79 +115,92 @@ namespace ImgsToPDF {
             this.toolStripMenuConfigFile,
             this.languageToolStripMenuItem,
             this.toolStripMenuAbout});
-            resources.ApplyResources(this.menuStripMain, "menuStripMain");
             this.menuStripMain.Name = "menuStripMain";
             // 
             // toolStripMenuFile
             // 
+            resources.ApplyResources(this.toolStripMenuFile, "toolStripMenuFile");
             this.toolStripMenuFile.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripMenuOpenFolder,
             this.toolStripMenuItemOpenArchive,
+            this.chooseImagesToolStripMenuItem,
+            this.choosePDFsToolStripMenuItem,
             this.toolStripMenuClearChosen,
             this.toolStripSeparator1,
             this.toolStripMenuExit});
             this.toolStripMenuFile.Name = "toolStripMenuFile";
-            resources.ApplyResources(this.toolStripMenuFile, "toolStripMenuFile");
             // 
             // toolStripMenuOpenFolder
             // 
-            this.toolStripMenuOpenFolder.Name = "toolStripMenuOpenFolder";
             resources.ApplyResources(this.toolStripMenuOpenFolder, "toolStripMenuOpenFolder");
+            this.toolStripMenuOpenFolder.Name = "toolStripMenuOpenFolder";
             this.toolStripMenuOpenFolder.Click += new System.EventHandler(this.ToolStripMenuOpenFolder_Click);
             // 
             // toolStripMenuItemOpenArchive
             // 
-            this.toolStripMenuItemOpenArchive.Name = "toolStripMenuItemOpenArchive";
             resources.ApplyResources(this.toolStripMenuItemOpenArchive, "toolStripMenuItemOpenArchive");
+            this.toolStripMenuItemOpenArchive.Name = "toolStripMenuItemOpenArchive";
             this.toolStripMenuItemOpenArchive.Click += new System.EventHandler(this.ToolStripMenuItemOpenArchive_Click);
+            // 
+            // chooseImagesToolStripMenuItem
+            // 
+            resources.ApplyResources(this.chooseImagesToolStripMenuItem, "chooseImagesToolStripMenuItem");
+            this.chooseImagesToolStripMenuItem.Name = "chooseImagesToolStripMenuItem";
+            this.chooseImagesToolStripMenuItem.Click += new System.EventHandler(this.ChooseImagesToolStripMenuItem_Click);
+            // 
+            // choosePDFsToolStripMenuItem
+            // 
+            resources.ApplyResources(this.choosePDFsToolStripMenuItem, "choosePDFsToolStripMenuItem");
+            this.choosePDFsToolStripMenuItem.Name = "choosePDFsToolStripMenuItem";
+            this.choosePDFsToolStripMenuItem.Click += new System.EventHandler(this.ChoosePDFsToolStripMenuItem_Click);
             // 
             // toolStripMenuClearChosen
             // 
-            this.toolStripMenuClearChosen.Name = "toolStripMenuClearChosen";
             resources.ApplyResources(this.toolStripMenuClearChosen, "toolStripMenuClearChosen");
+            this.toolStripMenuClearChosen.Name = "toolStripMenuClearChosen";
             this.toolStripMenuClearChosen.Click += new System.EventHandler(this.ToolStripMenuClearChosen_Click);
             // 
             // toolStripSeparator1
             // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
             resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
             // 
             // toolStripMenuExit
             // 
-            this.toolStripMenuExit.Name = "toolStripMenuExit";
             resources.ApplyResources(this.toolStripMenuExit, "toolStripMenuExit");
+            this.toolStripMenuExit.Name = "toolStripMenuExit";
             this.toolStripMenuExit.Click += new System.EventHandler(this.ToolStripMenuExit_Click);
             // 
             // toolStripMenuConfigFile
             // 
-            this.toolStripMenuConfigFile.Name = "toolStripMenuConfigFile";
             resources.ApplyResources(this.toolStripMenuConfigFile, "toolStripMenuConfigFile");
+            this.toolStripMenuConfigFile.Name = "toolStripMenuConfigFile";
             this.toolStripMenuConfigFile.Click += new System.EventHandler(this.ToolStripMenuConfigFile_Click);
             // 
             // languageToolStripMenuItem
             // 
+            resources.ApplyResources(this.languageToolStripMenuItem, "languageToolStripMenuItem");
             this.languageToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.englishToolStripMenuItem,
             this.chineseToolStripMenuItem});
             this.languageToolStripMenuItem.Name = "languageToolStripMenuItem";
-            resources.ApplyResources(this.languageToolStripMenuItem, "languageToolStripMenuItem");
             // 
             // englishToolStripMenuItem
             // 
-            this.englishToolStripMenuItem.Name = "englishToolStripMenuItem";
             resources.ApplyResources(this.englishToolStripMenuItem, "englishToolStripMenuItem");
+            this.englishToolStripMenuItem.Name = "englishToolStripMenuItem";
             this.englishToolStripMenuItem.Click += new System.EventHandler(this.EnglishToolStripMenuItem_Click);
             // 
             // chineseToolStripMenuItem
             // 
-            this.chineseToolStripMenuItem.Name = "chineseToolStripMenuItem";
             resources.ApplyResources(this.chineseToolStripMenuItem, "chineseToolStripMenuItem");
+            this.chineseToolStripMenuItem.Name = "chineseToolStripMenuItem";
             this.chineseToolStripMenuItem.Click += new System.EventHandler(this.ChineseToolStripMenuItem_Click);
             // 
             // toolStripMenuAbout
             // 
-            this.toolStripMenuAbout.Name = "toolStripMenuAbout";
             resources.ApplyResources(this.toolStripMenuAbout, "toolStripMenuAbout");
+            this.toolStripMenuAbout.Name = "toolStripMenuAbout";
             this.toolStripMenuAbout.Click += new System.EventHandler(this.ToolStripMenuAbout_Click);
             // 
             // Recursive
@@ -202,15 +218,15 @@ namespace ImgsToPDF {
             // 
             // FolderImg
             // 
-            this.FolderImg.BackColor = System.Drawing.Color.Transparent;
             resources.ApplyResources(this.FolderImg, "FolderImg");
+            this.FolderImg.BackColor = System.Drawing.Color.Transparent;
             this.FolderImg.Name = "FolderImg";
             this.FolderImg.TabStop = false;
             // 
             // MainForm
             // 
-            this.AllowDrop = true;
             resources.ApplyResources(this, "$this");
+            this.AllowDrop = true;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.Merge);
             this.Controls.Add(this.Recursive);
@@ -265,6 +281,8 @@ namespace ImgsToPDF {
         private System.Windows.Forms.CheckBox Recursive;
         private System.Windows.Forms.CheckBox Merge;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemOpenArchive;
+        private System.Windows.Forms.ToolStripMenuItem chooseImagesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem choosePDFsToolStripMenuItem;
     }
 }
 
