@@ -12,7 +12,6 @@
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -25,6 +24,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -101,18 +101,6 @@
     <Compile Include="TransparentOverlayPictureBox.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="..\ImgsToPDFCore\WebPWrapper.cs">
-      <Link>WebPWrapper.cs</Link>
-    </Compile>
-    <Compile Include="..\ImgsToPDFCore\ImageContracts.cs">
-      <Link>ImageContracts.cs</Link>
-    </Compile>
-    <Compile Include="..\ImgsToPDFCore\ImageExif.cs">
-      <Link>ImageExif.cs</Link>
-    </Compile>
-    <Compile Include="..\ImgsToPDFCore\IpcContracts.cs">
-      <Link>IpcContracts.cs</Link>
-    </Compile>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -177,6 +165,7 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <Import Project="..\ImgsToPDFShared\ImgsToPDFShared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- 在 UI 构建完成后，直接将 Core 编译产物镜像同步至输出目录的 Core 子目录下，
        彻底避免将二进制文件写入并污染源码工作区（如 ImgsToPDF\Core） -->

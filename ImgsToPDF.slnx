@@ -8,4 +8,5 @@
   <Project Path="ImgsToPDFCore/ImgsToPDFCore.csproj" Id="f8dfa59f-f04b-4bde-93da-3bde68c1ae0e">
     <Platform Project="x64" />
   </Project>
+  <Project Path="ImgsToPDFShared/ImgsToPDFShared.shproj" Id="3f720f40-ee4b-4cb6-9dc7-726c39972c94" />
 </Solution>
