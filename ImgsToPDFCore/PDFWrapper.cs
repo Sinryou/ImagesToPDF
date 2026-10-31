@@ -1,12 +1,7 @@
+using ImgsToPDF.Shared;
 using System.Collections.Generic;
 
 namespace ImgsToPDF.Core {
-    public enum Layout {
-        Single,
-        DuplexLeftToRight,
-        DuplexRightToLeft
-    }
-
     /// <summary>
     /// PDF 操作的外观门面（Facade）。
     /// 保留原有的全部公开接口与签名，供 XLua（config.lua）及程序其他部分直接调用，

@@ -1,3 +1,4 @@
+using ImgsToPDF.Shared;
 using XLua;
 
 namespace ImgsToPDF.Core {

@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ImageContracts.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ImageExif.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LayoutContracts.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IpcContracts.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebPWrapper.cs" />
   </ItemGroup>

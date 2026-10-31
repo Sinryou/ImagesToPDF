@@ -53,11 +53,11 @@ namespace ImgsToPDF {
         /// <summary>
         /// 构造传给 Core 进程的命令行参数
         /// </summary>
-        public static string[] BuildCoreArgs(string dirPath, bool fastMode, int layoutIndex, bool mergePdfs = false) {
+        public static string[] BuildCoreArgs(string dirPath, bool fastMode, Layout layout, bool mergePdfs = false) {
             if (mergePdfs) {
                 return ["-d", dirPath, "--merge-pdfs"];
             }
-            var args = new List<string> { "-d", dirPath, "-l", layoutIndex.ToString() };
+            var args = new List<string> { "-d", dirPath, "-l", layout.ToString() };
             if (fastMode) {
                 args.Add("--fast");
             }
@@ -93,7 +93,7 @@ namespace ImgsToPDF {
             bool recursive,
             bool fastMode,
             bool merge,
-            int layoutIndex,
+            Layout layout,
             string displayTargetPath,
             Func<string, Task<string>> promptPasswordAsync,
             Func<bool> isCancelled) {
@@ -117,7 +117,7 @@ namespace ImgsToPDF {
                     await semaphore.WaitAsync();
                     try {
                         if (isCancelled()) return;
-                        var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(dirPath, fastMode, layoutIndex), promptPasswordAsync);
+                        var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(dirPath, fastMode, layout), promptPasswordAsync);
                         CollectProcessResult(dirPath, stderr, exitCode, failureQueue, warningQueue);
                     }
                     finally {
@@ -127,12 +127,12 @@ namespace ImgsToPDF {
                 await Task.WhenAll(tasks);
 
                 if (merge && !isCancelled()) {
-                    var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode: false, layoutIndex: 0, mergePdfs: true), promptPasswordAsync);
+                    var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode: false, layout: Layout.Single, mergePdfs: true), promptPasswordAsync);
                     CollectProcessResult(directoryPath, stderr, exitCode, failureQueue, warningQueue);
                 }
             }
             else if (!isCancelled()) {
-                var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode, layoutIndex), promptPasswordAsync);
+                var (_, stderr, exitCode) = await RunProcessAsync(fileName, BuildCoreArgs(directoryPath, fastMode, layout), promptPasswordAsync);
                 CollectProcessResult(reportedTarget, stderr, exitCode, failureQueue, warningQueue);
             }
             return ([.. failureQueue], [.. warningQueue]);

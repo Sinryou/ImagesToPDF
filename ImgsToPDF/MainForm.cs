@@ -54,11 +54,12 @@ namespace ImgsToPDF {
             FolderImg.BringToFront();
             PicInFolder.Cursor = NativeMethods.SystemHandCursor;
             MsgLabel.ForeColor = Color.Blue;
-            generateModeBox.Items.AddRange([
-                Strings.Single,
-                Strings.Duplex,
-                Strings.DuplexRightToLeft
-            ]);
+            _layoutChoices = [
+                (Strings.Single, Shared.Layout.Single),
+                (Strings.Duplex, Shared.Layout.DuplexLeftToRight),
+                (Strings.DuplexRightToLeft, Shared.Layout.DuplexRightToLeft)
+            ];
+            generateModeBox.Items.AddRange([.. _layoutChoices.Select(choice => choice.Display)]);
             generateModeBox.SelectedIndex = 0;
             Merge.Enabled = false;
         }
@@ -84,6 +85,15 @@ namespace ImgsToPDF {
         /// 用于在悬停时显示完整路径的 ToolTip，防止长路径被截断后用户无法查看
         /// </summary>
         private readonly ToolTip _pathToolTip = new();
+
+        /// <summary>
+        /// 版式下拉框选项：显示文本与 ImgsToPDF.Shared.Layout 值显式配对。
+        /// 选中项直接取 Value 作为 -l 参数传给 Core，
+        /// 不再把 SelectedIndex 当枚举数值使用（顺序与数值解耦，仅存在这一处映射）。
+        /// 注意：Control.Layout 是继承的事件，此处须用全限定名 ImgsToPDF.Shared.Layout 消除遮蔽。
+        /// 在 MainForm_Load 中初始化，确保读取 Strings.* 时 UI 文化已就绪。
+        /// </summary>
+        private (string Display, Shared.Layout Value)[] _layoutChoices;
 
         /// <summary>
         /// 避免并发 Core 进程同时弹出多个密码输入窗口，将密码输入串行化
@@ -431,7 +441,7 @@ namespace ImgsToPDF {
             bool recursive = !isImageMerge && !isPdfMerge && Recursive.Checked;
             bool fastMode = !isPdfMerge && FastMode.Checked;
             bool merge = !isImageMerge && !isPdfMerge && Merge.Checked;
-            int layoutIndex = isPdfMerge ? 0 : generateModeBox.SelectedIndex;
+            Shared.Layout layout = isPdfMerge ? Shared.Layout.Single : _layoutChoices[generateModeBox.SelectedIndex].Value;
 
             MsgLabel.Text = Strings.PDFIsGenerating;
             progressBar.Visible = true;
@@ -446,7 +456,7 @@ namespace ImgsToPDF {
                     recursive,
                     fastMode,
                     merge,
-                    layoutIndex,
+                    layout,
                     displayTargetPath,
                     PromptPasswordOnUiAsync,
                     () => _isClosing || IsDisposed);

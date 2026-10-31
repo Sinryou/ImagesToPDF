@@ -3,7 +3,6 @@ using CommandLine;
 using System;
 using System.IO;
 using System.Threading;
-using XLua;
 
 namespace ImgsToPDF.Core {
     internal class Program {
@@ -14,7 +13,7 @@ namespace ImgsToPDF.Core {
             [Option('d', "dir-path", Required = true, HelpText = "图片所在的文件夹路径。")]
             public string DirectoryPath { get; set; }
 
-            [Option('l', "layout", Required = false, HelpText = "页面布局，0为单页输出，1为双页左至右，2为双页右至左。")]
+            [Option('l', "layout", Required = false, HelpText = "页面布局：Single 单页输出、DuplexLeftToRight 双页左至右、DuplexRightToLeft 双页右至左；也接受对应数值 0/1/2。")]
             public Layout Layout { get; set; }
 
             [Option('f', "fast", Required = false, HelpText = "是否以牺牲图片质量换取生成速度。")]
