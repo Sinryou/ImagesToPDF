@@ -151,11 +151,28 @@ function Find-MSBuild {
         }
     }
 
-    throw "未找到 MSBuild.exe。请确保已安装 Visual Studio 或 Visual Studio Build Tools，并安装了 MSBuild 组件。"
+    throw "未找到 MSBuild.exe。请安装 Visual Studio 2026（18.0+）或对应版本的 Build Tools，" +
+          "并勾选 MSBuild 与 .NET Framework 4.8 目标包组件。"
 }
 
 $msbuildPath = Find-MSBuild
 Write-Host "使用 MSBuild: $msbuildPath" -ForegroundColor Gray
+
+# 工具链版本校验（紧跟探测，不单独占用步骤编号）。
+# 两个工程都固定 LangVersion=14，只有 MSBuild 18+（C# 14 编译器）才能编译。
+# 这里刻意只告警不中断：允许预览版/自定义路径等无法可靠判定版本的情形继续尝试，
+# 但必须提前把原因说清楚，否则用户只会看到一条莫名其妙的 CS1617。
+try {
+    $msbuildVersion = (Get-Item -LiteralPath $msbuildPath).VersionInfo.FileVersionRaw
+    # 排除 0.0.0.0（读不到版本信息的文件会返回全零，不能当成"版本过低"）
+    if ($msbuildVersion -and $msbuildVersion.Major -gt 0 -and $msbuildVersion.Major -lt 18) {
+        Write-Warning "当前 MSBuild 版本为 $msbuildVersion，低于工程要求的 18.0（C# 14 编译器）。"
+        Write-Warning "工程固定 LangVersion=14，旧版编译器会报 CS1617；请升级到 Visual Studio 2026（18.0+）或对应 Build Tools。"
+    }
+}
+catch {
+    # 读取版本失败不影响构建流程
+}
 
 # 3. 解决 Windows 环境下的 Mark of the Web (Zone.Identifier / Integrity Level)
 # 只处理 .resx：GenerateResource 报 MSB3821 的触发条件是「.resx 带有网络来源标记，

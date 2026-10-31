@@ -21,7 +21,7 @@
 
 - **操作系统**：Windows 10 / 11 或 Windows Server（64位）
 - **目标框架**：.NET Framework 4.8 Developer Pack
-- **构建工具**：Visual Studio 2022（17.10+）或 Visual Studio Build Tools，包含以下工作负载或组件：
+- **构建工具**：Visual Studio 2026（18.0+）或对应版本的 Visual Studio Build Tools，包含以下工作负载或组件：
   - `.NET 桌面开发` (包含 MSBuild 及 C# 编译器)
   - `.NET Framework 4.8 目标包`
 - **Shell 环境**：PowerShell 5.1+ 或 PowerShell 7+ (pwsh)
