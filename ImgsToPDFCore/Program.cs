@@ -23,9 +23,6 @@ namespace ImgsToPDF.Core {
             public bool Merge { get; set; }
         }
         static void Main(string[] args) {
-            // 获取运行的主程序所在的目录并设置为工作目录
-            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
-
             // 显式指定 stderr/stdout 的编码。Core 由 GUI 以「重定向输出 + 无窗口」方式启动，
             // 此时 Console 默认使用 OEM 代码页，而 GUI 侧按 UTF-8 解码，
             // 导致错误信息里含中文的文件名/文件夹名变成乱码（用户无法辨认是哪张图出错）。
@@ -106,6 +103,7 @@ namespace ImgsToPDF.Core {
         static void Run(Options option) {
             var startedUtc = DateTime.UtcNow;
             try {
+                string fullDirectoryPath = Path.GetFullPath(option.DirectoryPath);
                 CSGlobal.luaEnv.AddBuildin("ffi", XLua.LuaDLL.Lua.LoadFFI);
                 CSGlobal.luaEnv.AddBuildin("lfs", XLua.LuaDLL.Lua.LoadLFS);
                 CSGlobal.luaEnv.AddBuildin("rapidjson", XLua.LuaDLL.Lua.LoadRapidJson);
@@ -113,7 +111,7 @@ namespace ImgsToPDF.Core {
                 CSGlobal.luaEnv.DoString(@"config = require 'config';"); // 获取lua内的方法
 
                 CSGlobal.luaConfig = CSGlobal.luaEnv.Global.Get<IConfig>("config");
-                CSGlobal.luaConfig.PreProcess(option.DirectoryPath, option.Layout, option.FastFlag, option.Merge);
+                CSGlobal.luaConfig.PreProcess(fullDirectoryPath, option.Layout, option.FastFlag, option.Merge);
 
                 VerifyPdfGenerated(startedUtc);
             }
