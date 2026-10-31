@@ -218,8 +218,8 @@ namespace ImgsToPDF.Core {
 
                     // 如果零页，添加一页空页
                     // document.NewPage()不触发document.PageNumber计数增长，必须读writer.PageNumber
-                    if (writer.PageNumber == 0 && blankPageWhenEmpty) {
-                        document.NewPage();
+                    // Open() 后已预建第 1 页（writer.PageNumber == 1），零页时该页仍处于 PageEmpty 状态
+                    if (writer.PageNumber == 1 && writer.PageEmpty && blankPageWhenEmpty) {
                         document.Add(Chunk.NEWLINE);
                     }
                     pages = writer.PageNumber;
