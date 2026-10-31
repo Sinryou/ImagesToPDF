@@ -52,7 +52,6 @@ namespace ImgsToPDF {
                 englishToolStripMenuItem.Enabled = false;
             }
             FolderImg.BringToFront();
-            PicInFolder.Cursor = NativeMethods.SystemHandCursor;
             MsgLabel.ForeColor = Color.Blue;
             _layoutChoices = [
                 (Strings.Single, Shared.Layout.Single),
@@ -61,7 +60,9 @@ namespace ImgsToPDF {
             ];
             generateModeBox.Items.AddRange([.. _layoutChoices.Select(choice => choice.Display)]);
             generateModeBox.SelectedIndex = 0;
-            Merge.Enabled = false;
+
+            // 启动时按初始状态（无任何选择）推导全部控件可用性
+            UpdateControlStates();
         }
 
         /// <summary>
@@ -70,6 +71,12 @@ namespace ImgsToPDF {
         /// </summary>
         private List<string> _chosenImageFiles;
         private List<string> _chosenPdfFiles;
+
+        /// <summary>当前是否处于离散图片合并模式（选中列表非空）。</summary>
+        private bool IsImageMergeMode => _chosenImageFiles is { Count: > 0 };
+
+        /// <summary>当前是否处于 PDF 合并模式（选中列表非空）。</summary>
+        private bool IsPdfMergeMode => _chosenPdfFiles is { Count: > 0 };
 
         /// <summary>
         /// 当前是否正在后台生成 PDF，用于全局锁定界面交互并防止竞态操作
@@ -101,30 +108,89 @@ namespace ImgsToPDF {
         private readonly SemaphoreSlim _passwordPromptLock = new(1, 1);
 
         /// <summary>
-        /// 全局设置界面忙碌/就绪状态，锁定用户输入以防止竞态条件
+        /// UpdateControlStates 的重入保护：方法内部设置 Checked 会触发
+        /// Recursive_CheckedChanged 递归调用自身，用标志拦下重复推导
+        /// </summary>
+        private bool _isSyncingControlStates;
+
+        /// <summary>
+        /// 全局设置界面忙碌/就绪状态，锁定用户输入以防止竞态条件。
+        /// 控件的可用状态由 <see cref="UpdateControlStates"/> 统一推导，此处不直接触碰控件。
         /// </summary>
         private void SetUiState(bool isProcessing) {
             _isProcessing = isProcessing;
+            UpdateControlStates();
+        }
 
-            bool isImageMergeMode = _chosenImageFiles != null && _chosenImageFiles.Count > 0;
-            bool isPdfMergeMode = _chosenPdfFiles != null && _chosenPdfFiles.Count > 0;
+        /// <summary>
+        /// 当前选择是否可作为生成目标直接开始：
+        /// 离散图片 / PDF 合并模式选中即有效；目录/压缩包模式要求路径真实存在。
+        /// </summary>
+        private bool HasStartableTarget {
+            get {
+                if (IsImageMergeMode || IsPdfMergeMode) {
+                    return true;
+                }
+                string path = PathLabel.Text;
+                if (string.IsNullOrEmpty(path)) {
+                    return false;
+                }
+                return Directory.Exists(path)
+                    || ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(path));
+            }
+        }
 
-            StartButton.Enabled = !isProcessing && !string.IsNullOrEmpty(PathLabel.Text);
-            generateModeBox.Enabled = !isProcessing && !isPdfMergeMode;
-            FastMode.Enabled = !isProcessing && !isPdfMergeMode;
-            Recursive.Enabled = !isProcessing && !isImageMergeMode && !isPdfMergeMode;
-            Merge.Enabled = !isProcessing && !isImageMergeMode && !isPdfMergeMode && Recursive.Checked;
+        /// <summary>
+        /// 全局唯一的控件状态同步点：从「选择模式 + 当前路径 + 忙碌状态」推导全部控件的
+        /// Enabled，并维护两条勾选不变量：
+        /// 1. 递归子目录与合并子目录仅对目录/压缩包模式有意义，其它模式下强制取消勾选并禁用；
+        /// 2. 合并子目录依赖递归子目录，后者取消勾选时前者随之取消。
+        /// 任何改变上述状态的代码（选择目标、开始/结束处理、清除、用户勾选）完成后都必须调用
+        /// 本方法；禁止在调用方手工零散设置控件 Enabled/Checked，避免状态同步逻辑漂移。
+        /// </summary>
+        private void UpdateControlStates() {
+            if (_isSyncingControlStates) {
+                return;
+            }
+            _isSyncingControlStates = true;
+            try {
+                bool isProcessing = _isProcessing;
+                bool isImageMerge = IsImageMergeMode;
+                bool isPdfMerge = IsPdfMergeMode;
+                // 递归与合并子目录仅适用于目录/压缩包模式（离散图片、PDF 合并均不适用）
+                bool supportsRecursion = !isImageMerge && !isPdfMerge;
 
-            toolStripMenuOpenFolder.Enabled = !isProcessing;
-            toolStripMenuItemOpenArchive.Enabled = !isProcessing;
-            chooseImagesToolStripMenuItem.Enabled = !isProcessing;
-            choosePDFsToolStripMenuItem.Enabled = !isProcessing;
-            toolStripMenuClearChosen.Enabled = !isProcessing;
-            languageToolStripMenuItem.Enabled = !isProcessing;
-            toolStripMenuConfigFile.Enabled = !isProcessing;
+                Recursive.Enabled = !isProcessing && supportsRecursion;
+                if (!supportsRecursion) {
+                    Recursive.Checked = false;
+                }
 
-            var clickableCursor = isProcessing ? Cursors.Default : NativeMethods.SystemHandCursor;
-            PicInFolder.Cursor = clickableCursor;
+                Merge.Enabled = !isProcessing && supportsRecursion && Recursive.Checked;
+                if (!supportsRecursion || !Recursive.Checked) {
+                    Merge.Checked = false;
+                }
+
+                // 版式与快速压缩对 PDF 合并无意义（合并只搬移页面，不重排版、不重编码）
+                generateModeBox.Enabled = !isProcessing && !isPdfMerge;
+                FastMode.Enabled = !isProcessing && !isPdfMerge;
+
+                // 无效路径时 HasStartableTarget 为 false，开始按钮自然禁用，
+                // 不会把无效路径传给 Core
+                StartButton.Enabled = !isProcessing && HasStartableTarget;
+
+                toolStripMenuOpenFolder.Enabled = !isProcessing;
+                toolStripMenuItemOpenArchive.Enabled = !isProcessing;
+                chooseImagesToolStripMenuItem.Enabled = !isProcessing;
+                choosePDFsToolStripMenuItem.Enabled = !isProcessing;
+                toolStripMenuClearChosen.Enabled = !isProcessing;
+                languageToolStripMenuItem.Enabled = !isProcessing;
+                toolStripMenuConfigFile.Enabled = !isProcessing;
+
+                PicInFolder.Cursor = isProcessing ? Cursors.Default : NativeMethods.SystemHandCursor;
+            }
+            finally {
+                _isSyncingControlStates = false;
+            }
         }
 
         private void MainForm_DragEnter(object sender, DragEventArgs e) {
@@ -169,10 +235,6 @@ namespace ImgsToPDF {
         private void ChooseFileAction(string directoryPath) {
             _chosenImageFiles = null;
             _chosenPdfFiles = null;
-            generateModeBox.Enabled = !_isProcessing;
-            FastMode.Enabled = !_isProcessing;
-            Recursive.Enabled = !_isProcessing;
-            Merge.Enabled = !_isProcessing && Recursive.Checked;
 
             PathLabel.Text = directoryPath;
             _pathToolTip.SetToolTip(PathLabel, directoryPath);
@@ -183,7 +245,9 @@ namespace ImgsToPDF {
             PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
 
             // 检查路径是否有效
+            bool isSupportedPath;
             if (Directory.Exists(directoryPath)) {
+                isSupportedPath = true;
                 Bitmap preview = null;
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                     .Where(p => ImageContracts.ImageExtensions.Contains(Path.GetExtension(p)));
@@ -210,20 +274,20 @@ namespace ImgsToPDF {
                 SetFolderOverlay(Properties.Resources.folder);
             }
             else if (ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(directoryPath))) {
+                isSupportedPath = true;
                 ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.compressedFile);
                 SetFolderOverlay(null);
             }
             else {
+                isSupportedPath = false;
                 ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.no_photo);
                 SetFolderOverlay(null);
-                MsgLabel.Text = Strings.InvalidPath;
-                // 按钮的可用状态可能还是上一次有效选择留下的，否则点击后会把无效路径传给 Core
-                StartButton.Enabled = false;
-                return;
             }
 
-            StartButton.Enabled = !_isProcessing;
-            MsgLabel.Text = Strings.ClickToStart;
+            MsgLabel.Text = isSupportedPath ? Strings.ClickToStart : Strings.InvalidPath;
+            // 无效路径时 HasStartableTarget 为 false，开始按钮由状态同步点禁用，
+            // 不会把无效路径传给 Core
+            UpdateControlStates();
         }
 
         /// <summary>
@@ -236,8 +300,6 @@ namespace ImgsToPDF {
             imageFiles.Sort(FolderScanner.NaturalPathComparer.Instance);
             _chosenImageFiles = imageFiles;
             _chosenPdfFiles = null;
-            generateModeBox.Enabled = !_isProcessing;
-            FastMode.Enabled = !_isProcessing;
 
             // 获取第一张可读图片生成高清缩略图
             Bitmap preview = null;
@@ -285,14 +347,9 @@ namespace ImgsToPDF {
             int textWidth = TextRenderer.MeasureText(PathLabel.Text, PathLabel.Font).Width;
             PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
 
-            // 图片合并模式下，递归子目录与合并子目录不适用，禁用并取消勾选
-            Recursive.Checked = false;
-            Recursive.Enabled = false;
-            Merge.Checked = false;
-            Merge.Enabled = false;
-
-            StartButton.Enabled = !_isProcessing;
+            // 递归/合并子目录的禁用与取消勾选由 UpdateControlStates 按模式统一处理
             MsgLabel.Text = Strings.ClickToStart;
+            UpdateControlStates();
         }
 
         /// <summary>
@@ -335,16 +392,9 @@ namespace ImgsToPDF {
             int textWidth = TextRenderer.MeasureText(PathLabel.Text, PathLabel.Font).Width;
             PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
 
-            // PDF 合并模式下，版式布局、快速压缩、递归子目录与合并子目录均不适用，禁用并取消勾选
-            generateModeBox.Enabled = false;
-            FastMode.Enabled = false;
-            Recursive.Checked = false;
-            Recursive.Enabled = false;
-            Merge.Checked = false;
-            Merge.Enabled = false;
-
-            StartButton.Enabled = !_isProcessing;
+            // 版式/快速压缩的禁用与递归/合并的取消勾选由 UpdateControlStates 按模式统一处理
             MsgLabel.Text = Strings.ClickToStart;
+            UpdateControlStates();
         }
 
         private void MainForm_DragDrop(object sender, DragEventArgs e) {
@@ -397,8 +447,8 @@ namespace ImgsToPDF {
                 return;
             }
 
-            bool isImageMerge = _chosenImageFiles != null && _chosenImageFiles.Count > 0;
-            bool isPdfMerge = _chosenPdfFiles != null && _chosenPdfFiles.Count > 0;
+            bool isImageMerge = IsImageMergeMode;
+            bool isPdfMerge = IsPdfMergeMode;
             string manifestPath = null;
             string targetPathForCore = directoryPath;
             string displayTargetPath = directoryPath;
@@ -636,12 +686,6 @@ namespace ImgsToPDF {
 
             _chosenImageFiles = null;
             _chosenPdfFiles = null;
-            generateModeBox.Enabled = !_isProcessing;
-            FastMode.Enabled = !_isProcessing;
-            Recursive.Enabled = !_isProcessing;
-            Recursive.Checked = false;
-            Merge.Enabled = false;
-            Merge.Checked = false;
 
             ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.folder);
             SetFolderOverlay(null);
@@ -650,8 +694,12 @@ namespace ImgsToPDF {
             _pathToolTip.SetToolTip(PathLabel, null);
             progressBar.Visible = false;
             progressBar.Value = 0;
-            StartButton.Enabled = false;
+
+            // 清除 = 完整复位：用户勾选的递归/合并一并取消（保持原行为）；
+            // 其余控件可用性由状态同步点推导
+            Recursive.Checked = false;
             MsgLabel.Text = Strings.MsgLabelDefault;
+            UpdateControlStates();
         }
 
         /// <summary>
@@ -689,14 +737,11 @@ namespace ImgsToPDF {
             );
         }
 
+        /// <summary>
+        /// 用户勾选/取消递归子目录：合并子目录的可用与勾选状态由状态同步点统一推导。
+        /// </summary>
         private void Recursive_CheckedChanged(object sender, EventArgs e) {
-            if (Recursive.Checked) {
-                Merge.Enabled = true;
-            }
-            else {
-                Merge.Enabled = false;
-                Merge.Checked = false;
-            }
+            UpdateControlStates();
         }
 
         private void ToolStripMenuItemOpenArchive_Click(object sender, EventArgs e) {
