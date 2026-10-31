@@ -66,17 +66,12 @@ namespace ImgsToPDF {
         }
 
         /// <summary>
-        /// 当前选中的离散图片文件列表（处于图片合并模式时非空）。
-        /// 若为 null 则表示当前处于目录/压缩包模式。
+        /// 当前目标选择状态（模式 + 载荷，不可变、整体替换）。
+        /// 唯一转移入口是 <see cref="SetSelection"/>；所有模式判定只读
+        /// <see cref="SelectionState"/> 的谓词，不再从控件文本反推状态。
+        /// 定义见本文件末尾的 SelectionMode / SelectionState。
         /// </summary>
-        private List<string> _chosenImageFiles;
-        private List<string> _chosenPdfFiles;
-
-        /// <summary>当前是否处于离散图片合并模式（选中列表非空）。</summary>
-        private bool IsImageMergeMode => _chosenImageFiles is { Count: > 0 };
-
-        /// <summary>当前是否处于 PDF 合并模式（选中列表非空）。</summary>
-        private bool IsPdfMergeMode => _chosenPdfFiles is { Count: > 0 };
+        private SelectionState _selection = SelectionState.Empty;
 
         /// <summary>
         /// 当前是否正在后台生成 PDF，用于全局锁定界面交互并防止竞态操作
@@ -123,24 +118,6 @@ namespace ImgsToPDF {
         }
 
         /// <summary>
-        /// 当前选择是否可作为生成目标直接开始：
-        /// 离散图片 / PDF 合并模式选中即有效；目录/压缩包模式要求路径真实存在。
-        /// </summary>
-        private bool HasStartableTarget {
-            get {
-                if (IsImageMergeMode || IsPdfMergeMode) {
-                    return true;
-                }
-                string path = PathLabel.Text;
-                if (string.IsNullOrEmpty(path)) {
-                    return false;
-                }
-                return Directory.Exists(path)
-                    || ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(path));
-            }
-        }
-
-        /// <summary>
         /// 全局唯一的控件状态同步点：从「选择模式 + 当前路径 + 忙碌状态」推导全部控件的
         /// Enabled，并维护两条勾选不变量：
         /// 1. 递归子目录与合并子目录仅对目录模式有意义，其它模式下强制取消勾选并禁用；
@@ -155,16 +132,11 @@ namespace ImgsToPDF {
             _isSyncingControlStates = true;
             try {
                 bool isProcessing = _isProcessing;
-                bool isImageMerge = IsImageMergeMode;
-                bool isPdfMerge = IsPdfMergeMode;
-                // 递归与合并子目录仅对真实存在的文件夹生效；压缩包文件一律禁用。
-                // 先判 Directory.Exists 再判扩展名，避免恰以 .zip 等结尾命名的真实目录被误判；
-                // 无选择/路径失效时保持既有行为（不禁用，开始按钮由 HasStartableTarget 把关）
-                bool isContainerMode = !isImageMerge && !isPdfMerge;
-                bool isRealDirectory = isContainerMode && Directory.Exists(PathLabel.Text);
-                bool isArchiveFile = isContainerMode && !isRealDirectory &&
-                    ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(PathLabel.Text));
-                bool supportsRecursion = isContainerMode && !isArchiveFile;
+                SelectionState selection = _selection;
+                // 递归与合并子目录仅对路径模式下的真实文件夹生效；压缩包与两种合并模式一律禁用
+                // （压缩包由 Core 侧固定按「整体解压 + 递归生成单个 PDF」处理，config.lua 的既有行为）。
+                // IsRealDirectory/IsArchiveFile 每次实时重判文件系统，目录被删/网络盘断开后勾选随之收敛
+                bool supportsRecursion = selection.Mode == SelectionMode.None || (selection.Mode == SelectionMode.Path && !selection.IsArchiveFile);
 
                 Recursive.Enabled = !isProcessing && supportsRecursion;
                 if (!supportsRecursion) {
@@ -177,12 +149,12 @@ namespace ImgsToPDF {
                 }
 
                 // 版式与快速压缩对 PDF 合并无意义（合并只搬移页面，不重排版、不重编码）
-                generateModeBox.Enabled = !isProcessing && !isPdfMerge;
-                FastMode.Enabled = !isProcessing && !isPdfMerge;
+                generateModeBox.Enabled = !isProcessing && !selection.IsPdfMerge;
+                FastMode.Enabled = !isProcessing && !selection.IsPdfMerge;
 
-                // 无效路径时 HasStartableTarget 为 false，开始按钮自然禁用，
+                // 无效路径时 IsStartable 为 false，开始按钮自然禁用，
                 // 不会把无效路径传给 Core
-                StartButton.Enabled = !isProcessing && HasStartableTarget;
+                StartButton.Enabled = !isProcessing && selection.IsStartable;
 
                 toolStripMenuOpenFolder.Enabled = !isProcessing;
                 toolStripMenuItemOpenArchive.Enabled = !isProcessing;
@@ -197,6 +169,38 @@ namespace ImgsToPDF {
             finally {
                 _isSyncingControlStates = false;
             }
+        }
+
+        /// <summary>
+        /// 目标选择的唯一转移入口：整体替换 <see cref="_selection"/> 并渲染全部纯派生视图
+        /// （路径标签文本/悬停提示/对齐、消息标签文案），最后经状态同步点刷新控件可用性。
+        /// 昂贵的派生（首图扫描、缩略图解码、预览图与角标替换）仍由各动作方法自行完成，不在此处执行。
+        /// </summary>
+        private void SetSelection(SelectionState selection) {
+            _selection = selection ?? SelectionState.Empty;
+
+            (string text, string toolTip) = _selection.Describe();
+            PathLabel.Text = text;
+            _pathToolTip.SetToolTip(PathLabel, toolTip);
+
+            // 若文本像素宽度超出控件，切换为靠左对齐，确保盘符及前置路径可见并通过 AutoEllipsis
+            // 在末尾追加省略号；较短时居中对齐，与上方预览控件保持对称（清除后无文本同样居中）
+            if (string.IsNullOrEmpty(text)) {
+                PathLabel.TextAlign = ContentAlignment.MiddleCenter;
+            }
+            else {
+                int textWidth = TextRenderer.MeasureText(text, PathLabel.Font).Width;
+                PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
+            }
+
+            // 消息标签由状态推导：无选择恢复默认文案；路径模式区分可开始/无效路径；合并模式一律可开始
+            MsgLabel.Text = _selection.Mode switch {
+                SelectionMode.None => Strings.MsgLabelDefault,
+                SelectionMode.Path => _selection.IsStartable ? Strings.ClickToStart : Strings.InvalidPath,
+                _ => Strings.ClickToStart
+            };
+
+            UpdateControlStates();
         }
 
         private void MainForm_DragEnter(object sender, DragEventArgs e) {
@@ -238,22 +242,15 @@ namespace ImgsToPDF {
             FolderImg.Visible = image != null;
         }
 
+        /// <summary>
+        /// 选中一个目录或压缩包路径（PicInFolder_Click、打开文件夹/压缩包菜单与
+        /// 兜底拖放的共用实现）。路径是否有效由 SelectionState 读取时判定，
+        /// 此处只按分类设置预览图，标签/提示/消息文案交给 SetSelection 统一渲染。
+        /// </summary>
         private void ChooseFileAction(string directoryPath) {
-            _chosenImageFiles = null;
-            _chosenPdfFiles = null;
+            var selection = SelectionState.FromPath(directoryPath);
 
-            PathLabel.Text = directoryPath;
-            _pathToolTip.SetToolTip(PathLabel, directoryPath);
-
-            // 若路径像素宽度超出控件，切换为靠左对齐，确保盘符及前置路径可见并通过 AutoEllipsis 在末尾追加省略号；
-            // 路径较短时居中对齐，与上方预览控件保持对称
-            int textWidth = TextRenderer.MeasureText(directoryPath, PathLabel.Font).Width;
-            PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
-
-            // 检查路径是否有效
-            bool isSupportedPath;
-            if (Directory.Exists(directoryPath)) {
-                isSupportedPath = true;
+            if (selection.IsRealDirectory) {
                 Bitmap preview = null;
                 IEnumerable<string> imagepaths = Directory.EnumerateFiles(directoryPath)
                     .Where(p => ImageContracts.ImageExtensions.Contains(Path.GetExtension(p)));
@@ -279,21 +276,16 @@ namespace ImgsToPDF {
                 ImagePreviewHelper.ReplaceImage(PicInFolder, preview ?? Properties.Resources.no_photo);
                 SetFolderOverlay(Properties.Resources.folder);
             }
-            else if (ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(directoryPath))) {
-                isSupportedPath = true;
+            else if (selection.IsArchiveFile) {
                 ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.compressedFile);
                 SetFolderOverlay(null);
             }
             else {
-                isSupportedPath = false;
                 ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.no_photo);
                 SetFolderOverlay(null);
             }
 
-            MsgLabel.Text = isSupportedPath ? Strings.ClickToStart : Strings.InvalidPath;
-            // 无效路径时 HasStartableTarget 为 false，开始按钮由状态同步点禁用，
-            // 不会把无效路径传给 Core
-            UpdateControlStates();
+            SetSelection(selection);
         }
 
         /// <summary>
@@ -304,8 +296,6 @@ namespace ImgsToPDF {
 
             // 自然排序（与 Windows 资源管理器文件排序规则一致）
             imageFiles.Sort(FolderScanner.NaturalPathComparer.Instance);
-            _chosenImageFiles = imageFiles;
-            _chosenPdfFiles = null;
 
             // 获取第一张可读图片生成高清缩略图
             Bitmap preview = null;
@@ -327,35 +317,9 @@ namespace ImgsToPDF {
             ImagePreviewHelper.ReplaceImage(PicInFolder, preview ?? Properties.Resources.no_photo);
             SetFolderOverlay(null); // 图片合并模式不需要文件夹角标
 
-            string firstFile = imageFiles[0];
-            string dir = Path.GetDirectoryName(firstFile);
-            string dirName = Path.GetFileName(dir);
-
-            if (imageFiles.Count == 1) {
-                PathLabel.Text = firstFile;
-                _pathToolTip.SetToolTip(PathLabel, firstFile);
-            }
-            else {
-                string countPattern = Strings.SelectedImagesCount;
-                if (string.IsNullOrEmpty(countPattern)) {
-                    countPattern = "[{0} Images] {1}";
-                }
-                string displayDir = string.IsNullOrEmpty(dirName) ? firstFile : dirName;
-                PathLabel.Text = string.Format(countPattern, imageFiles.Count, displayDir);
-                _pathToolTip.SetToolTip(PathLabel, string.Format(
-                    "Selected {0} image(s)\nDirectory: {1}\nFirst file: {2}",
-                    imageFiles.Count,
-                    dir,
-                    Path.GetFileName(firstFile)
-                ));
-            }
-
-            int textWidth = TextRenderer.MeasureText(PathLabel.Text, PathLabel.Font).Width;
-            PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
-
+            // 标签/提示/消息文案由 SelectionState.Describe 派生并经 SetSelection 统一渲染；
             // 递归/合并子目录的禁用与取消勾选由 UpdateControlStates 按模式统一处理
-            MsgLabel.Text = Strings.ClickToStart;
-            UpdateControlStates();
+            SetSelection(SelectionState.FromImageFiles(imageFiles));
         }
 
         /// <summary>
@@ -366,41 +330,13 @@ namespace ImgsToPDF {
 
             // 自然排序（与 Windows 资源管理器文件排序规则一致）
             pdfFiles.Sort(FolderScanner.NaturalPathComparer.Instance);
-            _chosenPdfFiles = pdfFiles;
-            _chosenImageFiles = null;
 
             ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.pdf);
             SetFolderOverlay(null); // PDF 合并模式不需要文件夹角标
 
-            string firstFile = pdfFiles[0];
-            string dir = Path.GetDirectoryName(firstFile);
-            string dirName = Path.GetFileName(dir);
-
-            if (pdfFiles.Count == 1) {
-                PathLabel.Text = firstFile;
-                _pathToolTip.SetToolTip(PathLabel, firstFile);
-            }
-            else {
-                string countPattern = Strings.SelectedPdfsCount;
-                if (string.IsNullOrEmpty(countPattern)) {
-                    countPattern = "[{0} PDFs] {1}";
-                }
-                string displayDir = string.IsNullOrEmpty(dirName) ? firstFile : dirName;
-                PathLabel.Text = string.Format(countPattern, pdfFiles.Count, displayDir);
-                _pathToolTip.SetToolTip(PathLabel, string.Format(
-                    "Selected {0} PDF(s)\nDirectory: {1}\nFirst file: {2}",
-                    pdfFiles.Count,
-                    dir,
-                    Path.GetFileName(firstFile)
-                ));
-            }
-
-            int textWidth = TextRenderer.MeasureText(PathLabel.Text, PathLabel.Font).Width;
-            PathLabel.TextAlign = textWidth > PathLabel.Width ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleCenter;
-
+            // 标签/提示/消息文案由 SelectionState.Describe 派生并经 SetSelection 统一渲染；
             // 版式/快速压缩的禁用与递归/合并的取消勾选由 UpdateControlStates 按模式统一处理
-            MsgLabel.Text = Strings.ClickToStart;
-            UpdateControlStates();
+            SetSelection(SelectionState.FromPdfFiles(pdfFiles));
         }
 
         private void MainForm_DragDrop(object sender, DragEventArgs e) {
@@ -447,57 +383,47 @@ namespace ImgsToPDF {
                 return;
             }
 
-            // 在 UI 线程捕获控件状态快照，后台任务只读取这些局部变量
-            string directoryPath = PathLabel.Text;
-            if (string.IsNullOrEmpty(directoryPath)) {
+            // 在 UI 线程捕获选择状态快照，后台任务只读取这些局部变量
+            SelectionState selection = _selection;
+            if (selection.Mode == SelectionMode.None) {
                 return;
             }
 
-            bool isImageMerge = IsImageMergeMode;
-            bool isPdfMerge = IsPdfMergeMode;
             string manifestPath = null;
-            string targetPathForCore = directoryPath;
-            string displayTargetPath = directoryPath;
+            string targetPathForCore;
+            string displayTargetPath;
 
-            if (isImageMerge) {
-                string firstImg = _chosenImageFiles[0];
-                string outDir = Path.GetDirectoryName(firstImg);
-                string pdfName = Path.GetFileName(outDir);
-                if (string.IsNullOrEmpty(pdfName)) {
-                    pdfName = Path.GetFileNameWithoutExtension(firstImg);
+            if (selection.IsImageMerge || selection.IsPdfMerge) {
+                // 合并模式：写临时清单交给 Core，输出名与既有命名保持一致
+                // （图片合并 = 首个文件所在目录名.pdf；PDF 合并 = 首个文件所在目录名_Merged.pdf）
+                string firstFile = selection.Files[0];
+                string outDir = Path.GetDirectoryName(firstFile);
+                string baseName = Path.GetFileName(outDir);
+                if (string.IsNullOrEmpty(baseName)) {
+                    baseName = Path.GetFileNameWithoutExtension(firstFile);
                 }
-                displayTargetPath = Path.Combine(outDir, $"{pdfName}.pdf");
+                displayTargetPath = Path.Combine(
+                    outDir,
+                    selection.IsPdfMerge ? $"{baseName}_Merged.pdf" : $"{baseName}.pdf");
 
                 manifestPath = Path.Combine(Path.GetTempPath(), $"imgstopdf_{Guid.NewGuid():N}.txt");
                 var lines = new List<string> {
                     IpcContracts.ManifestOutputPrefix + displayTargetPath
                 };
-                lines.AddRange(_chosenImageFiles);
+                lines.AddRange(selection.Files);
                 File.WriteAllLines(manifestPath, lines, new UTF8Encoding(false));
                 targetPathForCore = manifestPath;
             }
-            else if (isPdfMerge) {
-                string firstPdf = _chosenPdfFiles[0];
-                string outDir = Path.GetDirectoryName(firstPdf);
-                string dirName = Path.GetFileName(outDir);
-                if (string.IsNullOrEmpty(dirName)) {
-                    dirName = Path.GetFileNameWithoutExtension(firstPdf);
-                }
-                displayTargetPath = Path.Combine(outDir, $"{dirName}_Merged.pdf");
-
-                manifestPath = Path.Combine(Path.GetTempPath(), $"imgstopdf_{Guid.NewGuid():N}.txt");
-                var lines = new List<string> {
-                    IpcContracts.ManifestOutputPrefix + displayTargetPath
-                };
-                lines.AddRange(_chosenPdfFiles);
-                File.WriteAllLines(manifestPath, lines, new UTF8Encoding(false));
-                targetPathForCore = manifestPath;
+            else {
+                // 目录/压缩包模式：路径原样传给 Core
+                targetPathForCore = selection.TargetPath;
+                displayTargetPath = selection.TargetPath;
             }
 
-            bool recursive = !isImageMerge && !isPdfMerge && Recursive.Checked;
-            bool fastMode = !isPdfMerge && FastMode.Checked;
-            bool merge = !isImageMerge && !isPdfMerge && Merge.Checked;
-            Shared.Layout layout = isPdfMerge ? Shared.Layout.Single : _layoutChoices[generateModeBox.SelectedIndex].Value;
+            bool recursive = selection.Mode == SelectionMode.Path && Recursive.Checked;
+            bool fastMode = !selection.IsPdfMerge && FastMode.Checked;
+            bool merge = selection.Mode == SelectionMode.Path && Merge.Checked;
+            Shared.Layout layout = selection.IsPdfMerge ? Shared.Layout.Single : _layoutChoices[generateModeBox.SelectedIndex].Value;
 
             MsgLabel.Text = Strings.PDFIsGenerating;
             progressBar.Visible = true;
@@ -690,22 +616,14 @@ namespace ImgsToPDF {
         private void ToolStripMenuClearChosen_Click(object sender, EventArgs e) {
             if (_isProcessing) return;
 
-            _chosenImageFiles = null;
-            _chosenPdfFiles = null;
-
+            // 预览复位为初始资源图；标签/提示/消息文案与勾选、可用性
+            // 全部由 SetSelection(Empty) 的统一渲染与状态推导完成（清除 = 完整复位）
             ImagePreviewHelper.ReplaceImage(PicInFolder, Properties.Resources.folder);
             SetFolderOverlay(null);
-            PathLabel.Text = null;
-            PathLabel.TextAlign = ContentAlignment.MiddleCenter;
-            _pathToolTip.SetToolTip(PathLabel, null);
             progressBar.Visible = false;
             progressBar.Value = 0;
 
-            // 清除 = 完整复位：用户勾选的递归/合并一并取消（保持原行为）；
-            // 其余控件可用性由状态同步点推导
-            Recursive.Checked = false;
-            MsgLabel.Text = Strings.MsgLabelDefault;
-            UpdateControlStates();
+            SetSelection(SelectionState.Empty);
         }
 
         /// <summary>
@@ -837,6 +755,117 @@ namespace ImgsToPDF {
             if (files == null) return;
 
             ChoosePdfsAction(files);
+        }
+
+        /// <summary>
+        /// 目标选择的互斥形态：把原先由「图片列表 + PDF 列表 + 路径标签文本」三处字段
+        /// 共同隐式表达的状态收敛为单一可判别来源。
+        /// 目录/压缩包/失效路径不作为枚举值：它们是「同一路径读取时对文件系统的实时分类」，
+        /// 可能随外部变化（目录被删、网络盘断开），读取时重判才不会出现第二真相源
+        /// （开始按钮与控件状态推导本就每次重判，压缩包复选框修复即依赖此语义）。
+        /// </summary>
+        private enum SelectionMode {
+            /// <summary>无选择（启动初始态、清除后）。</summary>
+            None,
+            /// <summary>路径模式：TargetPath 指向目录/压缩包/其它，有效性读取时判定。</summary>
+            Path,
+            /// <summary>离散图片合并模式：Files 为已排序的非空列表。</summary>
+            ImageMerge,
+            /// <summary>PDF 合并模式：Files 为已排序的非空列表。</summary>
+            PdfMerge,
+        }
+
+        /// <summary>
+        /// 目标选择的完整状态：模式 + 载荷。不可变，经 <see cref="SetSelection"/> 整体替换；
+        /// 路径子形态（目录/压缩包/失效）的判定集中在此，且每次读取都实时重判文件系统。
+        /// </summary>
+        private sealed class SelectionState {
+            /// <summary>无选择状态（启动初始态、清除后）。</summary>
+            public static readonly SelectionState Empty = new(SelectionMode.None, null, null);
+
+            private SelectionState(SelectionMode mode, string targetPath, IReadOnlyList<string> files) {
+                Mode = mode;
+                TargetPath = targetPath;
+                Files = files;
+            }
+
+            /// <summary>当前形态。</summary>
+            public SelectionMode Mode { get; }
+
+            /// <summary>路径模式下的目标路径；合并模式下为 null（标签文本是展示用派生值，不再是状态）。</summary>
+            public string TargetPath { get; }
+
+            /// <summary>合并模式下的文件列表（已排序、非空）；其它模式为 null。</summary>
+            public IReadOnlyList<string> Files { get; }
+
+            public static SelectionState FromPath(string path) {
+                return new(SelectionMode.Path, path, null);
+            }
+
+            /// <summary>离散图片合并状态。文件列表由调用方排序并保证非空，构造后不再修改（不可变语义）。</summary>
+            public static SelectionState FromImageFiles(List<string> files) {
+                return new(SelectionMode.ImageMerge, null, files);
+            }
+
+            /// <summary>PDF 合并状态。文件列表由调用方排序并保证非空，构造后不再修改（不可变语义）。</summary>
+            public static SelectionState FromPdfFiles(List<string> files) {
+                return new(SelectionMode.PdfMerge, null, files);
+            }
+
+            public bool IsImageMerge => Mode == SelectionMode.ImageMerge;
+
+            public bool IsPdfMerge => Mode == SelectionMode.PdfMerge;
+
+            /// <summary>
+            /// 路径模式且目标是真实存在的文件夹。每次读取都实时重判（目录可能已被删除、
+            /// 网络盘可能已断开）。先判目录再判扩展名，避免恰以 .zip 等结尾命名的真实目录被误判为压缩包。
+            /// </summary>
+            public bool IsRealDirectory => Mode == SelectionMode.Path && Directory.Exists(TargetPath);
+
+            /// <summary>路径模式且目标是受支持的压缩包文件（非目录、扩展名匹配）。</summary>
+            public bool IsArchiveFile => Mode == SelectionMode.Path && !IsRealDirectory &&
+                ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(TargetPath));
+
+            /// <summary>
+            /// 当前选择是否可作为生成目标直接开始：
+            /// 两种合并模式选中即有效；路径模式要求目标真实存在（目录或压缩包）。
+            /// </summary>
+            public bool IsStartable => IsImageMerge || IsPdfMerge || IsRealDirectory || IsArchiveFile;
+
+            /// <summary>
+            /// 计算路径标签的显示文本与悬停提示（纯派生视图，不写任何控件）。
+            /// 路径模式原样显示路径；合并模式单文件显示完整路径，多文件显示「[N 项] 目录名」。
+            /// </summary>
+            public (string Text, string ToolTip) Describe() {
+                return Mode switch {
+                    SelectionMode.Path => (TargetPath, TargetPath),
+                    SelectionMode.ImageMerge => DescribeFileList(Strings.SelectedImagesCount, "[{0} Images] {1}", "image"),
+                    SelectionMode.PdfMerge => DescribeFileList(Strings.SelectedPdfsCount, "[{0} PDFs] {1}", "pdf"),
+                    _ => (null, null),
+                };
+            }
+
+            /// <summary>合并模式的标签与悬停提示文案。</summary>
+            private (string Text, string ToolTip) DescribeFileList(string countPattern, string fallbackPattern, string kind) {
+                string firstFile = Files[0];
+                string dir = Path.GetDirectoryName(firstFile);
+                string dirName = Path.GetFileName(dir);
+
+                if (Files.Count == 1) {
+                    return (firstFile, firstFile);
+                }
+
+                string pattern = string.IsNullOrEmpty(countPattern) ? fallbackPattern : countPattern;
+                string displayDir = string.IsNullOrEmpty(dirName) ? firstFile : dirName;
+                string toolTip = string.Format(
+                    "Selected {0} {1}(s)\nDirectory: {2}\nFirst file: {3}",
+                    Files.Count,
+                    kind,
+                    dir,
+                    Path.GetFileName(firstFile)
+                );
+                return (string.Format(pattern, Files.Count, displayDir), toolTip);
+            }
         }
     }
 }
