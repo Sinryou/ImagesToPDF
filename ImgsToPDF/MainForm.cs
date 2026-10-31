@@ -143,7 +143,7 @@ namespace ImgsToPDF {
         /// <summary>
         /// 全局唯一的控件状态同步点：从「选择模式 + 当前路径 + 忙碌状态」推导全部控件的
         /// Enabled，并维护两条勾选不变量：
-        /// 1. 递归子目录与合并子目录仅对目录/压缩包模式有意义，其它模式下强制取消勾选并禁用；
+        /// 1. 递归子目录与合并子目录仅对目录模式有意义，其它模式下强制取消勾选并禁用；
         /// 2. 合并子目录依赖递归子目录，后者取消勾选时前者随之取消。
         /// 任何改变上述状态的代码（选择目标、开始/结束处理、清除、用户勾选）完成后都必须调用
         /// 本方法；禁止在调用方手工零散设置控件 Enabled/Checked，避免状态同步逻辑漂移。
@@ -157,8 +157,14 @@ namespace ImgsToPDF {
                 bool isProcessing = _isProcessing;
                 bool isImageMerge = IsImageMergeMode;
                 bool isPdfMerge = IsPdfMergeMode;
-                // 递归与合并子目录仅适用于目录/压缩包模式（离散图片、PDF 合并均不适用）
-                bool supportsRecursion = !isImageMerge && !isPdfMerge;
+                // 递归与合并子目录仅对真实存在的文件夹生效；压缩包文件一律禁用。
+                // 先判 Directory.Exists 再判扩展名，避免恰以 .zip 等结尾命名的真实目录被误判；
+                // 无选择/路径失效时保持既有行为（不禁用，开始按钮由 HasStartableTarget 把关）
+                bool isContainerMode = !isImageMerge && !isPdfMerge;
+                bool isRealDirectory = isContainerMode && Directory.Exists(PathLabel.Text);
+                bool isArchiveFile = isContainerMode && !isRealDirectory &&
+                    ImageContracts.ArchiveExtensions.Contains(Path.GetExtension(PathLabel.Text));
+                bool supportsRecursion = isContainerMode && !isArchiveFile;
 
                 Recursive.Enabled = !isProcessing && supportsRecursion;
                 if (!supportsRecursion) {
