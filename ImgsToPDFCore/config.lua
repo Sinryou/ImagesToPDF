@@ -97,9 +97,9 @@ end
 -- page size of the output pdf file
 -- 输出PDF档的页大小
 -- @type iTextSharp.text.Rectangle
--- e.g. Config.PageSizeToSave = iPageSize.A4 (支持NoResize, A0~A10, B0~B10等)
+-- e.g. Config.PageSizeToSave = iPageSize.A4 (为nil即不改变尺寸, 支持尺寸A0~A10, B0~B10等)
 -- 或 Config.PageSizeToSave = iRectangle(0, 0, width, height)
-Config.PageSizeToSave = iPageSize.NoResize
+Config.PageSizeToSave = nil
 
 -- 开启 --fast 时的 JPEG 压缩质量（1~100，默认 75；数值越小体积越小，数值越大画质越好）
 -- @type int

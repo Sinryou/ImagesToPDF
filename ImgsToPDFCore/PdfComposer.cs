@@ -71,13 +71,6 @@ namespace ImgsToPDF.Core {
 
             document.SetPageSize(pageSize);
             document.NewPage();
-            // 技巧行：图片经 DirectContent 绘制而不经过 document.Add()，Document 的内部页计数
-            // 不会自己增长（实测 NewPage 后 PageNumber 恒为 0，PDF 页面本身由 writer 正常生成、
-            // 不受影响）。这里手动 +1 对齐到实际页数，否则 WriteDocument 的两处读取都会出错：
-            // - "PageNumber == 0 则补空白页"的判断永远成立，非空 PDF 末尾会多出一页空白页；
-            // - ImagesToPDFFromFolders 用 PageNumber 作页数返回值，恒为 0 会让压缩包路径
-            //   被误判成"整包没有图片"而报失败。
-            document.PageCount = document.PageNumber + 1;
             DrawImage(writer.DirectContent, pageImage, x, y, drawWidth, drawHeight);
         }
 
@@ -112,13 +105,6 @@ namespace ImgsToPDF.Core {
 
             document.SetPageSize(pageSize);
             document.NewPage();
-            // 技巧行：图片经 DirectContent 绘制而不经过 document.Add()，Document 的内部页计数
-            // 不会自己增长（实测 NewPage 后 PageNumber 恒为 0，PDF 页面本身由 writer 正常生成、
-            // 不受影响）。这里手动 +1 对齐到实际页数，否则 WriteDocument 的两处读取都会出错：
-            // - "PageNumber == 0 则补空白页"的判断永远成立，非空 PDF 末尾会多出一页空白页；
-            // - ImagesToPDFFromFolders 用 PageNumber 作页数返回值，恒为 0 会让压缩包路径
-            //   被误判成"整包没有图片"而报失败。
-            document.PageCount = document.PageNumber + 1;
 
             var content = writer.DirectContent;
             // 两张图顶部对齐，与旧版拼接位图时的画法保持一致
@@ -231,11 +217,12 @@ namespace ImgsToPDF.Core {
                     }
 
                     // 如果零页，添加一页空页
-                    if (document.PageNumber == 0 && blankPageWhenEmpty) {
+                    // document.NewPage()不触发document.PageNumber计数增长，必须读writer.PageNumber
+                    if (writer.PageNumber == 0 && blankPageWhenEmpty) {
                         document.NewPage();
                         document.Add(Chunk.NEWLINE);
                     }
-                    pages = document.PageNumber;
+                    pages = writer.PageNumber;
                 }
                 finally {
                     document.Close();
