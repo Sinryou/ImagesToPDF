@@ -28,14 +28,10 @@
     <windowsSettings>
 
       <!-- Per Monitor V2 DPI -->
-      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
-        PerMonitorV2
-      </dpiAwareness>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
 
       <!-- 长路径支持 -->
-      <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
-        true
-      </longPathAware>
+      <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
 
     </windowsSettings>
   </application>
