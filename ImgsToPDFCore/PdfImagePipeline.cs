@@ -100,6 +100,23 @@ namespace ImgsToPDF.Core {
         }
 
         /// <summary>
+        /// 读取 config.lua 的 Flate 压缩级别（有效值 1~9）；未配置或非法时返回 null，
+        /// 表示不写 Image.CompressionLevel，保持 iTextSharp 的默认值。
+        /// 0 必须视为「未配置」：XLua 的 CSharpCallLua 接口在 Lua 表缺少该字段时
+        /// 会返回 default(int) == 0，若把 0 当成 NO_COMPRESSION，旧版自定义 config.lua
+        /// 会突然生成接近原始像素大小（数百 MB）的 PDF。
+        /// </summary>
+        public static int? GetFlateLevel() {
+            try {
+                int level = CSGlobal.luaConfig != null ? CSGlobal.luaConfig.FlateLevel : 0;
+                return level is >= 1 and <= 9 ? level : null;
+            }
+            catch {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// 将 Image 压缩为指定质量的 JPEG 字节流（支持透明通道白底铺垫，防止透明背景变黑）
         /// </summary>
         public static byte[] CompressToJpeg(System.Drawing.Image img, long quality) {
@@ -138,10 +155,44 @@ namespace ImgsToPDF.Core {
         /// </summary>
         public static PageImage LoadPageImage(string imagePath, bool fastFlag) {
             if (string.Equals(Path.GetExtension(imagePath), ".webp", StringComparison.OrdinalIgnoreCase)) {
-                using var bitmap = LoadWebPBitmap(imagePath);
-                return new PageImage { Image = GetImageInstance(bitmap, fastFlag) };
+                return LoadWebPPageImage(imagePath, fastFlag);
             }
             return LoadPdfImage(imagePath, fastFlag);
+        }
+
+        /// <summary>
+        /// WebP 无损快路径：libwebp 直接解码为紧密排列的 RGB 像素，经 iTextSharp 的 ImgRaw
+        /// 只做一次 Flate 写入 PDF，不再经过「GDI+ Bitmap → 编码 PNG/BMP → iText 再解析」的往返。
+        /// EXIF 方向改为记录到 PageImage.Orientation，由 PdfComposer.GetOrientationMatrix
+        /// 在排版期用仿射矩阵应用（与 JPEG 路径一致），省掉一次全图像素旋转。
+        /// --fast（需要 JPEG 重编码）与带 alpha（需要 /SMask）的图仍沿用原位图路径。
+        /// </summary>
+        private static PageImage LoadWebPPageImage(string imagePath, bool fastFlag) {
+            byte[] rawWebP = File.ReadAllBytes(imagePath);
+            ushort orientation = ImageExif.GetOrientation(rawWebP) ?? (ushort)1;
+
+            using WebP webp = new();
+            webp.GetInfo(rawWebP, out int width, out int height, out bool hasAlpha, out _, out _);
+
+            if (fastFlag || hasAlpha) {
+                using var bitmap = DecodeWebPBitmap(webp, rawWebP, orientation);
+                return new PageImage { Image = GetImageInstance(bitmap, fastFlag) };
+            }
+
+            int stride = checked(width * 3);
+            int pixelBytes = checked(stride * height);
+            byte[] rgb = new byte[pixelBytes];
+            webp.DecodeInto(rawWebP, rgb, width, height, wantAlpha: false);
+
+            var image = iTextSharp.text.Image.GetInstance(width, height, 3, 8, rgb);
+            if (GetFlateLevel() is int level) {
+                image.CompressionLevel = level;
+            }
+
+            return new PageImage {
+                Image = image,
+                Orientation = orientation
+            };
         }
 
         /// <summary>
@@ -216,23 +267,18 @@ namespace ImgsToPDF.Core {
         }
 
         /// <summary>
-        /// 解码 WebP 为位图（libwebp 无法直通 PDF，必须解码），并按 EXIF 方向旋转。
+        /// 仅供 --fast 与带 alpha 的 WebP 使用：解码为 GDI+ 位图并在解码期烘焙 EXIF 方向。
+        /// 原字节由调用方读入并复用，避免同一文件读两遍。
         /// </summary>
-        public static Bitmap LoadWebPBitmap(string imagePath) {
-            // 只读一次盘：解码与 EXIF Orientation 解析共用同一份字节，避免同一文件读两遍
-            var rawWebP = File.ReadAllBytes(imagePath);
-            using WebP webp = new();
+        private static Bitmap DecodeWebPBitmap(WebP webp, byte[] rawWebP, ushort orientation) {
             // Decode 仅在字节为空（0 字节文件）时返回 null，正常解码失败会直接抛异常。
             // 此时若把 null 传下去，GetImageInstance 会解引用成毫无线索的 NullReferenceException；
             // 在这里抛出可被 WriteFolderPages 捕获、按图片路径上报的真实原因。
             var bitmapWebp = webp.Decode(rawWebP) ?? throw new InvalidDataException("The file is empty or not a valid WebP image.");
             try {
-                ushort? orientation = ImageExif.GetOrientation(rawWebP);
-                if (orientation.HasValue) {
-                    RotateFlipType rotateFlip = ImageExif.GetRotateFlipType(orientation.Value);
-                    if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
-                        bitmapWebp.RotateFlip(rotateFlip);
-                    }
+                RotateFlipType rotateFlip = ImageExif.GetRotateFlipType(orientation);
+                if (rotateFlip != RotateFlipType.RotateNoneFlipNone) {
+                    bitmapWebp.RotateFlip(rotateFlip);
                 }
                 return bitmapWebp;
             }

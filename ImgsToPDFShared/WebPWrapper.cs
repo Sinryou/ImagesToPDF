@@ -85,6 +85,72 @@ namespace WebPWrapper {
             }
         }
 
+        /// <summary>
+        /// 把 WebP 直接解码到调用方预分配的紧密排列 RGB/RGBA 缓冲区，不创建 GDI+ Bitmap。
+        /// 供 PDF 无损快路径使用：解码结果可直接交给 iTextSharp 的 ImgRaw，
+        /// 省掉「GDI+ 编码 PNG/BMP → iText 再解析」这两次全像素往返。
+        /// </summary>
+        /// <param name="rawWebP">WebP 原始字节</param>
+        /// <param name="output">目标缓冲区，长度至少 width*height*(wantAlpha?4:3)，按行紧密排列</param>
+        /// <param name="wantAlpha">true 输出 RGBA，false 输出 RGB</param>
+        public void DecodeInto(byte[] rawWebP, byte[] output, bool wantAlpha = false) {
+            if (rawWebP == null || rawWebP.Length == 0) {
+                throw new ArgumentException("Empty WebP data.", nameof(rawWebP));
+            }
+            GetInfo(rawWebP, out int imgWidth, out int imgHeight, out _, out _, out _);
+            DecodeInto(rawWebP, output, imgWidth, imgHeight, wantAlpha);
+        }
+
+        /// <summary>
+        /// 把 WebP 直接解码到调用方预分配的紧密排列 RGB/RGBA 缓冲区，已知宽高时避免重复解析元数据。
+        /// </summary>
+        /// <param name="rawWebP">WebP 原始字节</param>
+        /// <param name="output">目标缓冲区，长度至少 width*height*(wantAlpha?4:3)，按行紧密排列</param>
+        /// <param name="imgWidth">图像宽度</param>
+        /// <param name="imgHeight">图像高度</param>
+        /// <param name="wantAlpha">true 输出 RGBA，false 输出 RGB</param>
+        public void DecodeInto(byte[] rawWebP, byte[] output, int imgWidth, int imgHeight, bool wantAlpha = false) {
+            if (rawWebP == null || rawWebP.Length == 0) {
+                throw new ArgumentException("Empty WebP data.", nameof(rawWebP));
+            }
+            if (IntPtr.Size != 8) {
+                throw new PlatformNotSupportedException("The RGB fast path only supports x64.");
+            }
+
+            int bpp = wantAlpha ? 4 : 3;
+            long needed = (long)imgWidth * imgHeight * bpp;
+            // 显式拒绝非法尺寸，避免 stride*height 的 int 溢出把错误长度传给非托管解码器
+            if (imgWidth <= 0 || imgHeight <= 0 || needed > int.MaxValue) {
+                throw new InvalidOperationException($"Invalid WebP dimensions: {imgWidth}x{imgHeight}");
+            }
+            if (output == null || output.Length < needed) {
+                throw new ArgumentException("Output buffer is too small.", nameof(output));
+            }
+
+            GCHandle pinnedWebP = default;
+            GCHandle pinnedOutput = default;
+            try {
+                pinnedWebP = GCHandle.Alloc(rawWebP, GCHandleType.Pinned);
+                pinnedOutput = GCHandle.Alloc(output, GCHandleType.Pinned);
+                IntPtr src = pinnedWebP.AddrOfPinnedObject();
+                IntPtr dst = pinnedOutput.AddrOfPinnedObject();
+                int stride = imgWidth * bpp;
+                UIntPtr bufferSize = (UIntPtr)needed;
+                if (wantAlpha) {
+                    UnsafeNativeMethods.WebPDecodeRGBAInto(src, rawWebP.Length, dst, bufferSize, stride);
+                }
+                else {
+                    UnsafeNativeMethods.WebPDecodeRGBInto(src, rawWebP.Length, dst, bufferSize, stride);
+                }
+            }
+            finally {
+                if (pinnedOutput.IsAllocated)
+                    pinnedOutput.Free();
+                if (pinnedWebP.IsAllocated)
+                    pinnedWebP.Free();
+            }
+        }
+
         #endregion
 
         #region | Another Public Functions |
@@ -226,6 +292,24 @@ namespace WebPWrapper {
         private static extern IntPtr WebPDecodeBGRAInto_x86([InAttribute()] IntPtr data, UIntPtr data_size, IntPtr output_buffer, int output_buffer_size, int output_stride);
         [DllImport("libwebp_x64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeBGRAInto")]
         private static extern IntPtr WebPDecodeBGRAInto_x64([InAttribute()] IntPtr data, UIntPtr data_size, IntPtr output_buffer, int output_buffer_size, int output_stride);
+
+        // libwebp decode.h 的 RGB / RGBA 变体：输出顺序与 PDF 的 DeviceRGB 一致，
+        // 无需再经过 GDI+ 的 BGR 内存布局转换。项目固定 x64，故只声明 x64 入口。
+        [DllImport("libwebp_x64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeRGBInto")]
+        private static extern IntPtr WebPDecodeRGBInto_x64([InAttribute()] IntPtr data, UIntPtr data_size, IntPtr output_buffer, UIntPtr output_buffer_size, int output_stride);
+
+        [DllImport("libwebp_x64.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "WebPDecodeRGBAInto")]
+        private static extern IntPtr WebPDecodeRGBAInto_x64([InAttribute()] IntPtr data, UIntPtr data_size, IntPtr output_buffer, UIntPtr output_buffer_size, int output_stride);
+
+        internal static void WebPDecodeRGBInto(IntPtr data, int data_size, IntPtr output_buffer, UIntPtr output_buffer_size, int output_stride) {
+            if (WebPDecodeRGBInto_x64(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
+                throw new InvalidOperationException("Can not decode WebP into RGB");
+        }
+
+        internal static void WebPDecodeRGBAInto(IntPtr data, int data_size, IntPtr output_buffer, UIntPtr output_buffer_size, int output_stride) {
+            if (WebPDecodeRGBAInto_x64(data, (UIntPtr)data_size, output_buffer, output_buffer_size, output_stride) == IntPtr.Zero)
+                throw new InvalidOperationException("Can not decode WebP into RGBA");
+        }
     }
     #endregion
 

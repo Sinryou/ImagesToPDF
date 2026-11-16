@@ -209,6 +209,9 @@ namespace ImgsToPDF.Core {
                 var document = new Document(PageSize.A4, 0, 0, 0, 0);
                 var writer = PdfWriter.GetInstance(document, fs);
                 writer.SetFullCompression();
+                // 不设置 writer.CompressionLevel：它只影响内容流/对象流（体积差约 1 KB），
+                // 却可能对非 Flate 图像流产生副作用。图像级别由 PdfImagePipeline 在加载期
+                // 仅赋予适用格式（如 WebP 原始 RGB 快路径），从而保留 JPEG 的 /DCTDecode 字节直通与其它格式的库默认行为。
                 document.Open();
 
                 try {

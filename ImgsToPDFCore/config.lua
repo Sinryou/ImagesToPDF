@@ -105,6 +105,12 @@ Config.PageSizeToSave = nil
 -- @type int
 Config.FastQuality = 75
 
+-- PDF 内部 Flate 无损压缩级别（有效值 1~9）。Flate 是无损压缩，级别只影响压缩速度与产物体积，
+-- 解压后的像素始终完全一致，不影响画面本身。
+-- 该项只对 WebP 原始 RGB 快路径生效。数字越大压缩级别越高、速度越慢。
+-- @type int
+Config.FlateLevel = 3
+
 -- func that you can order your input files
 -- 图片文件排序的方法：提取文件名中的数字段做自然排序，
 -- 数字段之间的分隔符不限（. _ - 空格、中文等均可），没有数字的文件排在最前

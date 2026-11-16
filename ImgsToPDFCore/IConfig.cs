@@ -13,5 +13,6 @@ namespace ImgsToPDF.Core {
         void PreProcess(string directoryPath, Layout layout, bool fastFlag, bool merge);
         void PostProcess();
         int FastQuality { get; set; }
+        int FlateLevel { get; set; }
     }
 }
